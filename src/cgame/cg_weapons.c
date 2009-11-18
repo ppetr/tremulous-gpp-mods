@@ -80,105 +80,6 @@ void CG_InitUpgrades( void )
 
 
 /*
-======================
-CG_ParseWeaponAnimationFile
-
-Read a configuration file containing animation counts and rates
-models/weapons/rifle/animation.cfg, etc
-======================
-*/
-static qboolean CG_ParseWeaponAnimationFile( const char *filename, weaponInfo_t *weapon )
-{
-  char          *text_p;
-  int           len;
-  int           i;
-  char          *token;
-  float         fps;
-  char          text[ 20000 ];
-  fileHandle_t  f;
-  animation_t   *animations;
-
-  animations = weapon->animations;
-
-  // load the file
-  len = trap_FS_FOpenFile( filename, &f, FS_READ );
-  if( len < 0 )
-    return qfalse;
-
-  if( len == 0 || len >= sizeof( text ) - 1 )
-  {
-    trap_FS_FCloseFile( f );
-    CG_Printf( "File %s is %s\n", filename, len == 0 ? "empty" : "too long" );
-    return qfalse;
-  }
-
-  trap_FS_Read( text, len, f );
-  text[ len ] = 0;
-  trap_FS_FCloseFile( f );
-
-  // parse the text
-  text_p = text;
-
-  // read information for each frame
-  for( i = WANIM_NONE + 1; i < MAX_WEAPON_ANIMATIONS; i++ )
-  {
-
-    token = COM_Parse( &text_p );
-    if( !*token )
-      break;
-
-    if( !Q_stricmp( token, "noDrift" ) )
-    {
-      weapon->noDrift = qtrue;
-      continue;
-    }
-
-    animations[ i ].firstFrame = atoi( token );
-
-    token = COM_Parse( &text_p );
-    if( !*token )
-      break;
-
-    animations[ i ].numFrames = atoi( token );
-    animations[ i ].reversed = qfalse;
-    animations[ i ].flipflop = qfalse;
-
-    // if numFrames is negative the animation is reversed
-    if( animations[ i ].numFrames < 0 )
-    {
-      animations[ i ].numFrames = -animations[ i ].numFrames;
-      animations[ i ].reversed = qtrue;
-    }
-
-    token = COM_Parse( &text_p );
-    if ( !*token )
-      break;
-
-    animations[i].loopFrames = atoi( token );
-
-    token = COM_Parse( &text_p );
-    if( !*token )
-      break;
-
-    fps = atof( token );
-    if( fps == 0 )
-      fps = 1;
-
-    animations[ i ].frameLerp = 1000 / fps;
-    animations[ i ].initialLerp = 1000 / fps;
-  }
-
-  if( i != MAX_WEAPON_ANIMATIONS )
-  {
-    CG_Printf( "Error parsing animation file: %s\n", filename );
-    return qfalse;
-  }
-
-  return qtrue;
-}
-
-
-/*
 ===============
 CG_ParseWeaponModeSection
 
@@ -750,11 +651,6 @@ void CG_RegisterWeapon( int weaponNum )
   weaponInfo->humanName = BG_Weapon( weaponNum )->humanName;
 
   if( !CG_ParseWeaponFile( path, weaponInfo ) )
-    Com_Printf( S_COLOR_RED "ERROR: failed to parse %s\n", path );
-
-  Com_sprintf( path, MAX_QPATH, "models/weapons/%s/animation.cfg", BG_Weapon( weaponNum )->name );
-
-  if( !CG_ParseWeaponAnimationFile( path, weaponInfo ) )
     Com_Printf( S_COLOR_RED "ERROR: failed to parse %s\n", path );
 
   // calc midpoint for rotation

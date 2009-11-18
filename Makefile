@@ -206,7 +206,7 @@ ifneq ($(BUILD_CLIENT),0)
 endif
 
 # version info
-VERSION=1.1.0
+VERSION=gpp1
 
 USE_SVN=
 ifeq ($(wildcard .svn),.svn)

@@ -265,7 +265,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_publicAdminMessages, "g_publicAdminMessages", "1", CVAR_ARCHIVE, 0, qfalse  },
   { &g_allowTeamOverlay, "g_allowTeamOverlay", "1", CVAR_ARCHIVE, 0, qtrue  },
 
-  { &g_tag, "g_tag", "main", CVAR_INIT, 0, qfalse }
+  { &g_tag, "g_tag", "gpp", CVAR_INIT, 0, qfalse }
 };
 
 static int gameCvarTableSize = sizeof( gameCvarTable ) / sizeof( gameCvarTable[ 0 ] );

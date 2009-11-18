@@ -2869,7 +2869,7 @@ static void FS_Startup( const char *gameName )
 		homePath = fs_basepath->string;
 	}
 	fs_homepath = Cvar_Get ("fs_homepath", homePath, CVAR_INIT );
-	fs_gamedirvar = Cvar_Get ("fs_game", "", CVAR_INIT|CVAR_SYSTEMINFO );
+	fs_gamedirvar = Cvar_Get ("fs_game", "gpp", CVAR_INIT|CVAR_SYSTEMINFO );
 
 	// add search path elements in reverse priority order
 	if (fs_basepath->string[0]) {
