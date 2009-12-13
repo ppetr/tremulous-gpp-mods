@@ -1070,8 +1070,10 @@ void ClientUserinfoChanged( int clientNum )
     {
       trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE
         " renamed to %s" S_COLOR_WHITE "\n\"", oldname, client->pers.netname ) );
-      G_LogPrintf( "ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\"\n", clientNum,
-         client->pers.ip, client->pers.guid, oldname, client->pers.netname );
+      G_LogPrintf( "ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\" \"%c%s%c^7\"\n",
+                   clientNum, client->pers.ip, client->pers.guid,
+                   oldname, client->pers.netname,
+                   DECOLOR_OFF, client->pers.netname, DECOLOR_ON );
       G_admin_namelog_update( client, qfalse );
     }
   }
@@ -1224,6 +1226,8 @@ char *ClientConnect( int clientNum, qboolean firstTime )
   value = Info_ValueForKey( userinfo, "ip" );
   Q_strncpyz( client->pers.ip, value, sizeof( client->pers.ip ) );
 
+  client->pers.admin = G_admin_admin( client->pers.guid );
+
   // check for admin ban
   if( G_admin_ban_check( ent, reason, sizeof( reason ) ) )
   {
@@ -1263,7 +1267,6 @@ char *ClientConnect( int clientNum, qboolean firstTime )
   // check for local client
   if( !strcmp( client->pers.ip, "localhost" ) )
     client->pers.localClient = qtrue;
-  client->pers.admin = G_admin_admin( client->pers.guid );
 
   client->pers.connected = CON_CONNECTING;
 
@@ -1275,8 +1278,10 @@ char *ClientConnect( int clientNum, qboolean firstTime )
 
   // get and distribute relevent paramters
   ClientUserinfoChanged( clientNum );
-  G_LogPrintf( "ClientConnect: %i [%s] (%s) \"%s^7\"\n", clientNum,
-   client->pers.ip, client->pers.guid, client->pers.netname );
+  G_LogPrintf( "ClientConnect: %i [%s] (%s) \"%s^7\" \"%c%s%c^7\"\n",
+               clientNum, client->pers.ip, client->pers.guid,
+               client->pers.netname,
+               DECOLOR_OFF, client->pers.netname, DECOLOR_ON );
 
   // don't do the "xxx connected" messages if they were caried over from previous level
   if( firstTime )
