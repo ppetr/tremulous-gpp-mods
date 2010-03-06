@@ -63,6 +63,29 @@ team_t G_TeamFromString( char *str )
 }
 
 /*
+================
+G_TeamCommand
+
+Broadcasts a command to only a specific team
+================
+*/
+void G_TeamCommand( team_t team, char *cmd )
+{
+  int   i;
+
+  for( i = 0 ; i < level.maxclients ; i++ )
+  {
+    if( level.clients[ i ].pers.connected == CON_CONNECTED )
+    {
+      if( level.clients[ i ].pers.teamSelection == team ||
+        ( level.clients[ i ].pers.teamSelection == TEAM_NONE &&
+          G_admin_permission( &g_entities[ i ], ADMF_SPEC_ALLCHAT ) ) )
+        trap_SendServerCommand( i, cmd );
+    }
+  }
+}
+
+/*
 ==============
 OnSameTeam
 ==============
@@ -178,6 +201,8 @@ void G_LeaveTeam( gentity_t *self )
     else if( ent->s.eType == ET_MISSILE && ent->r.ownerNum == self->s.number )
       G_FreeEntity( ent );
   }
+
+  G_namelog_update_score( self->client );
 }
 
 /*
@@ -196,8 +221,6 @@ void G_ChangeTeam( gentity_t *ent, team_t newTeam )
   ent->client->pers.teamSelection = newTeam;
   ent->client->pers.classSelection = PCL_NONE;
   ClientSpawn( ent, NULL, NULL, NULL );
-  ent->client->pers.joinedATeam = qtrue;
-  ent->client->pers.teamChangeTime = level.time;
 
   if( oldTeam == TEAM_HUMANS && newTeam == TEAM_ALIENS )
   {
@@ -224,6 +247,7 @@ void G_ChangeTeam( gentity_t *ent, team_t newTeam )
   G_LogPrintf( "ChangeTeam: %d %s: %s" S_COLOR_WHITE " switched teams\n",
     ent - g_entities, BG_TeamName( newTeam ), ent->client->pers.netname );
 
+  G_namelog_update_score( ent->client );
   TeamplayInfoMessage( ent );
 }
 

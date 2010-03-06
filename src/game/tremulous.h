@@ -67,7 +67,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define LEVEL1_GRAB_U_TIME          300
 #define LEVEL1_PCLOUD_DMG           ADM(4)
 #define LEVEL1_PCLOUD_RANGE         120.0f
-#define LEVEL1_PCLOUD_REPEAT        2500
+#define LEVEL1_PCLOUD_REPEAT        2000
 #define LEVEL1_PCLOUD_TIME          10000
 #define LEVEL1_REGEN_MOD            2.0f
 #define LEVEL1_UPG_REGEN_MOD        3.0f
@@ -324,15 +324,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OVERMIND_ATTACK_REPEAT      1000
 #define OVERMIND_VALUE              ABVM(30)
 
-#define HOVEL_BP                    0
-#define HOVEL_BT                    15000
-#define HOVEL_HEALTH                ABHM(375)
-#define HOVEL_REGEN                 20
-#define HOVEL_SPLASHDAMAGE          20
-#define HOVEL_SPLASHRADIUS          200
-#define HOVEL_CREEPSIZE             120
-#define HOVEL_VALUE                 ABVM(8)
-
 /*
  * ALIEN misc
  *
@@ -404,13 +395,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define SHOTGUN_PRICE               150
 #define SHOTGUN_SHELLS              8
-#define SHOTGUN_PELLETS             14 //used to sync server and client side
+#define SHOTGUN_PELLETS             11 //used to sync server and client side
 #define SHOTGUN_MAXCLIPS            3
 #define SHOTGUN_REPEAT              1000
 #define SHOTGUN_K_SCALE             1.0f
 #define SHOTGUN_RELOAD              2000
 #define SHOTGUN_SPREAD              900
-#define SHOTGUN_DMG                 HDM(4)
+#define SHOTGUN_DMG                 HDM(5)
 #define SHOTGUN_RANGE               (8192 * 12)
 
 #define LASGUN_PRICE                250
@@ -438,7 +429,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define FLAMER_PRICE                400
 #define FLAMER_GAS                  200
 #define FLAMER_REPEAT               200
-#define FLAMER_K_SCALE              1.0f
+#define FLAMER_K_SCALE              2.0f
 #define FLAMER_DMG                  HDM(20)
 #define FLAMER_SPLASHDAMAGE         HDM(10)
 #define FLAMER_RADIUS               50       // splash radius
@@ -578,7 +569,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define TESLAGEN_SPLASHRADIUS       100
 #define TESLAGEN_REPEAT             250
 #define TESLAGEN_K_SCALE            4.0f
-#define TESLAGEN_RANGE              150
+#define TESLAGEN_RANGE              200
 #define TESLAGEN_DMG                HDM(10)
 #define TESLAGEN_VALUE              HBVM(TESLAGEN_BP)
 

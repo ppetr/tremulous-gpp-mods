@@ -32,29 +32,10 @@ Remove color codes and non-alphanumeric characters from a string
 */
 void G_SanitiseString( char *in, char *out, int len )
 {
-  qboolean skip = qtrue;
-  int spaces = 0;
-
   len--;
 
   while( *in && len > 0 )
   {
-    // strip leading white space
-    if( *in == ' ' )
-    {
-      if( skip )
-      {
-        in++;
-        continue;
-      }
-      spaces++;
-    }
-    else
-    {
-      spaces = 0;
-      skip = qfalse;
-    }
-
     if( Q_IsColorString( in ) )
     {
       in += 2;    // skip color code
@@ -68,7 +49,6 @@ void G_SanitiseString( char *in, char *out, int len )
     }
     in++;
   }
-  out -= spaces;
   *out = 0;
 }
 
@@ -510,12 +490,6 @@ Cmd_Kill_f
 */
 void Cmd_Kill_f( gentity_t *ent )
 {
-  if( ent->client->ps.stats[ STAT_STATE ] & SS_HOVELING )
-  {
-    trap_SendServerCommand( ent-g_entities, "print \"Leave the Hovel first (use your destroy key)\n\"" );
-    return;
-  }
-
   if( g_cheats.integer )
   {
     ent->flags &= ~FL_GODMODE;
@@ -551,10 +525,6 @@ void Cmd_Team_f( gentity_t *ent )
   int       aliens = level.numAlienClients;
   int       humans = level.numHumanClients;
 
-  // stop team join spam
-  if( level.time - ent->client->pers.teamChangeTime < 1000 )
-    return;
-
   if( oldteam == TEAM_ALIENS )
     aliens--;
   else if( oldteam == TEAM_HUMANS )
@@ -571,8 +541,8 @@ void Cmd_Team_f( gentity_t *ent )
 
   if( !s[ 0 ] )
   {
-    trap_SendServerCommand( ent-g_entities, va( "print \"team: %i\n\"",
-      oldteam ) );
+    trap_SendServerCommand( ent-g_entities, va( "print \"team: %s\n\"",
+      BG_TeamName( oldteam ) ) );
     return;
   }
 
@@ -781,19 +751,6 @@ static void Cmd_SayArea_f( gentity_t *ent )
   vec3_t range = { 1000.0f, 1000.0f, 1000.0f };
   vec3_t mins, maxs;
   char   *msg;
-
-  if( ent->client->pers.teamSelection == TEAM_NONE )
-  {
-    G_TriggerMenu( ent - g_entities, MN_CMD_TEAM );
-    return;
-  }
-
-  if( ent->client->ps.stats[ STAT_HEALTH ] <= 0 ||
-      ent->client->sess.spectatorState != SPECTATOR_NOT )
-  {
-    G_TriggerMenu( ent - g_entities, MN_CMD_LIVING );
-    return;
-  }
 
   if( trap_Argc( ) < 2 )
   {
@@ -1029,7 +986,7 @@ void Cmd_CallVote_f( gentity_t *ent )
   level.voteThreshold[ team ] = 50;
 
   if( g_voteLimit.integer > 0 &&
-    ent->client->pers.voteCount >= g_voteLimit.integer &&
+    ent->client->pers.namelog->voteCount >= g_voteLimit.integer &&
     !G_admin_permission( ent, ADMF_NO_VOTE_LIMIT ) )
   {
     trap_SendServerCommand( ent-g_entities, va(
@@ -1063,7 +1020,7 @@ void Cmd_CallVote_f( gentity_t *ent )
 
     if( clientNum != -1 )
     {
-      G_SanitiseString( level.clients[ clientNum ].pers.netname, name, sizeof( name ) );
+      G_DecolorString( level.clients[ clientNum ].pers.netname, name, sizeof( name ) );
     }
     else if( matches > 1 )
     {
@@ -1109,7 +1066,7 @@ void Cmd_CallVote_f( gentity_t *ent )
     }
 
     Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
-      "ban %s \"1s%s\" vote kick", level.clients[ clientNum ].pers.ip,
+      "ban %s \"1s%s\" vote kick", level.clients[ clientNum ].pers.ip.str,
       g_adminTempBan.string );
     Com_sprintf( level.voteDisplayString[ team ],
       sizeof( level.voteDisplayString[ team ] ),
@@ -1119,7 +1076,7 @@ void Cmd_CallVote_f( gentity_t *ent )
   {
     if( !Q_stricmp( vote, "mute" ) )
     {
-      if( level.clients[ clientNum ].pers.muted )
+      if( level.clients[ clientNum ].pers.namelog->muted )
       {
         trap_SendServerCommand( ent-g_entities,
           va( "print \"%s: player is already muted\n\"", cmd ) );
@@ -1134,7 +1091,7 @@ void Cmd_CallVote_f( gentity_t *ent )
     }
     else if( !Q_stricmp( vote, "unmute" ) )
     {
-      if( !level.clients[ clientNum ].pers.muted )
+      if( !level.clients[ clientNum ].pers.namelog->muted )
       {
         trap_SendServerCommand( ent-g_entities,
           va( "print \"%s: player is not currently muted\n\"", cmd ) );
@@ -1234,7 +1191,7 @@ void Cmd_CallVote_f( gentity_t *ent )
   }
   else if( !Q_stricmp( vote, "denybuild" ) )
   {
-    if( level.clients[ clientNum ].pers.denyBuild )
+    if( level.clients[ clientNum ].pers.namelog->denyBuild )
     {
       trap_SendServerCommand( ent-g_entities,
         va( "print \"%s: player already lost building rights\n\"", cmd ) );
@@ -1249,7 +1206,7 @@ void Cmd_CallVote_f( gentity_t *ent )
   }
   else if( !Q_stricmp( vote, "allowbuild" ) )
   {
-    if( !level.clients[ clientNum ].pers.denyBuild )
+    if( !level.clients[ clientNum ].pers.namelog->denyBuild )
     {
       trap_SendServerCommand( ent-g_entities,
         va( "print \"%s: player already has building rights\n\"", cmd ) );
@@ -1300,8 +1257,8 @@ void Cmd_CallVote_f( gentity_t *ent )
   trap_SetConfigstring( CS_VOTE_STRING + team,
     level.voteDisplayString[ team ] );
 
-  ent->client->pers.voteCount++;
-  ent->client->pers.vote[ team ] = qtrue;
+  ent->client->pers.namelog->voteCount++;
+  ent->client->pers.vote |= 1 << team;
   G_Vote( ent, team, qtrue );
 }
 
@@ -1326,7 +1283,7 @@ void Cmd_Vote_f( gentity_t *ent )
     return;
   }
 
-  if( ent->client->pers.voted[ team ] )
+  if( ent->client->pers.voted & ( 1 << team ) )
   {
     trap_SendServerCommand( ent-g_entities,
       va( "print \"%s: vote already cast\n\"", cmd ) );
@@ -1337,8 +1294,8 @@ void Cmd_Vote_f( gentity_t *ent )
     va( "print \"%s: vote cast\n\"", cmd ) );
 
   trap_Argv( 1, vote, sizeof( vote ) );
-  ent->client->pers.vote[ team ] =
-    ( tolower( vote[ 0 ] ) == 'y' || vote[ 0 ] == '1' );
+  ent->client->pers.vote |=
+    ( tolower( vote[ 0 ] ) == 'y' || vote[ 0 ] == '1' ) << team;
   G_Vote( ent, team, qtrue );
 }
 
@@ -1523,8 +1480,7 @@ void Cmd_Class_f( gentity_t *ent )
   if( ent->health <= 0 )
     return;
 
-  if( ent->client->pers.teamSelection == TEAM_ALIENS &&
-      !( ent->client->ps.stats[ STAT_STATE ] & SS_HOVELING ) )
+  if( ent->client->pers.teamSelection == TEAM_ALIENS )
   {
     if( newClass == PCL_NONE )
     {
@@ -1641,7 +1597,7 @@ void Cmd_Destroy_f( gentity_t *ent )
   qboolean    deconstruct = qtrue;
   qboolean    lastSpawn = qfalse;
 
-  if( ent->client->pers.denyBuild )
+  if( ent->client->pers.namelog->denyBuild )
   {
     G_TriggerMenu( ent->client->ps.clientNum, MN_B_REVOKED );
     return;
@@ -1650,9 +1606,6 @@ void Cmd_Destroy_f( gentity_t *ent )
   trap_Argv( 0, cmd, sizeof( cmd ) );
   if( Q_stricmp( cmd, "destroy" ) == 0 )
     deconstruct = qfalse;
-
-  if( ent->client->ps.stats[ STAT_STATE ] & SS_HOVELING )
-    G_Damage( ent->client->hovel, ent, ent, forward, ent->s.origin, 10000, 0, MOD_SUICIDE );
 
   AngleVectors( ent->client->ps.viewangles, forward, NULL, NULL );
   VectorMA( ent->client->ps.origin, 100, forward, end );
@@ -1701,10 +1654,6 @@ void Cmd_Destroy_f( gentity_t *ent )
       G_TriggerMenu( ent->client->ps.clientNum, MN_B_LASTSPAWN );
       return;
     }
-
-    // Don't allow destruction of hovel with granger inside
-    if( traceEnt->s.modelindex == BA_A_HOVEL && traceEnt->active )
-      return;
 
     // Don't allow destruction of buildables that cannot be rebuilt
     if( G_TimeTilSuddenDeath( ) <= 0 )
@@ -2219,7 +2168,7 @@ void Cmd_Build_f( gentity_t *ent )
   vec3_t        origin;
   team_t        team;
 
-  if( ent->client->pers.denyBuild )
+  if( ent->client->pers.namelog->denyBuild )
   {
     G_TriggerMenu( ent->client->ps.clientNum, MN_B_REVOKED );
     return;
@@ -2245,7 +2194,6 @@ void Cmd_Build_f( gentity_t *ent )
 
   if( buildable != BA_NONE &&
       ( ( 1 << ent->client->ps.weapon ) & BG_Buildable( buildable )->buildWeapon ) &&
-      !( ent->client->ps.stats[ STAT_STATE ] & SS_HOVELING ) &&
       BG_BuildableIsAllowed( buildable ) &&
       ( ( team == TEAM_ALIENS && BG_BuildableAllowedInStage( buildable, g_alienStage.integer ) ) ||
         ( team == TEAM_HUMANS && BG_BuildableAllowedInStage( buildable, g_humanStage.integer ) ) ) )
@@ -2271,7 +2219,6 @@ void Cmd_Build_f( gentity_t *ent )
 
       // can't place yet but maybe soon: start with valid togglebit off
       case IBE_NORMAL:
-      case IBE_HOVELEXIT:
       case IBE_NOCREEP:
       case IBE_NOROOM:
       case IBE_NOOVERMIND:
@@ -2286,10 +2233,6 @@ void Cmd_Build_f( gentity_t *ent )
 
       case IBE_ONEOVERMIND:
         err = MN_A_ONEOVERMIND;
-        break;
-
-      case IBE_ONEHOVEL:
-        err = MN_A_ONEHOVEL;
         break;
 
       case IBE_ONEREACTOR:
@@ -2636,100 +2579,6 @@ void Cmd_FollowCycle_f( gentity_t *ent )
   G_FollowNewClient( ent, dir );
 }
 
-/*
-=================
-Cmd_PTRCVerify_f
-
-Check a PTR code is valid
-=================
-*/
-void Cmd_PTRCVerify_f( gentity_t *ent )
-{
-  connectionRecord_t  *connection;
-  char                s[ MAX_TOKEN_CHARS ] = { 0 };
-  int                 code;
-
-  trap_Argv( 1, s, sizeof( s ) );
-
-  if( !s[ 0 ] )
-    return;
-
-  code = atoi( s );
-
-  if( G_VerifyPTRC( code ) )
-  {
-    connection = G_FindConnectionForCode( code );
-
-    // valid code
-    if( connection->clientTeam != TEAM_NONE )
-      trap_SendServerCommand( ent->client->ps.clientNum, "ptrcconfirm" );
-
-    // restore mapping
-    ent->client->pers.connection = connection;
-  }
-  else
-  {
-    // invalid code -- generate a new one
-    connection = G_GenerateNewConnection( ent->client );
-
-    if( connection )
-    {
-      trap_SendServerCommand( ent->client->ps.clientNum,
-        va( "ptrcissue %d", connection->ptrCode ) );
-    }
-  }
-}
-
-/*
-=================
-Cmd_PTRCRestore_f
-
-Restore against a PTR code
-=================
-*/
-void Cmd_PTRCRestore_f( gentity_t *ent )
-{
-  char                s[ MAX_TOKEN_CHARS ] = { 0 };
-  int                 code;
-  connectionRecord_t  *connection;
-
-  trap_Argv( 1, s, sizeof( s ) );
-
-  if( !s[ 0 ] )
-    return;
-
-  code = atoi( s );
-
-  if( G_VerifyPTRC( code ) )
-  {
-    if( ent->client->pers.joinedATeam )
-    {
-      trap_SendServerCommand( ent - g_entities,
-        "print \"You cannot use a PTR code after joining a team\n\"" );
-    }
-    else
-    {
-      // valid code
-      connection = G_FindConnectionForCode( code );
-
-      if( connection )
-      {
-        // set the correct team
-        G_ChangeTeam( ent, connection->clientTeam );
-
-        // set the correct credit
-        ent->client->pers.credit = 0;
-        G_AddCreditToClient( ent->client, connection->clientCredit, qtrue );
-      }
-    }
-  }
-  else
-  {
-    trap_SendServerCommand( ent - g_entities,
-      va( "print \"'%d' is not a valid PTR code\n\"", code ) );
-  }
-}
-
 static void Cmd_Ignore_f( gentity_t *ent )
 {
   int pids[ MAX_CLIENTS ];
@@ -3014,8 +2863,6 @@ commands_t cmds[ ] = {
   { "mt", CMD_MESSAGE|CMD_INTERMISSION, Cmd_PrivateMessage_f },
   { "noclip", CMD_CHEAT_TEAM, Cmd_Noclip_f },
   { "notarget", CMD_CHEAT|CMD_TEAM|CMD_LIVING, Cmd_Notarget_f },
-  { "ptrcrestore", CMD_SPEC, Cmd_PTRCRestore_f },
-  { "ptrcverify", CMD_SPEC, Cmd_PTRCVerify_f },
   { "reload", CMD_HUMAN|CMD_LIVING, Cmd_Reload_f },
   { "say", CMD_MESSAGE|CMD_INTERMISSION, Cmd_Say_f },
   { "say_area", CMD_MESSAGE|CMD_TEAM|CMD_LIVING, Cmd_SayArea_f },
@@ -3023,7 +2870,7 @@ commands_t cmds[ ] = {
   { "score", CMD_INTERMISSION, ScoreboardMessage },
   { "sell", CMD_HUMAN|CMD_LIVING, Cmd_Sell_f },
   { "setviewpos", CMD_CHEAT_TEAM, Cmd_SetViewpos_f },
-  { "team", 0, Cmd_Team_f },
+  { "team", CMD_MESSAGE, Cmd_Team_f },
   { "teamvote", CMD_TEAM, Cmd_Vote_f },
   { "test", CMD_CHEAT, Cmd_Test_f },
   { "unignore", 0, Cmd_Ignore_f },
@@ -3073,7 +2920,7 @@ void ClientCommand( int clientNum )
     return;
   }
 
-  if( command->cmdFlags & CMD_MESSAGE && ( ent->client->pers.muted ||
+  if( command->cmdFlags & CMD_MESSAGE && ( ent->client->pers.namelog->muted ||
       G_FloodLimited( ent ) ) )
     return;
 
@@ -3213,7 +3060,7 @@ void Cmd_PrivateMessage_f( gentity_t *ent )
     return;
   }
 
-  if( !Q_stricmp( cmd, "mt" ) || !Q_stricmp( cmd, "/mt" ) )
+  if( !Q_stricmp( cmd, "mt" ) )
     teamonly = qtrue;
 
   trap_Argv( 1, name, sizeof( name ) );

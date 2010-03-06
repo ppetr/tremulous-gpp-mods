@@ -785,7 +785,7 @@ static qboolean G_IsEmoticon( const char *s, qboolean *escaped )
     {
       for( j = 0; j < level.emoticonCount; j++ )
       {
-        if( !Q_stricmp( emoticon, level.emoticons[ j ] ) )
+        if( !Q_stricmp( emoticon, level.emoticons[ j ].name ) )
         {
           *escaped = escape;
           return qtrue;
@@ -974,7 +974,6 @@ if desired.
 void ClientUserinfoChanged( int clientNum )
 {
   gentity_t *ent;
-  int       health;
   char      *s;
   char      model[ MAX_QPATH ];
   char      buffer[ MAX_QPATH ];
@@ -984,8 +983,6 @@ void ClientUserinfoChanged( int clientNum )
   char      err[ MAX_STRING_CHARS ];
   qboolean  revertName = qfalse;
   gclient_t *client;
-  char      c1[ MAX_INFO_STRING ];
-  char      c2[ MAX_INFO_STRING ];
   char      userinfo[ MAX_INFO_STRING ];
 
   ent = g_entities + clientNum;
@@ -1013,24 +1010,24 @@ void ClientUserinfoChanged( int clientNum )
 
   if( strcmp( oldname, newname ) )
   {
-    if( client->pers.nameChangeTime &&
-      ( level.time - client->pers.nameChangeTime )
-      <= ( g_minNameChangePeriod.value * 1000 ) )
+    if( client->pers.namelog->nameChangeTime &&
+      level.time - client->pers.namelog->nameChangeTime <=
+      g_minNameChangePeriod.value * 1000 )
     {
       trap_SendServerCommand( ent - g_entities, va(
         "print \"Name change spam protection (g_minNameChangePeriod = %d)\n\"",
          g_minNameChangePeriod.integer ) );
       revertName = qtrue;
     }
-    else if( g_maxNameChanges.integer > 0
-      && client->pers.nameChanges >= g_maxNameChanges.integer  )
+    else if( g_maxNameChanges.integer > 0 &&
+      client->pers.namelog->nameChanges >= g_maxNameChanges.integer  )
     {
       trap_SendServerCommand( ent - g_entities, va(
         "print \"Maximum name changes reached (g_maxNameChanges = %d)\n\"",
          g_maxNameChanges.integer ) );
       revertName = qtrue;
     }
-    else if( client->pers.muted )
+    else if( client->pers.namelog->muted )
     {
       trap_SendServerCommand( ent - g_entities,
         "print \"You cannot change your name while you are muted\n\"" );
@@ -1055,32 +1052,19 @@ void ClientUserinfoChanged( int clientNum )
         sizeof( client->pers.netname ) );
       if( client->pers.connected == CON_CONNECTED )
       {
-        client->pers.nameChangeTime = level.time;
-        client->pers.nameChanges++;
+        client->pers.namelog->nameChangeTime = level.time;
+        client->pers.namelog->nameChanges++;
       }
-    }
-  }
-
-  if( client->sess.spectatorState == SPECTATOR_SCOREBOARD )
-    Q_strncpyz( client->pers.netname, "scoreboard", sizeof( client->pers.netname ) );
-
-  if( *oldname )
-  {
-    if( strcmp( oldname, client->pers.netname ) )
-    {
-      trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE
-        " renamed to %s" S_COLOR_WHITE "\n\"", oldname, client->pers.netname ) );
-      G_LogPrintf( "ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\" \"%c%s%c^7\"\n",
-                   clientNum, client->pers.ip, client->pers.guid,
+      if( *oldname )
+      {
+        G_LogPrintf( "ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\" \"%c%s%c^7\"\n",
+                   clientNum, client->pers.ip.str, client->pers.guid,
                    oldname, client->pers.netname,
                    DECOLOR_OFF, client->pers.netname, DECOLOR_ON );
-      G_admin_namelog_update( client, qfalse );
+      }
     }
+    G_namelog_update_name( client );
   }
-
-  // set max health
-  health = atoi( Info_ValueForKey( userinfo, "handicap" ) );
-  client->pers.maxHealth = health;
 
   if( client->pers.classSelection == PCL_NONE )
   {
@@ -1154,16 +1138,12 @@ void ClientUserinfoChanged( int clientNum )
     client->pers.teamInfo = qtrue;
   else
     client->pers.teamInfo = qfalse;
-  
+
   s = Info_ValueForKey( userinfo, "cg_unlagged" );
   if( !s[0] || atoi( s ) != 0 )
     client->pers.useUnlagged = qtrue;
   else
     client->pers.useUnlagged = qfalse;
-
-  // colors
-  strcpy( c1, Info_ValueForKey( userinfo, "color1" ) );
-  strcpy( c2, Info_ValueForKey( userinfo, "color2" ) );
 
   Q_strncpyz( client->pers.voice, Info_ValueForKey( userinfo, "voice" ),
     sizeof( client->pers.voice ) );
@@ -1172,10 +1152,9 @@ void ClientUserinfoChanged( int clientNum )
   // print scoreboards, display models, and play custom sounds
 
   Com_sprintf( userinfo, sizeof( userinfo ),
-    "n\\%s\\t\\%i\\model\\%s\\c1\\%s\\c2\\%s\\"
-    "hc\\%i\\ig\\%16s\\v\\%s",
-    client->pers.netname, client->pers.teamSelection, model, c1, c2,
-    client->pers.maxHealth, Com_ClientListString( &client->sess.ignoreList ),
+    "n\\%s\\t\\%i\\model\\%s\\ig\\%16s\\v\\%s",
+    client->pers.netname, client->pers.teamSelection, model,
+    Com_ClientListString( &client->sess.ignoreList ),
     client->pers.voice );
 
   trap_SetConfigstring( CS_PLAYERS + clientNum, userinfo );
@@ -1224,7 +1203,10 @@ char *ClientConnect( int clientNum, qboolean firstTime )
   Q_strncpyz( client->pers.guid, value, sizeof( client->pers.guid ) );
 
   value = Info_ValueForKey( userinfo, "ip" );
-  Q_strncpyz( client->pers.ip, value, sizeof( client->pers.ip ) );
+  // check for local client
+  if( !strcmp( value, "localhost" ) )
+    client->pers.localClient = qtrue;
+  G_AddressParse( value, &client->pers.ip );
 
   client->pers.admin = G_admin_admin( client->pers.guid );
 
@@ -1264,10 +1246,6 @@ char *ClientConnect( int clientNum, qboolean firstTime )
     }
   }
 
-  // check for local client
-  if( !strcmp( client->pers.ip, "localhost" ) )
-    client->pers.localClient = qtrue;
-
   client->pers.connected = CON_CONNECTING;
 
   // read or initialize the session data
@@ -1277,9 +1255,10 @@ char *ClientConnect( int clientNum, qboolean firstTime )
   G_ReadSessionData( client );
 
   // get and distribute relevent paramters
+  G_namelog_connect( client );
   ClientUserinfoChanged( clientNum );
   G_LogPrintf( "ClientConnect: %i [%s] (%s) \"%s^7\" \"%c%s%c^7\"\n",
-               clientNum, client->pers.ip, client->pers.guid,
+               clientNum, client->pers.ip.str, client->pers.guid,
                client->pers.netname,
                DECOLOR_OFF, client->pers.netname, DECOLOR_ON );
 
@@ -1293,7 +1272,6 @@ char *ClientConnect( int clientNum, qboolean firstTime )
 
   // count current clients and rank for scoreboard
   CalculateRanks( );
-  G_admin_namelog_update( client, qfalse );
   
 
   // if this is after !restart keepteams or !restart switchteams, apply said selection
@@ -1352,11 +1330,7 @@ void ClientBegin( int clientNum )
 
   trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " entered the game\n\"", client->pers.netname ) );
 
-  // name can change between ClientConnect() and ClientBegin()
-  G_admin_namelog_update( client, qfalse );
-
-  // request the clients PTR code
-  trap_SendServerCommand( ent - g_entities, "ptrcrequest" );
+  G_namelog_restore( client );
 
   G_LogPrintf( "ClientBegin: %i\n", clientNum );
 
@@ -1517,10 +1491,10 @@ void ClientSpawn( gentity_t *ent, gentity_t *spawn, vec3_t origin, vec3_t angles
   BG_ClassBoundingBox( ent->client->pers.classSelection, ent->r.mins, ent->r.maxs, NULL, NULL, NULL );
 
   if( client->sess.spectatorState == SPECTATOR_NOT )
-    client->pers.maxHealth = client->ps.stats[ STAT_MAX_HEALTH ] =
+    client->ps.stats[ STAT_MAX_HEALTH ] =
       BG_Class( ent->client->pers.classSelection )->health;
   else
-    client->pers.maxHealth = client->ps.stats[ STAT_MAX_HEALTH ] = 100;
+    client->ps.stats[ STAT_MAX_HEALTH ] = 100;
 
   // clear entity values
   if( ent->client->pers.classSelection == PCL_HUMAN )
@@ -1708,8 +1682,8 @@ void ClientDisconnect( int clientNum )
   if( !ent->client )
     return;
 
-  G_admin_namelog_update( ent->client, qtrue );
   G_LeaveTeam( ent );
+  G_namelog_disconnect( ent->client );
   G_Vote( ent, TEAM_NONE, qfalse );
 
   // stop any following clients
@@ -1727,11 +1701,8 @@ void ClientDisconnect( int clientNum )
     tent->s.clientNum = ent->s.clientNum;
   }
 
-  if( ent->client->pers.connection )
-    ent->client->pers.connection->clientNum = -1;
-
   G_LogPrintf( "ClientDisconnect: %i [%s] (%s) \"%s^7\"\n", clientNum,
-   ent->client->pers.ip, ent->client->pers.guid, ent->client->pers.netname );
+   ent->client->pers.ip.str, ent->client->pers.guid, ent->client->pers.netname );
 
   trap_UnlinkEntity( ent );
   ent->s.modelindex = 0;

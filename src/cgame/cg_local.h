@@ -724,17 +724,12 @@ typedef struct
 
   char        name[ MAX_QPATH ];
   team_t      team;
-  
-  vec3_t      color1;
-  vec3_t      color2;
 
   int         score;                      // updated by score servercmds
   int         location;                   // location index for team mode
   int         health;                     // you only get this info about your teammates
   int         upgrade; 
   int         curWeaponClass;             // sends current weapon for H, current class for A
-
-  int         handicap;
 
   // when clientinfo is changed, the loading of models/skins/sounds
   // can be deferred until you are dead, to prevent hitches in
@@ -1645,7 +1640,6 @@ void        CG_Corpse( centity_t *cent );
 void        CG_ResetPlayerEntity( centity_t *cent );
 void        CG_NewClientInfo( int clientNum );
 void        CG_PrecacheClientInfo( class_t class, char *model, char *skin );
-void        CG_TeamJoinMessage( clientInfo_t *newInfo, clientInfo_t *ci );
 sfxHandle_t CG_CustomSound( int clientNum, const char *soundName );
 void        CG_PlayerDisconnect( vec3_t org );
 void        CG_Bleed( vec3_t origin, vec3_t normal, int entityNum );

@@ -219,17 +219,16 @@ void AssetCache( void )
   if( ui_emoticons.integer ) 
   {
     uiInfo.uiDC.Assets.emoticonCount = BG_LoadEmoticons(
-      uiInfo.uiDC.Assets.emoticons,
-      uiInfo.uiDC.Assets.emoticonWidths );
+      uiInfo.uiDC.Assets.emoticons, MAX_EMOTICONS );
   }
   else
     uiInfo.uiDC.Assets.emoticonCount = 0;
 
   for( i = 0; i < uiInfo.uiDC.Assets.emoticonCount; i++ )
   {
-    uiInfo.uiDC.Assets.emoticonShaders[ i ] = trap_R_RegisterShaderNoMip( 
-      va( "emoticons/%s_%dx1.tga", uiInfo.uiDC.Assets.emoticons[ i ],
-          uiInfo.uiDC.Assets.emoticonWidths[ i ] ) );
+    uiInfo.uiDC.Assets.emoticons[ i ].shader = trap_R_RegisterShaderNoMip( 
+      va( "emoticons/%s_%dx1.tga", uiInfo.uiDC.Assets.emoticons[ i ].name,
+          uiInfo.uiDC.Assets.emoticons[ i ].width ) );
   }
 }
 
@@ -3018,28 +3017,6 @@ static void UI_RunMenuScript( char **args )
     {
       if( ( cmd = uiInfo.humanBuildList[ uiInfo.humanBuildIndex ].cmd ) )
         trap_Cmd_ExecuteText( EXEC_APPEND, cmd );
-    }
-    else if( Q_stricmp( name, "PTRCRestore" ) == 0 )
-    {
-      int           len;
-      char          text[ 16 ];
-      fileHandle_t  f;
-      char          command[ 32 ];
-
-      // load the file
-      len = trap_FS_FOpenFile( "ptrc.cfg", &f, FS_READ );
-
-      if( len > 0 && ( len < sizeof( text ) - 1 ) )
-      {
-        trap_FS_Read( text, len, f );
-        text[ len ] = 0;
-
-        Com_sprintf( command, 32, "ptrcrestore %s", text );
-
-        trap_Cmd_ExecuteText( EXEC_APPEND, command );
-      }
-      if( len > -1 )
-        trap_FS_FCloseFile( f );
     }
     else if( Q_stricmp( name, "Say" ) == 0 )
     {
