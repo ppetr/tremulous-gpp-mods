@@ -1311,7 +1311,7 @@ static qboolean admin_create_ban( gentity_t *ent,
 
   Q_strncpyz( b->name, netname, sizeof( b->name ) );
   Q_strncpyz( b->guid, guid, sizeof( b->guid ) );
-  memcpy( &b->ip, &ip, sizeof( b->ip ) );
+  memcpy( &b->ip, ip, sizeof( b->ip ) );
 
   Com_sprintf( b->made, sizeof( b->made ), "%02i/%02i/%02i %02i:%02i:%02i",
     qt.tm_mon + 1, qt.tm_mday, qt.tm_year % 100,
@@ -2755,7 +2755,7 @@ qboolean G_admin_namelog( gentity_t *ent )
     for( i = 0; i < MAX_NAMELOG_ADDRS && n->ip[ i ].str[ 0 ]; i++ )
       ADMBP( va( " %s", n->ip[ i ].str ) );
     for( i = 0; i < MAX_NAMELOG_NAMES && n->name[ i ][ 0 ]; i++ )
-      ADMBP( va( " '%s^7'", n->name[ i ] ) );
+      ADMBP( va( S_COLOR_WHITE " '%s" S_COLOR_WHITE "'", n->name[ i ] ) );
     ADMBP( "\n" );
   }
   ADMBP( va( "^3namelog:^7 %d recent clients found\n", printed ) );

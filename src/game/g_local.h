@@ -317,6 +317,7 @@ typedef struct
   weapon_t            humanItemSelection; // humans have a starting item
   team_t              teamSelection;      // player team (copied to ps.stats[ STAT_TEAM ])
 
+  int                 teamChangeTime;     // level.time of last team change
   namelog_t           *namelog;
   g_admin_admin_t     *admin;
 
@@ -957,7 +958,7 @@ int  G_TimeTilSuddenDeath( void );
 // g_client.c
 //
 char *ClientConnect( int clientNum, qboolean firstTime );
-void ClientUserinfoChanged( int clientNum );
+char *ClientUserinfoChanged( int clientNum );
 void ClientDisconnect( int clientNum );
 void ClientBegin( int clientNum );
 void ClientCommand( int clientNum );
