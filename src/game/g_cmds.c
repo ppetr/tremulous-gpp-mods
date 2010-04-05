@@ -1670,7 +1670,7 @@ void Cmd_Destroy_f( gentity_t *ent )
 
     if( !g_markDeconstruct.integer ||
         ( ent->client->pers.teamSelection == TEAM_HUMANS &&
-          !G_FindPower( traceEnt ) ) )
+          !G_FindPower( traceEnt, qtrue ) ) )
     {
       if( ent->client->ps.stats[ STAT_MISC ] > 0 )
       {
@@ -1688,7 +1688,7 @@ void Cmd_Destroy_f( gentity_t *ent )
       }
       else if( g_markDeconstruct.integer &&
                ( ent->client->pers.teamSelection != TEAM_HUMANS ||
-                 G_FindPower( traceEnt ) || lastSpawn ) )
+                 G_FindPower( traceEnt , qtrue ) || lastSpawn ) )
       {
         traceEnt->deconstruct     = qtrue; // Mark buildable for deconstruction
         traceEnt->deconstructTime = level.time;
@@ -1700,7 +1700,8 @@ void Cmd_Destroy_f( gentity_t *ent )
             ent->client->ps.stats[ STAT_MISC ] +=
               BG_Buildable( traceEnt->s.modelindex )->buildTime / 4;
         }
-        G_LogDestruction( traceEnt, ent, MOD_DECONSTRUCT );
+        G_Damage( traceEnt, ent, ent, forward, tr.endpos,
+                  traceEnt->health, 0, MOD_DECONSTRUCT );
         G_FreeEntity( traceEnt );
       }
     }
@@ -2930,8 +2931,7 @@ void ClientCommand( int clientNum )
       G_FloodLimited( ent ) ) )
     return;
 
-  if( ( command->cmdFlags & CMD_TEAM ||
-      ( command->cmdFlags & CMD_CHEAT_TEAM && !g_cheats.integer ) ) &&
+  if( command->cmdFlags & CMD_TEAM &&
       ent->client->pers.teamSelection == TEAM_NONE )
   {
     G_TriggerMenu( clientNum, MN_CMD_TEAM );

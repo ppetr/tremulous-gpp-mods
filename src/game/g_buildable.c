@@ -120,7 +120,7 @@ G_FindPower
 attempt to find power for self, return qtrue if successful
 ================
 */
-qboolean G_FindPower( gentity_t *self )
+qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
 {
   int       i, j;
   gentity_t *ent, *ent2;
@@ -148,9 +148,6 @@ qboolean G_FindPower( gentity_t *self )
     return self->parentNode != NULL;
   }
 
-  // Reset parent
-  self->parentNode = NULL;
-
   // Iterate through entities
   for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
   {
@@ -159,7 +156,7 @@ qboolean G_FindPower( gentity_t *self )
 
     // If entity is a power item calculate the distance to it
     if( ( ent->s.modelindex == BA_H_REACTOR || ent->s.modelindex == BA_H_REPEATER ) &&
-        ent->spawned && ent->powered && ent->health > 0 )
+        ( searchUnspawned || ent->spawned ) && ent->powered && ent->health > 0 )
     {
       VectorSubtract( self->s.origin, ent->s.origin, temp_v );
       distance = VectorLength( temp_v );
@@ -297,7 +294,7 @@ gentity_t *G_PowerEntityForPoint( const vec3_t origin )
   dummy.s.modelindex = BA_NONE;
   VectorCopy( origin, dummy.s.origin );
 
-  if( G_FindPower( &dummy ) )
+  if( G_FindPower( &dummy, qfalse ) )
     return dummy.parentNode;
   else
     return NULL;
@@ -313,7 +310,7 @@ power for the specified entity
 */
 gentity_t *G_PowerEntityForEntity( gentity_t *ent )
 {
-  if( G_FindPower( ent ) )
+  if( G_FindPower( ent, qfalse ) )
     return ent->parentNode;
   return NULL;
 }
@@ -644,6 +641,9 @@ static void G_CreepSlow( gentity_t *self )
   {
     enemy = &g_entities[ entityList[ i ] ];
 
+   if( enemy->flags & FL_NOTARGET )
+     continue;
+
     if( enemy->client && enemy->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS &&
         enemy->client->ps.groundEntityNum != ENTITYNUM_NONE )
     {
@@ -682,6 +682,9 @@ void AGeneric_CreepRecede( gentity_t *self )
   {
     self->s.eFlags |= EF_DEAD;
     G_QueueBuildPoints( self );
+
+    G_RewardAttackers( self );
+
     G_AddEvent( self, EV_BUILD_DESTROY, 0 );
 
     if( self->spawned )
@@ -714,7 +717,7 @@ void AGeneric_Blast( gentity_t *self )
   VectorCopy( self->s.origin2, dir );
 
   //do a bit of radius damage
-  G_SelectiveRadiusDamage( self->s.pos.trBase, self, self->splashDamage,
+  G_SelectiveRadiusDamage( self->s.pos.trBase, g_entities + self->killedBy, self->splashDamage,
                            self->splashRadius, self, self->splashMethodOfDeath,
                            TEAM_ALIENS );
 
@@ -739,11 +742,11 @@ exploding.
 */
 void AGeneric_Die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod )
 {
-  G_RewardAttackers( self );
   G_SetBuildableAnim( self, BANIM_DESTROY1, qtrue );
   G_SetIdleBuildableAnim( self, BANIM_DESTROYED );
 
   self->die = nullDieFunction;
+  self->killedBy = attacker - g_entities;
   self->think = AGeneric_Blast;
   self->s.eFlags &= ~EF_FIRING; //prevent any firing effects
   self->powered = qfalse;
@@ -770,8 +773,8 @@ void AGeneric_CreepCheck( gentity_t *self )
   spawn = self->parentNode;
   if( !G_FindCreep( self ) )
   {
-    if( spawn && self->killedBy != ENTITYNUM_NONE )
-      G_Damage( self, NULL, g_entities + self->killedBy, NULL, NULL,
+    if( spawn )
+      G_Damage( self, NULL, g_entities + spawn->killedBy, NULL, NULL,
                 self->health, 0, MOD_NOCREEP );
     else
       G_Damage( self, NULL, NULL, NULL, NULL, self->health, 0, MOD_NOCREEP );
@@ -814,35 +817,6 @@ void AGeneric_Pain( gentity_t *self, gentity_t *attacker, int damage )
 
 
 //==================================================================================
-
-
-
-
-/*
-================
-ASpawn_Die
-
-Called when an alien spawn dies
-================
-*/
-void ASpawn_Die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod )
-{
-  int i;
-
-  AGeneric_Die( self, inflictor, attacker, damage, mod );
-  
-  // All supported structures that no longer have creep will have been killed
-  // by whoever killed this structure
-  for( i = MAX_CLIENTS; i < level.num_entities; i++ )
-  {
-    gentity_t *ent = g_entities + i;
-    
-    if( !ent->inuse || ent->health <= 0 || ent->s.eType != ET_BUILDABLE ||
-        ent->parentNode != self )
-      continue;
-    ent->killedBy = attacker - g_entities;
-  }
-}
 
 /*
 ================
@@ -1176,6 +1150,9 @@ void AAcidTube_Think( gentity_t *self )
     {
       enemy = &g_entities[ entityList[ i ] ];
 
+      if( enemy->flags & FL_NOTARGET )
+        continue;
+
       if( !G_Visible( self, enemy, CONTENTS_SOLID ) )
         continue;
 
@@ -1218,6 +1195,9 @@ static qboolean AHive_CheckTarget( gentity_t *self, gentity_t *enemy )
   // Check if this is a valid target
   if( enemy->health <= 0 || !enemy->client ||
       enemy->client->ps.stats[ STAT_TEAM ] != TEAM_HUMANS )
+    return qfalse;
+
+  if( enemy->flags & FL_NOTARGET )
     return qfalse;
 
   // Check if the tip of the hive can see the target
@@ -1322,6 +1302,9 @@ void ABooster_Touch( gentity_t *self, gentity_t *other, trace_t *trace )
   if( client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
     return;
 
+  if( other->flags & FL_NOTARGET )
+    return; // notarget cancels even beneficial effects?
+
   client->ps.stats[ STAT_STATE ] |= SS_BOOSTED;
   client->boostedTime = level.time;
 }
@@ -1405,6 +1388,8 @@ qboolean ATrapper_CheckTarget( gentity_t *self, gentity_t *target, int range )
   if( target == self ) // is the target us?
     return qfalse;
   if( !target->client ) // is the target a bot or player?
+    return qfalse;
+  if( target->flags & FL_NOTARGET ) // is the target cheating?
     return qfalse;
   if( target->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS ) // one of us?
     return qfalse;
@@ -1513,13 +1498,19 @@ static void G_SuicideIfNoPower( gentity_t *self )
   if( self->buildableTeam != TEAM_HUMANS )
     return;
 
-  if( G_Reactor( ) && !self->parentNode )
+  if( G_Reactor( ) && !self->powered )
   {
     // If no parent for x seconds then disappear
     if( self->count < 0 )
       self->count = level.time;
     else if( self->count > 0 && ( ( level.time - self->count ) > HUMAN_BUILDABLE_INACTIVE_TIME ) )
-      G_Damage( self, NULL, NULL, NULL, NULL, self->health, 0, MOD_SUICIDE );
+    {
+      if( self->parentNode )
+        G_Damage( self, NULL, g_entities + self->parentNode->killedBy, 
+                  NULL, NULL, self->health, 0, MOD_NOCREEP );
+      else
+        G_Damage( self, NULL, NULL, NULL, NULL, self->health, 0, MOD_NOCREEP );
+    }
   }
   else
   {
@@ -1569,6 +1560,7 @@ void HSpawn_Disappear( gentity_t *self )
   self->s.eFlags |= EF_NODRAW; //don't draw the model once its destroyed
   self->timestamp = level.time;
   G_QueueBuildPoints( self );
+  G_RewardAttackers( self );
 
   G_FreeEntity( self );
 }
@@ -1593,11 +1585,12 @@ void HSpawn_Blast( gentity_t *self )
   self->timestamp = level.time;
 
   //do some radius damage
-  G_RadiusDamage( self->s.pos.trBase, self, self->splashDamage,
+  G_RadiusDamage( self->s.pos.trBase, g_entities + self->killedBy, self->splashDamage,
     self->splashRadius, self, self->splashMethodOfDeath );
 
   // begin freeing build points
   G_QueueBuildPoints( self );
+  G_RewardAttackers( self );
   // turn into an explosion
   self->s.eType = ET_EVENTS + EV_HUMAN_BUILDABLE_EXPLOSION;
   self->freeAfterEvent = qtrue;
@@ -1614,11 +1607,11 @@ Called when a human spawn dies
 */
 void HSpawn_Die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod )
 {
-  G_RewardAttackers( self );
   G_SetBuildableAnim( self, BANIM_DESTROY1, qtrue );
   G_SetIdleBuildableAnim( self, BANIM_DESTROYED );
 
   self->die = nullDieFunction;
+  self->killedBy = attacker - g_entities;
   self->powered = qfalse; //free up power
   self->s.eFlags &= ~EF_FIRING; //prevent any firing effects
 
@@ -1650,7 +1643,7 @@ void HSpawn_Think( gentity_t *self )
   G_SuicideIfNoPower( self );
 
   // set parentNode
-  self->powered = G_FindPower( self );
+  self->powered = G_FindPower( self, qfalse );
 
   if( self->spawned )
   {
@@ -1699,11 +1692,11 @@ Called when a repeater dies
 */
 static void HRepeater_Die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod )
 {
-  G_RewardAttackers( self );
   G_SetBuildableAnim( self, BANIM_DESTROY1, qtrue );
   G_SetIdleBuildableAnim( self, BANIM_DESTROYED );
 
   self->die = nullDieFunction;
+  self->killedBy = attacker - g_entities;
   self->powered = qfalse; //free up power
   self->s.eFlags &= ~EF_FIRING; //prevent any firing effects
 
@@ -1851,6 +1844,8 @@ void HReactor_Think( gentity_t *self )
       if( !enemy->client ||
           enemy->client->ps.stats[ STAT_TEAM ] != TEAM_ALIENS )
         continue;
+      if( enemy->flags & FL_NOTARGET )
+        continue;
 
       tent = G_TempEntity( enemy->s.pos.trBase, EV_TESLATRAIL );
       tent->s.generic1 = self->s.number; //src
@@ -1921,7 +1916,7 @@ void HArmoury_Think( gentity_t *self )
   //make sure we have power
   self->nextthink = level.time + POWER_REFRESH_TIME;
 
-  self->powered = G_FindPower( self );
+  self->powered = G_FindPower( self, qfalse );
 
   G_SuicideIfNoPower( self );
 }
@@ -1947,7 +1942,7 @@ void HDCC_Think( gentity_t *self )
   //make sure we have power
   self->nextthink = level.time + POWER_REFRESH_TIME;
 
-  self->powered = G_FindPower( self );
+  self->powered = G_FindPower( self, qfalse );
 
   G_SuicideIfNoPower( self );
 }
@@ -1994,7 +1989,7 @@ void HMedistat_Think( gentity_t *self )
 
   self->nextthink = level.time + BG_Buildable( self->s.modelindex )->nextthink;
 
-  self->powered = G_FindPower( self );
+  self->powered = G_FindPower( self, qfalse );
   G_SuicideIfNoPower( self );
   G_IdlePowerState( self );
 
@@ -2032,6 +2027,9 @@ void HMedistat_Think( gentity_t *self )
     for( i = 0; i < num; i++ )
     {
       player = &g_entities[ entityList[ i ] ];
+
+      if( player->flags & FL_NOTARGET )
+        continue; // notarget cancels even beneficial effects?
       
       //remove poison from everyone, not just the healed player
       if( player->client && player->client->ps.stats[ STAT_STATE ] & SS_POISONED )
@@ -2055,6 +2053,9 @@ void HMedistat_Think( gentity_t *self )
       for( i = 0; i < num; i++ )
       {
         player = &g_entities[ entityList[ i ] ];
+
+        if( player->flags & FL_NOTARGET )
+          continue; // notarget cancels even beneficial effects?
 
         if( player->client && player->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
         {
@@ -2130,6 +2131,9 @@ qboolean HMGTurret_CheckTarget( gentity_t *self, gentity_t *target,
 
   if( !target || target->health <= 0 || !target->client ||
       target->client->pers.teamSelection != TEAM_ALIENS )
+    return qfalse;
+
+  if( target->flags & FL_NOTARGET )
     return qfalse;
     
   if( !los_check )
@@ -2322,7 +2326,7 @@ void HMGTurret_Think( gentity_t *self )
   // Turn off client side muzzle flashes
   self->s.eFlags &= ~EF_FIRING;
 
-  self->powered = G_FindPower( self );
+  self->powered = G_FindPower( self, qfalse );
   G_SuicideIfNoPower( self );
   G_IdlePowerState( self );
 
@@ -2403,7 +2407,7 @@ void HTeslaGen_Think( gentity_t *self )
 {
   self->nextthink = level.time + BG_Buildable( self->s.modelindex )->nextthink;
 
-  self->powered = G_FindPower( self );
+  self->powered = G_FindPower( self, qfalse );
   G_SuicideIfNoPower( self );
   G_IdlePowerState( self );
 
@@ -2432,6 +2436,10 @@ void HTeslaGen_Think( gentity_t *self )
     for( i = 0; i < num; i++ )
     {
       self->enemy = &g_entities[ entityList[ i ] ];
+
+      if( self->enemy->flags & FL_NOTARGET )
+        continue;
+
       if( self->enemy->client && self->enemy->health > 0 &&
           self->enemy->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS &&
           Distance( self->enemy->s.pos.trBase,
@@ -2467,19 +2475,31 @@ G_QueueBuildPoints
 */
 void G_QueueBuildPoints( gentity_t *self )
 {
-  gentity_t *killer = NULL;
   gentity_t *powerEntity;
+  int       i;
+  int       damageTotal = 0;
+  int       queuePoints = 0;
+  double    queueFraction = 0;
 
-  if( self->killedBy != ENTITYNUM_NONE )
-    killer = &g_entities[ self->killedBy ];
-
-  if( killer && killer->client &&
-      killer->client->ps.stats[ STAT_TEAM ] == self->buildableTeam )
+  for( i = 0; i < level.maxclients; i++ )
   {
-    // Don't take away build points if killed by a teammate
-    // deconstructing an egg/overmind (MOD_NOCREEP)
-    return;
+    gentity_t *player = g_entities + i;
+
+    damageTotal += self->credits[ i ];
+
+    if( self->buildableTeam != player->client->pers.teamSelection )
+      queueFraction += (double) self->credits[ i ];
   }
+
+  if( damageTotal > 0 )
+    queueFraction = queueFraction / (double) damageTotal;
+  else // all damage was done by nonclients, so queue everything
+    queueFraction = 1.0;
+
+  queuePoints = (int) ( queueFraction * (double) BG_Buildable( self->s.modelindex )->buildPoints );
+
+  if( !queuePoints )
+    return;
       
   switch( self->buildableTeam )
   {
@@ -2491,8 +2511,7 @@ void G_QueueBuildPoints( gentity_t *self )
       if( !level.alienBuildPointQueue )
         level.alienNextQueueTime = level.time + g_alienBuildQueueTime.integer;
 
-      level.alienBuildPointQueue +=
-          BG_Buildable( self->s.modelindex )->buildPoints;
+      level.alienBuildPointQueue += queuePoints;
       break;
 
     case TEAM_HUMANS:
@@ -2511,8 +2530,7 @@ void G_QueueBuildPoints( gentity_t *self )
                 level.time + nqt < level.humanNextQueueTime )
               level.humanNextQueueTime = level.time + nqt;
 
-            level.humanBuildPointQueue +=
-                BG_Buildable( self->s.modelindex )->buildPoints;
+            level.humanBuildPointQueue += queuePoints;
             break;
 
           case BA_H_REPEATER:
@@ -2529,8 +2547,7 @@ void G_QueueBuildPoints( gentity_t *self )
                   level.time + nqt < zone->nextQueueTime )
                 zone->nextQueueTime = level.time + nqt;
 
-              zone->queuedBuildPoints +=
-                BG_Buildable( self->s.modelindex )->buildPoints;
+              zone->queuedBuildPoints += queuePoints;
             }
             break;
 
@@ -2834,6 +2851,18 @@ static int G_CompareBuildablesForRemoval( const void *a, const void *b )
   else if( !aMatches && bMatches )
     return 1;
 
+  // If the only spawn is marked, prefer it last
+  if( cmpBuildable == BA_A_SPAWN || cmpBuildable == BA_H_SPAWN )
+  {
+    if( ( buildableA->s.modelindex == BA_A_SPAWN && level.numAlienSpawns == 1 ) ||
+        ( buildableA->s.modelindex == BA_H_SPAWN && level.numHumanSpawns == 1 ) )
+      return 1;
+
+    if( ( buildableB->s.modelindex == BA_A_SPAWN && level.numAlienSpawns == 1 ) ||
+        ( buildableB->s.modelindex == BA_H_SPAWN && level.numHumanSpawns == 1 ) )
+      return -1;
+  }
+
   // If one matches the thing we're building, prefer it
   aMatches = ( buildableA->s.modelindex == cmpBuildable );
   bMatches = ( buildableB->s.modelindex == cmpBuildable );
@@ -2929,7 +2958,7 @@ void G_FreeMarkedBuildables( gentity_t *deconner, char *readable, int rsize,
     if( removalCounts[ bNum ] == 0 )
       totalListItems++;
 
-    G_Damage( ent, NULL, NULL, NULL, NULL, ent->health, 0, MOD_DECONSTRUCT );
+    G_Damage( ent, NULL, deconner, NULL, NULL, ent->health, 0, MOD_REPLACE );
 
     removalCounts[ bNum ]++;
 
@@ -3102,6 +3131,10 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
         buildable != core )
       continue;
 
+    // Don't include unpowered buildables
+    if( !collision && !ent->powered )
+      continue;
+
     if( ent->deconstruct )
     {
       level.markedBuildables[ numBuildables++ ] = ent;
@@ -3120,14 +3153,16 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
         if( repeaterInRange )
           repeaterInRangeCount--;
 
-        pointsYielded += BG_Buildable( ent->s.modelindex )->buildPoints;
+        if( ent->powered )
+          pointsYielded += BG_Buildable( ent->s.modelindex )->buildPoints;
         level.numBuildablesForRemoval++;
       }
       else if( BG_Buildable( ent->s.modelindex )->uniqueTest &&
                ent->s.modelindex == buildable )
       {
         // If it's a unique buildable, it must be replaced by the same type
-        pointsYielded += BG_Buildable( ent->s.modelindex )->buildPoints;
+        if( ent->powered )
+          pointsYielded += BG_Buildable( ent->s.modelindex )->buildPoints;
         level.numBuildablesForRemoval++;
       }
     }
@@ -3156,7 +3191,8 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
        level.numBuildablesForRemoval++ )
   {
     ent = level.markedBuildables[ level.numBuildablesForRemoval ];
-    pointsYielded += BG_Buildable( ent->s.modelindex )->buildPoints;
+    if( ent->powered )
+      pointsYielded += BG_Buildable( ent->s.modelindex )->buildPoints;
   }
 
   for( i = 0; i < level.numBuildablesForRemoval; i++ )
@@ -3448,7 +3484,7 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable, vec3_t ori
   switch( buildable )
   {
     case BA_A_SPAWN:
-      built->die = ASpawn_Die;
+      built->die = AGeneric_Die;
       built->think = ASpawn_Think;
       built->pain = AGeneric_Pain;
       break;
@@ -3488,7 +3524,7 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable, vec3_t ori
       break;
 
     case BA_A_OVERMIND:
-      built->die = ASpawn_Die;
+      built->die = AGeneric_Die;
       built->think = AOvermind_Think;
       built->pain = AGeneric_Pain;
       break;
@@ -3578,7 +3614,7 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable, vec3_t ori
     built->powered = qtrue;
     built->s.eFlags |= EF_B_POWERED;
   }
-  else if( ( built->powered = G_FindPower( built ) ) )
+  else if( ( built->powered = G_FindPower( built, qfalse ) ) )
     built->s.eFlags |= EF_B_POWERED;
 
   built->s.eFlags &= ~EF_B_SPAWNED;
