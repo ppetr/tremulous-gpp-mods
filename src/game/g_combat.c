@@ -44,11 +44,11 @@ void AddScore( gentity_t *ent, int score )
   // make alien and human scores equivalent 
   if ( ent->client->pers.teamSelection == TEAM_ALIENS )
   {
-    score = rint( (double)score / 2.0 );
+    score = rint( ((float)score) / 2.0f );
   }
 
   // scale values down to fit the scoreboard better
-  score = rint( (double)score / 50.0 );
+  score = rint( ((float)score) / 50.0f );
 
   ent->client->ps.persistant[ PERS_SCORE ] += score;
   CalculateRanks( );
@@ -284,7 +284,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
   {
     attacker->client->lastkilled_client = self->s.number;
 
-    if( attacker == self || OnSameTeam( self, attacker ) )
+    if( ( attacker == self || OnSameTeam( self, attacker ) ) && meansOfDeath != MOD_HSPAWN )
     {
       //punish team kills and suicides
       if( attacker->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
@@ -1371,8 +1371,24 @@ Log deconstruct/destroy events
 */
 void G_LogDestruction( gentity_t *self, gentity_t *actor, int mod )
 {
-  if( !actor )
-    return;
+  buildFate_t fate;
+
+  switch( mod )
+  {
+    case MOD_DECONSTRUCT:
+      fate = BF_DECONSTRUCT;
+      break;
+    case MOD_REPLACE:
+      fate = BF_REPLACE;
+      break;
+    case MOD_NOCREEP:
+      fate = ( actor->client ) ? BF_UNPOWER : BF_AUTO;
+      break;
+    default:
+      fate = ( actor->client ) ? BF_DESTROY : BF_AUTO;
+      break;
+  }
+  G_BuildLogAuto( actor, self, fate );
 
   // don't log when marked structures are removed
   if( mod == MOD_REPLACE )
