@@ -362,14 +362,16 @@ qboolean G_admin_name_check( gentity_t *ent, char *name, char *err, int len )
 
   if( !strcmp( name2, "console" ) )
   {
-    Q_strncpyz( err, "The name 'console' is not allowed.", len );
+    if( err && len > 0 )
+      Q_strncpyz( err, "The name 'console' is not allowed.", len );
     return qfalse;
   }
 
   G_DecolorString( name, testName, sizeof( testName ) );
   if( isdigit( testName[ 0 ] ) )
   {
-    Q_strncpyz( err, "Names cannot begin with numbers", len );
+    if( err && len > 0 )
+      Q_strncpyz( err, "Names cannot begin with numbers", len );
     return qfalse;
   }
 
@@ -381,7 +383,8 @@ qboolean G_admin_name_check( gentity_t *ent, char *name, char *err, int len )
 
   if( alphaCount == 0 )
   {
-    Q_strncpyz( err, "Names must contain letters", len );
+    if( err && len > 0 )
+      Q_strncpyz( err, "Names must contain letters", len );
     return qfalse;
   }
 
@@ -398,7 +401,8 @@ qboolean G_admin_name_check( gentity_t *ent, char *name, char *err, int len )
     G_SanitiseString( client->pers.netname, testName, sizeof( testName ) );
     if( !strcmp( name2, testName ) )
     {
-      Com_sprintf( err, len, "The name '%s^7' is already in use", name );
+      if( err && len > 0 )
+        Com_sprintf( err, len, "The name '%s^7' is already in use", name );
       return qfalse;
     }
   }
@@ -410,8 +414,9 @@ qboolean G_admin_name_check( gentity_t *ent, char *name, char *err, int len )
     G_SanitiseString( admin->name, testName, sizeof( testName ) );
     if( !strcmp( name2, testName ) && ent->client->pers.admin != admin )
     {
-      Com_sprintf( err, len, "The name '%s^7' belongs to an admin, "
-        "please use another name", name );
+      if( err && len > 0 )
+        Com_sprintf( err, len, "The name '%s^7' belongs to an admin, "
+                     "please use another name", name );
       return qfalse;
     }
   }
@@ -636,7 +641,7 @@ static void admin_default_levels( void )
   l->level = level++;
   Q_strncpyz( l->name, "^3Senior Admin", sizeof( l->name ) );
   Q_strncpyz( l->flags,
-    "listplayers admintest adminhelp time putteam spec99 kick mute showbans ban "
+    "listplayers admintest adminhelp time putteam spec999 kick mute showbans ban "
     "namelog ADMINCHAT",
     sizeof( l->flags ) );
 
@@ -1602,6 +1607,13 @@ qboolean G_admin_ban( gentity_t *ent )
   G_admin_duration( ( seconds ) ? seconds : -1,
     duration, sizeof( duration ) );
 
+  AP( va( "print \"^3ban:^7 %s^7 has been banned by %s^7 "
+    "duration: %s, reason: %s\n\"",
+    match->name[ match->nameChanges % MAX_NAMELOG_NAMES ],
+    ( ent ) ? ent->client->pers.netname : "console",
+    duration,
+    ( *reason ) ? reason : "banned by admin" ) );
+
   if( ipmatch )
   {
     admin_create_ban( ent,
@@ -2303,7 +2315,7 @@ qboolean G_admin_showbans( gentity_t *ent )
 
   ADMBP_begin();
   for( i = 0, ban = g_admin_bans; i < start && ban; i++, ban = ban->next );
-  for( count = 0; count < MAX_ADMIN_SHOWBANS && ban; ban = ban->next )
+  for( count = 0; count < MAX_ADMIN_SHOWBANS && ban; i++, ban = ban->next )
   {
     if( ban->expires != 0 && ban->expires <= t )
       continue;
@@ -2348,7 +2360,7 @@ qboolean G_admin_showbans( gentity_t *ent )
 
 
     ADMBP( va( "%4i %*s^7 %-15s %-8s %*s^7 %-10s\n     \\__ %s\n",
-             ( count + start ),
+             i + 1,
              max_name + colorlen1,
              ban->name,
              ban->ip.str,
@@ -2608,8 +2620,11 @@ qboolean G_admin_rename( gentity_t *ent )
     ADMP( va( "^3rename: ^7%s\n", err ) );
     return qfalse;
   }
-  victim->client->pers.namelog->nameChanges--;
-  victim->client->pers.namelog->nameChangeTime = 0;
+  if( victim->client->pers.connected != CON_CONNECTED )
+  {
+    ADMP( "^3rename: ^7sorry, but your intended victim is still connecting\n" );
+    return qfalse;
+  }
   trap_GetUserinfo( pids[ 0 ], userinfo, sizeof( userinfo ) );
   AP( va( "print \"^3rename: ^7%s^7 has been renamed to %s^7 by %s\n\"",
           victim->client->pers.netname,
@@ -2617,7 +2632,7 @@ qboolean G_admin_rename( gentity_t *ent )
           ( ent ) ? ent->client->pers.netname : "console" ) );
   Info_SetValueForKey( userinfo, "name", newname );
   trap_SetUserinfo( pids[ 0 ], userinfo );
-  ClientUserinfoChanged( pids[ 0 ] );
+  ClientUserinfoChanged( pids[ 0 ], qtrue );
   return qtrue;
 }
 

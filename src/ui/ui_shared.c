@@ -1881,6 +1881,7 @@ qboolean UI_Text_IsEmoticon( const char *s, qboolean *escaped,
                              int *length, qhandle_t *h, int *width )
 {
   const char *p = s;
+  char emoticon[ MAX_EMOTICON_NAME_LEN ];
   int i;
 
   if( *p != '[' )
@@ -1896,11 +1897,16 @@ qboolean UI_Text_IsEmoticon( const char *s, qboolean *escaped,
     *escaped = qfalse;
 
   for( *length = 0; p[ *length ] != ']'; ( *length )++ )
-    if( !p[ *length ] )
+  {
+    if( !p[ *length ] || *length == MAX_EMOTICON_NAME_LEN - 1 )
       return qfalse;
 
+    emoticon[ *length ] = p[ *length ];
+  }
+  emoticon[ *length ] = '\0';
+
   for( i = 0; i < DC->Assets.emoticonCount; i++ )
-    if( !Q_stricmpn( DC->Assets.emoticons[ i ].name, p, *length ) )
+    if( !Q_stricmp( DC->Assets.emoticons[ i ].name, emoticon ) )
       break;
 
   if( i == DC->Assets.emoticonCount )
@@ -1993,6 +1999,7 @@ float UI_Text_Width( const char *text, float scale, int limit )
       if( *s == INDENT_MARKER )
       {
         s++;
+        count++;
         continue;
       }
 
@@ -4302,20 +4309,6 @@ static void SkipWhiteSpace( const char **text, char *lastColor )
   }
 }
 
-static void SkipEmoticons( const char **text )
-{
-  int      emoticonLen;
-  qboolean emoticonEscaped;
-
-  while( UI_Text_IsEmoticon( *text, &emoticonEscaped, &emoticonLen, NULL, NULL ) )
-  {
-    if( emoticonEscaped )
-      (*text)++;
-    else
-      (*text) += emoticonLen;
-  }
-}
-
 const char *Item_Text_Wrap( const char *text, float scale, float width )
 {
   static char   out[ 8192 ] = "";
@@ -4345,6 +4338,8 @@ const char *Item_Text_Wrap( const char *text, float scale, float width )
 
     while( testLength == 0 || UI_Text_Width( p, scale, testLength ) < testWidth )
     {
+      int      emoticonLen;
+      qboolean emoticonEscaped;
       qboolean previousCharIsSpace = qfalse;
 
       // Remaining string is too short to wrap
@@ -4358,18 +4353,25 @@ const char *Item_Text_Wrap( const char *text, float scale, float width )
       for( q = p, i = 0; i < testLength; i++ )
       {
         SkipColorCodes( &q, c );
-        SkipEmoticons( &q );
 
         previousCharIsSpace = isspace( *q );
         q++;
       }
 
+      if( UI_Text_IsEmoticon( q, &emoticonEscaped, &emoticonLen, NULL, NULL ) )
+      {
+        testLength += emoticonLen;
+        continue;
+      }
+
       if( testLength > 0 && *q == INDENT_MARKER )
+      {
         indentWidth = UI_Text_Width( p, scale, testLength );
+        eol = p;
+      }
 
       // Some color escapes might still be present
       SkipColorCodes( &q, c );
-      SkipEmoticons( &q );
 
       // Manual line break
       if( *q == '\n' )
@@ -7344,7 +7346,7 @@ qboolean Item_Parse( int handle, itemDef_t *item )
 
       if( test != key->param )
       {
-        if( test == ITEM_TYPE_NONE )
+        if( test == TYPE_NONE )
           PC_SourceError( handle, "menu item keyword %s requires "
                           "type specification", token.string );
         else
