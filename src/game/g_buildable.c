@@ -2663,7 +2663,13 @@ void G_BuildableThink( gentity_t *ent, int msec )
   if( !ent->spawned && ent->health > 0 )
   {
     if( ent->buildTime + buildTime < level.time )
+    {
       ent->spawned = qtrue;
+      if( ent->s.modelindex == BA_A_OVERMIND )
+      {
+        G_TeamCommand( TEAM_ALIENS, "cp \"The Overmind has awakened!\"" );
+      }
+    }
   }
 
   // Timer actions
