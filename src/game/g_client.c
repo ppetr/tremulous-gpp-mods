@@ -850,11 +850,7 @@ static void G_ClientCleanName( const char *in, char *out, int outSize )
 
       *out++ = Q_COLOR_ESCAPE;
 
-      // don't allow black in a name, period
-      if( ColorIndex( *in ) == 0 )
-        *out++ = COLOR_WHITE;
-      else
-        *out++ = *in;
+      *out++ = *in;
 
       len += 2;
       continue;
@@ -1061,8 +1057,8 @@ char *ClientUserinfoChanged( int clientNum, qboolean forceName )
     }
     else
     {
-      Q_strncpyz( client->pers.netname, newname,
-        sizeof( client->pers.netname ) );
+      G_CensorString( client->pers.netname, newname,
+        sizeof( client->pers.netname ), ent );
       if( !forceName && client->pers.connected == CON_CONNECTED )
       {
         client->pers.namelog->nameChangeTime = level.time;

@@ -642,6 +642,152 @@ void Cmd_Team_f( gentity_t *ent )
   G_ChangeTeam( ent, team );
 }
 
+/*
+==================
+G_CensorString
+==================
+*/
+static char censors[ 20000 ];
+static int numcensors;
+
+void G_LoadCensors( void )
+{
+  char *text_p, *token;
+  char text[ 20000 ];
+  char *term;
+  int  len;
+  fileHandle_t f;
+
+  numcensors = 0;
+
+  if( !g_censorship.string[ 0 ] )
+    return;
+
+  len = trap_FS_FOpenFile( g_censorship.string, &f, FS_READ );
+  if( len < 0 )
+  {
+    Com_Printf( S_COLOR_RED "ERROR: Censors file %s doesn't exist\n",
+      g_censorship.string );
+    return;
+  }
+  if( len == 0 || len >= sizeof( text ) - 1 )
+  {
+    trap_FS_FCloseFile( f );
+    Com_Printf( S_COLOR_RED "ERROR: Censors file %s is %s\n",
+      g_censorship.string, len == 0 ? "empty" : "too long" );
+    return;
+  }
+  trap_FS_Read( text, len, f );
+  trap_FS_FCloseFile( f );
+  text[ len ] = 0;
+
+  term = censors;
+
+  text_p = text;
+  while( 1 )
+  {
+    token = COM_Parse( &text_p );
+    if( !*token || sizeof( censors ) - ( term - censors ) < 4 )
+      break;
+    Q_strncpyz( term, token, sizeof( censors ) - ( term - censors ) );
+    Q_strlwr( term );
+    term += strlen( term ) + 1;
+    if( sizeof( censors ) - ( term - censors ) == 0 )
+      break;
+    token = COM_ParseExt( &text_p, qfalse );
+    Q_strncpyz( term, token, sizeof( censors ) - ( term - censors ) );
+    term += strlen( term ) + 1;
+    numcensors++;
+  }
+  G_Printf( "Parsed %d string replacements\n", numcensors );
+}
+
+void G_CensorString( char *out, const char *in, int len, gentity_t *ent )
+{
+  const char *s, *m;
+  int  i;
+
+  if( !numcensors || G_admin_permission( ent, ADMF_NOCENSORFLOOD) )
+  {
+    Q_strncpyz( out, in, len );
+    return;
+  }
+
+  len--;
+  while( *in )
+  {
+    if( Q_IsColorString( in ) )
+    {
+      if( len < 2 )
+        break;
+      *out++ = *in++;
+      *out++ = *in++;
+      len -= 2;
+      continue;
+    }
+    if( !isalnum( *in ) )
+    {
+      if( len < 1 )
+        break;
+      *out++ = *in++;
+      len--;
+      continue;
+    }
+    m = censors;
+    for( i = 0; i < numcensors; i++, m++ )
+    {
+      s = in;
+      while( *s && *m )
+      {
+        if( Q_IsColorString( s ) )
+        {
+          s += 2;
+          continue;
+        }
+        if( !isalnum( *s ) )
+        {
+          s++;
+          continue;
+        }
+        if( tolower( *s ) != *m )
+          break;
+        s++;
+        m++;
+      }
+      // match
+      if( !*m )
+      {
+        in = s;
+        m++;
+        while( *m )
+        {
+          if( len < 1 )
+            break;
+          *out++ = *m++;
+          len--;
+        }
+        break;
+      }
+      else
+      {
+        while( *m )
+          m++;
+        m++;
+        while( *m )
+          m++;
+      }
+    }
+    if( len < 1 )
+      break;
+    // no match
+    if( i == numcensors )
+    {
+      *out++ = *in++;
+      len--;
+    }
+  }
+  *out = 0;
+}
 
 /*
 ==================
@@ -720,7 +866,7 @@ void G_Say( gentity_t *ent, saymode_t mode, const char *chatText )
       break;
   }
 
-  Q_strncpyz( text, chatText, sizeof( text ) );
+  G_CensorString( text, chatText, sizeof( text ), ent );
 
   // send it to all the apropriate clients
   for( j = 0; j < level.maxclients; j++ )
@@ -728,22 +874,6 @@ void G_Say( gentity_t *ent, saymode_t mode, const char *chatText )
     other = &g_entities[ j ];
     G_SayTo( ent, other, mode, text );
   }
-}
-
-/*
-==================
-Cmd_ActionMessage_f
-
-This is just a wrapper for convenience when speaking from the console
-==================
-*/
-static void Cmd_ActionMessage_f( gentity_t *ent )
-{
-  char text[ MAX_SAY_TEXT ];
-
-  Com_sprintf( text, sizeof( text ), "/me %s", ConcatArgs( 1 ) );
-
-  G_Say( ent, SAY_ALL, text );
 }
 
 /*
@@ -823,6 +953,7 @@ Cmd_VSay_f
 void Cmd_VSay_f( gentity_t *ent )
 {
   char            arg[MAX_TOKEN_CHARS];
+  char            text[ MAX_TOKEN_CHARS ];
   voiceChannel_t  vchan;
   voice_t         *voice;
   voiceCmd_t      *cmd;
@@ -916,6 +1047,7 @@ void Cmd_VSay_f( gentity_t *ent )
 
   // optional user supplied text
   trap_Argv( 2, arg, sizeof( arg ) );
+  G_CensorString( text, arg, sizeof( text ), ent );
 
   switch( vchan )
   {
@@ -923,12 +1055,12 @@ void Cmd_VSay_f( gentity_t *ent )
     case VOICE_CHAN_LOCAL:
       trap_SendServerCommand( -1, va(
         "voice %d %d %d %d \"%s\"\n",
-        ent-g_entities, vchan, cmdNum, trackNum, arg ) );
+        ent-g_entities, vchan, cmdNum, trackNum, text ) );
       break;
     case VOICE_CHAN_TEAM:
       G_TeamCommand( ent->client->pers.teamSelection, va(
         "voice %d %d %d %d \"%s\"\n",
-        ent-g_entities, vchan, cmdNum, trackNum, arg ) );
+        ent-g_entities, vchan, cmdNum, trackNum, text ) );
       break;
     default:
       break;
@@ -961,12 +1093,14 @@ void Cmd_CallVote_f( gentity_t *ent )
          vote[ MAX_TOKEN_CHARS ],
          arg[ MAX_TOKEN_CHARS ];
   char   name[ MAX_NAME_LENGTH ] = "";
+  char   *reason;
   int    clientNum = -1;
   team_t team;
 
   trap_Argv( 0, cmd, sizeof( cmd ) );
   trap_Argv( 1, vote, sizeof( vote ) );
   trap_Argv( 2, arg, sizeof( arg ) );
+  reason = ConcatArgs( 3 );
 
   if( !Q_stricmp( cmd, "callteamvote" ) )
     team = ent->client->pers.teamSelection;
@@ -1060,6 +1194,13 @@ void Cmd_CallVote_f( gentity_t *ent )
           va( "print \"%s: player is not on your team\n\"", cmd ) );
         return;
       }
+
+      if( !reason[ 0 ] && !G_admin_permission( ent, ADMF_UNACCOUNTABLE ) )
+      {
+        trap_SendServerCommand( ent-g_entities,
+          va( "print \"%s: You must provide a reason\n\"", cmd ) );
+        return;
+      }  
     }
   }
 
@@ -1073,11 +1214,16 @@ void Cmd_CallVote_f( gentity_t *ent )
     }
 
     Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
-      "ban %s \"1s%s\" vote kick", level.clients[ clientNum ].pers.ip.str,
-      g_adminTempBan.string );
+      "ban %s \"1s%s\" vote kick (%s)", level.clients[ clientNum ].pers.ip.str,
+      g_adminTempBan.string, reason );
     Com_sprintf( level.voteDisplayString[ team ],
-      sizeof( level.voteDisplayString[ team ] ),
-      "Kick player '%s'", name );
+      sizeof( level.voteDisplayString[ team ] ), "Kick player '%s'", name );
+    if( reason[ 0 ] )
+    {
+      Com_sprintf( level.voteDisplayString[ team ],
+        sizeof( level.voteDisplayString[ team ] ), "%s for '%s'", 
+        level.voteDisplayString[ team ], reason );
+    }
   }
   else if( team == TEAM_NONE )
   {
@@ -1095,6 +1241,12 @@ void Cmd_CallVote_f( gentity_t *ent )
       Com_sprintf( level.voteDisplayString[ team ],
         sizeof( level.voteDisplayString[ team ] ),
         "Mute player '%s'", name );
+      if( reason[ 0 ] )
+      {
+        Com_sprintf( level.voteDisplayString[ team ],
+          sizeof( level.voteDisplayString[ team ] ), "%s for '%s'",
+          level.voteDisplayString[ team ], reason );
+      }
     }
     else if( !Q_stricmp( vote, "unmute" ) )
     {
@@ -1210,6 +1362,12 @@ void Cmd_CallVote_f( gentity_t *ent )
     Com_sprintf( level.voteDisplayString[ team ],
       sizeof( level.voteDisplayString[ team ] ),
       "Take away building rights from '%s'", name );
+    if( reason[ 0 ] )
+    {
+      Com_sprintf( level.voteDisplayString[ team ],
+        sizeof( level.voteDisplayString[ team ] ), "%s for '%s'",
+        level.voteDisplayString[ team ], reason );
+    }
   }
   else if( !Q_stricmp( vote, "allowbuild" ) )
   {
@@ -1263,6 +1421,8 @@ void Cmd_CallVote_f( gentity_t *ent )
     va( "%d", level.voteTime[ team ] ) );
   trap_SetConfigstring( CS_VOTE_STRING + team,
     level.voteDisplayString[ team ] );
+  trap_SetConfigstring( CS_VOTE_CALLER + team,
+    ent->client->pers.netname );
 
   ent->client->pers.namelog->voteCount++;
   ent->client->pers.vote |= 1 << team;
@@ -2871,7 +3031,6 @@ commands_t cmds[ ] = {
   { "levelshot", CMD_CHEAT, Cmd_LevelShot_f },
   { "listmaps", CMD_MESSAGE|CMD_INTERMISSION, Cmd_ListMaps_f },
   { "m", CMD_MESSAGE|CMD_INTERMISSION, Cmd_PrivateMessage_f },
-  { "me", CMD_MESSAGE|CMD_INTERMISSION, Cmd_ActionMessage_f },
   { "mt", CMD_MESSAGE|CMD_INTERMISSION, Cmd_PrivateMessage_f },
   { "noclip", CMD_CHEAT_TEAM, Cmd_Noclip_f },
   { "notarget", CMD_CHEAT|CMD_TEAM|CMD_LIVING, Cmd_Notarget_f },
@@ -3052,6 +3211,7 @@ void Cmd_PrivateMessage_f( gentity_t *ent )
   char name[ MAX_NAME_LENGTH ];
   char cmd[ 12 ];
   char str[ MAX_STRING_CHARS ];
+  char text[ MAX_STRING_CHARS ];
   char *msg;
   char color;
   int i, pcount;
@@ -3090,12 +3250,14 @@ void Cmd_PrivateMessage_f( gentity_t *ent )
   Com_sprintf( str, sizeof( str ), "^%csent to %i player%s", color, count,
     ( count == 1 ) ? "" : "s" );
 
+  G_CensorString( text, msg, sizeof( text ), ent );
+
   if( !count )
     ADMP( va( "^3No player matching ^7\'%s^7\' ^3to send message to.\n",
       name ) );
   else
   {
-    ADMP( va( "^%cPrivate message: ^7%s\n", color, msg ) );
+    ADMP( va( "^%cPrivate message: ^7%s\n", color, text ) );
     ADMP( va( "%s\n", str ) );
 
     G_LogPrintf( "%s: %d \"%s" S_COLOR_WHITE "\" \"%s\": ^%c%s\n",

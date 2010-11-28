@@ -347,7 +347,7 @@ static void Svcmd_MapRotation_f( void )
   G_ClearRotationStack( );
 
   trap_Argv( 1, rotationName, sizeof( rotationName ) );
-  if( !G_StartMapRotation( rotationName, qfalse, qtrue ) )
+  if( !G_StartMapRotation( rotationName, qfalse, qtrue, qfalse, 0 ) )
     G_Printf( "maprotation: invalid map rotation \"%s\"\n", rotationName );
 }
 
@@ -518,6 +518,11 @@ static void Svcmd_SuddenDeath_f( void )
       offset, offset == 1 ? "" : "s" ) );
 }
 
+static void Svcmd_G_AdvanceMapRotation_f( void )
+{
+  G_AdvanceMapRotation( 0 );
+}
+
 struct svcmd
 {
   char     *cmd;
@@ -526,7 +531,7 @@ struct svcmd
 } svcmds[ ] = {
   { "a", qtrue, Svcmd_MessageWrapper },
   { "admitDefeat", qfalse, Svcmd_AdmitDefeat_f },
-  { "advanceMapRotation", qfalse, G_AdvanceMapRotation },
+  { "advanceMapRotation", qfalse, Svcmd_G_AdvanceMapRotation_f },
   { "alienWin", qfalse, Svcmd_TeamWin_f },
   { "chat", qtrue, Svcmd_MessageWrapper },
   { "cp", qtrue, Svcmd_CenterPrint_f },
@@ -540,6 +545,7 @@ struct svcmd
   { "layoutLoad", qfalse, Svcmd_LayoutLoad_f },
   { "layoutSave", qfalse, Svcmd_LayoutSave_f },
   { "listmaps", qtrue, Svcmd_ListMapsWrapper },
+  { "loadcensors", qfalse, G_LoadCensors },
   { "m", qtrue, Svcmd_MessageWrapper },
   { "mapRotation", qfalse, Svcmd_MapRotation_f },
   { "printqueue", qfalse, Svcmd_PrintQueue_f },

@@ -137,6 +137,8 @@ vmCvar_t  g_specChat;
 vmCvar_t  g_publicAdminMessages;
 vmCvar_t  g_allowTeamOverlay;
 
+vmCvar_t  g_censorship;
+
 vmCvar_t  g_tag;
 
 static cvarTable_t   gameCvarTable[ ] =
@@ -260,6 +262,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_specChat, "g_specChat", "1", CVAR_ARCHIVE, 0, qfalse  },
   { &g_publicAdminMessages, "g_publicAdminMessages", "1", CVAR_ARCHIVE, 0, qfalse  },
   { &g_allowTeamOverlay, "g_allowTeamOverlay", "1", CVAR_ARCHIVE, 0, qtrue  },
+
+  { &g_censorship, "g_censorship", "", CVAR_ARCHIVE, 0, qfalse  },
 
   { &g_tag, "g_tag", "gpp", CVAR_INIT, 0, qfalse }
 };
@@ -566,6 +570,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart )
 
   G_RegisterCommands( );
   G_admin_readconfig( NULL );
+  G_LoadCensors( );
 
   // initialize all entities for this game
   memset( g_entities, 0, MAX_GENTITIES * sizeof( g_entities[ 0 ] ) );
@@ -1394,10 +1399,11 @@ void CalculateRanks( void )
       level.numConnectedClients++;
       P[ i ] = (char)'0' + level.clients[ i ].pers.teamSelection;
 
+      level.numVotingClients[ TEAM_NONE ]++;
+
       if( level.clients[ i ].pers.connected != CON_CONNECTED )
         continue;
 
-      level.numVotingClients[ TEAM_NONE ]++;
       if( level.clients[ i ].pers.teamSelection != TEAM_NONE )
       {
         level.numPlayingClients++;
@@ -1589,7 +1595,7 @@ void ExitLevel( void )
   if ( G_MapExists( g_nextMap.string ) )
     trap_SendConsoleCommand( EXEC_APPEND, va("map \"%s\"\n", g_nextMap.string ) );
   else if( G_MapRotationActive( ) )
-    G_AdvanceMapRotation( );
+    G_AdvanceMapRotation( 0 );
   else
     trap_SendConsoleCommand( EXEC_APPEND, "map_restart\n" );
 
