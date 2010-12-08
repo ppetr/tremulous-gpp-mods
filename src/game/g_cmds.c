@@ -1093,14 +1093,17 @@ void Cmd_CallVote_f( gentity_t *ent )
          vote[ MAX_TOKEN_CHARS ],
          arg[ MAX_TOKEN_CHARS ];
   char   name[ MAX_NAME_LENGTH ] = "";
-  char   *reason;
+  char   caller[ MAX_NAME_LENGTH ] = "";
+  char   reason[ MAX_TOKEN_CHARS ];
+  char   *creason;
   int    clientNum = -1;
   team_t team;
 
   trap_Argv( 0, cmd, sizeof( cmd ) );
   trap_Argv( 1, vote, sizeof( vote ) );
   trap_Argv( 2, arg, sizeof( arg ) );
-  reason = ConcatArgs( 3 );
+  creason = ConcatArgs( 3 );
+  G_DecolorString( creason, reason, sizeof( reason ) );
 
   if( !Q_stricmp( cmd, "callteamvote" ) )
     team = ent->client->pers.teamSelection;
@@ -1337,8 +1340,10 @@ void Cmd_CallVote_f( gentity_t *ent )
       level.voteThreshold[ team ] = g_suddenDeathVotePercent.integer;
       Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
         "suddendeath %d", g_suddenDeathVoteDelay.integer );
-      strcpy( level.voteDisplayString[ team ],
-        va( "Begin sudden death in %d seconds", g_suddenDeathVoteDelay.integer ) );
+      Com_sprintf( level.voteDisplayString[ team ],
+                   sizeof( level.voteDisplayString[ team ] ),
+                   "Begin sudden death in %d seconds",
+                   g_suddenDeathVoteDelay.integer );
     }
     else
     {
@@ -1416,13 +1421,15 @@ void Cmd_CallVote_f( gentity_t *ent )
       level.voteDisplayString[ team ] ) );
   }
 
+  G_DecolorString( ent->client->pers.netname, caller, sizeof( caller ) );
+
   level.voteTime[ team ] = level.time;
   trap_SetConfigstring( CS_VOTE_TIME + team,
     va( "%d", level.voteTime[ team ] ) );
   trap_SetConfigstring( CS_VOTE_STRING + team,
     level.voteDisplayString[ team ] );
   trap_SetConfigstring( CS_VOTE_CALLER + team,
-    ent->client->pers.netname );
+    caller );
 
   ent->client->pers.namelog->voteCount++;
   ent->client->pers.vote |= 1 << team;
@@ -3082,7 +3089,8 @@ void ClientCommand( int clientNum )
 
   // do tests here to reduce the amount of repeated code
 
-  if( !( command->cmdFlags & CMD_INTERMISSION ) && level.intermissiontime )
+  if( !( command->cmdFlags & CMD_INTERMISSION ) && 
+      ( level.intermissiontime || level.pausedTime ) )
     return;
 
   if( command->cmdFlags & CMD_CHEAT && !g_cheats.integer )

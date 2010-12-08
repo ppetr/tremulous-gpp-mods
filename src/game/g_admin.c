@@ -75,6 +75,11 @@ g_admin_cmd_t g_admin_cmds[ ] =
       "[^3name|slot#|IP(/mask)^7] (^5duration^7) (^5reason^7)"
     },
 
+    {"builder", G_admin_builder, "builder",
+      "show who built a structure",
+      ""
+    },
+
     {"buildlog", G_admin_buildlog, "buildlog",
       "show buildable log",
       "(^5name|slot#^7) (^5id^7)"
@@ -138,6 +143,11 @@ g_admin_cmd_t g_admin_cmds[ ] =
     {"passvote", G_admin_endvote, "passvote",
       "pass a vote currently taking place",
       "(^5a|h^7)"
+    },
+    
+    {"pause", G_admin_pause, "pause",
+      "Pause (or unpause) the game.",
+      ""
     },
 
     {"putteam", G_admin_putteam, "putteam",
@@ -1609,7 +1619,7 @@ qboolean G_admin_ban( gentity_t *ent )
 
   AP( va( "print \"^3ban:^7 %s^7 has been banned by %s^7 "
     "duration: %s, reason: %s\n\"",
-    match->name[ match->nameChanges % MAX_NAMELOG_NAMES ],
+    match->name[ match->nameOffset % MAX_NAMELOG_NAMES ],
     ( ent ) ? ent->client->pers.netname : "console",
     duration,
     ( *reason ) ? reason : "banned by admin" ) );
@@ -1618,7 +1628,7 @@ qboolean G_admin_ban( gentity_t *ent )
   {
     admin_create_ban( ent,
       match->slot == -1 ?
-        match->name[ match->nameChanges % MAX_NAMELOG_NAMES ] :
+        match->name[ match->nameOffset % MAX_NAMELOG_NAMES ] :
         level.clients[ match->slot ].pers.netname,
       match->guid,
       &ip,
@@ -1631,7 +1641,7 @@ qboolean G_admin_ban( gentity_t *ent )
     {
       admin_create_ban( ent,
         match->slot == -1 ?
-          match->name[ match->nameChanges % MAX_NAMELOG_NAMES ] :
+          match->name[ match->nameOffset % MAX_NAMELOG_NAMES ] :
           level.clients[ match->slot ].pers.netname,
         match->guid,
         &match->ip[ i ],
@@ -2779,7 +2789,8 @@ qboolean G_admin_namelog( gentity_t *ent )
     for( i = 0; i < MAX_NAMELOG_ADDRS && n->ip[ i ].str[ 0 ]; i++ )
       ADMBP( va( " %s", n->ip[ i ].str ) );
     for( i = 0; i < MAX_NAMELOG_NAMES && n->name[ i ][ 0 ]; i++ )
-      ADMBP( va( S_COLOR_WHITE " '%s" S_COLOR_WHITE "'", n->name[ i ] ) );
+      ADMBP( va( S_COLOR_WHITE " '%s" S_COLOR_WHITE "'%s", n->name[ i ],
+        ( i == n->nameOffset % MAX_NAMELOG_NAMES ) ? "*" : "" ) );
     ADMBP( "\n" );
   }
   ADMBP( va( "^3namelog:^7 %d recent clients found\n", printed ) );
@@ -2835,6 +2846,102 @@ qboolean G_admin_lock( gentity_t *ent )
   AP( va( "print \"^3%s: ^7the %s team has been %slocked by %s\n\"",
     command, BG_TeamName( team ), lock ? "" : "un",
     ent ? ent->client->pers.netname : "console" ) );
+
+  return qtrue;
+}
+
+qboolean G_admin_builder( gentity_t *ent )
+{
+  vec3_t     forward, right, up;
+  vec3_t     start, end, dist;
+  trace_t    tr;
+  gentity_t  *traceEnt;
+  buildLog_t *log;
+  int        i;
+
+  if( !ent )
+  {
+    ADMP( "^3builder: ^7console can't aim.\n" );
+    return qfalse;
+  }
+
+  AngleVectors( ent->client->ps.viewangles, forward, right, up );
+  if( ent->client->pers.teamSelection != TEAM_NONE &&
+      ent->client->sess.spectatorState == SPECTATOR_NOT )
+    CalcMuzzlePoint( ent, forward, right, up, start );
+  else
+    VectorCopy( ent->client->ps.origin, start );
+  VectorMA( start, 1000, forward, end );
+
+  trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, MASK_PLAYERSOLID );
+  traceEnt = &g_entities[ tr.entityNum ];
+  if( tr.fraction < 1.0f && ( traceEnt->s.eType == ET_BUILDABLE ) )
+  {
+    if( !G_admin_permission( ent, "buildlog" ) &&
+        ent->client->pers.teamSelection != TEAM_NONE &&
+        ent->client->pers.teamSelection != traceEnt->buildableTeam )
+    {
+      ADMP( "^3builder: ^7structure not owned by your team\n" );
+      return qfalse;
+    }
+
+    for( i = 0 ; i < level.numBuildLogs; i++ )
+    {
+      log = &level.buildLog[ ( level.buildId - i - 1 ) % MAX_BUILDLOG ];
+      if( log->fate != BF_CONSTRUCT || traceEnt->s.modelindex != log->modelindex )
+        continue;
+
+      VectorSubtract( traceEnt->s.pos.trBase, log->origin, dist );
+      if(  VectorLengthSquared( dist ) < 2.0f )
+      {
+        char logid[ 20 ] = {""};
+
+        if( G_admin_permission( ent, "buildlog" ) )
+          Com_sprintf( logid, sizeof( logid ), ", buildlog #%d",
+                       MAX_CLIENTS + level.buildId - i - 1 );
+        ADMP( va( "^3builder: ^7%s built by %s^7%s\n",
+          BG_Buildable( log->modelindex )->humanName,
+          log->actor ?
+            log->actor->name[ log->actor->nameOffset % MAX_NAMELOG_NAMES ] :
+            "<world>",
+          logid ) );
+        break;
+      }
+    }
+    if ( i == level.numBuildLogs )
+      ADMP( va( "^3builder: ^7%s not in build log, possibly a layout item\n",
+        BG_Buildable( traceEnt->s.modelindex )->humanName ) );
+  }
+  else
+    ADMP( "^3builder: ^7no structure found under crosshair\n" );
+
+  return qtrue;
+}
+
+qboolean G_admin_pause( gentity_t *ent )
+{
+  if( !level.pausedTime ) 
+  {
+    AP( va( "print \"^3!pause: ^7%s^7 paused the game.\n\"", 
+          ( ent ) ? ent->client->pers.netname : "console" ) );
+    level.pausedTime = 1;
+    trap_SendServerCommand( -1, "cp \"The game has been paused. Please wait.\"" );
+  }
+  else
+  {
+    // Prevent accidental pause->unpause race conditions by two admins
+    if( level.pausedTime < 1000 )
+    {
+      ADMP( "^3pause: ^7Unpausing so soon assumed accidental and ignored.\n" );
+      return qfalse;
+    }
+
+    AP( va( "print \"^3!pause: ^7%s^7 unpaused the game (Paused for %d msec) \n\"",
+          ( ent ) ? ent->client->pers.netname : "console",level.pausedTime ) );
+          trap_SendServerCommand( -1, "cp \"The game has been unpaused!\"" );
+
+    level.pausedTime = 0;
+  }
 
   return qtrue;
 }
@@ -2946,7 +3053,7 @@ qboolean G_admin_buildlog( gentity_t *ent )
       fates[ log->fate ],
       log->actor ? " by " : "",
       log->actor ?
-        log->actor->name[ log->actor->nameChanges % MAX_NAMELOG_NAMES ] :
+        log->actor->name[ log->actor->nameOffset % MAX_NAMELOG_NAMES ] :
         "" ) );
   }
   ADMBP( va( "^3buildlog: ^7showing %d build logs %d - %d of %d - %d.  %s\n",

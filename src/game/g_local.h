@@ -283,6 +283,7 @@ typedef struct namelog_s
   int               slot;
   qboolean          banned;
 
+  int               nameOffset;
   int               nameChangeTime;
   int               nameChanges;
   int               voteCount;
@@ -648,6 +649,7 @@ typedef struct
   qboolean          uncondHumanWin;
   qboolean          alienTeamLocked;
   qboolean          humanTeamLocked;
+  int               pausedTime;
 
   int unlaggedIndex;
   int unlaggedTimes[ MAX_UNLAGGED_MARKERS ];
@@ -655,6 +657,8 @@ typedef struct
   char              layout[ MAX_QPATH ];
 
   team_t            surrenderTeam;
+  int               lastTeamImbalancedTime;
+  int               numTeamImbalanceWarnings;
 
   voice_t           *voices;
 
@@ -1123,6 +1127,7 @@ extern  vmCvar_t  g_alienCredits;
 extern  vmCvar_t  g_alienMaxStage;
 extern  vmCvar_t  g_alienStage2Threshold;
 extern  vmCvar_t  g_alienStage3Threshold;
+extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
 
 extern  vmCvar_t  g_unlagged;
