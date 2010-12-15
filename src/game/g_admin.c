@@ -38,7 +38,7 @@ static char g_bfb[ 32000 ];
 // note: list ordered alphabetically
 g_admin_cmd_t g_admin_cmds[ ] =
   {
-    {"adjustban", G_admin_adjustban, "ban",
+    {"adjustban", G_admin_adjustban, qfalse, "ban",
       "change the duration or reason of a ban.  duration is specified as "
       "numbers followed by units 'w' (weeks), 'd' (days), 'h' (hours) or "
       "'m' (minutes), or seconds if no units are specified.  if the duration is"
@@ -47,27 +47,27 @@ g_admin_cmd_t g_admin_cmds[ ] =
       "[^3ban#^7] (^5/mask^7) (^5duration^7) (^5reason^7)"
     },
 
-    {"adminhelp", G_admin_adminhelp, "adminhelp",
+    {"adminhelp", G_admin_adminhelp, qtrue, "adminhelp",
       "display admin commands available to you or help on a specific command",
       "(^5command^7)"
     },
 
-    {"admintest", G_admin_admintest, "admintest",
+    {"admintest", G_admin_admintest, qfalse, "admintest",
       "display your current admin level",
       ""
     },
 
-    {"allowbuild", G_admin_denybuild, "denybuild",
+    {"allowbuild", G_admin_denybuild, qfalse, "denybuild",
       "restore a player's ability to build",
       "[^3name|slot#^7]"
     },
 
-    {"allready", G_admin_allready, "allready",
+    {"allready", G_admin_allready, qfalse, "allready",
       "makes everyone ready in intermission",
       ""
     },
 
-    {"ban", G_admin_ban, "ban",
+    {"ban", G_admin_ban, qfalse, "ban",
       "ban a player by IP and GUID with an optional expiration time and reason."
       " duration is specified as numbers followed by units 'w' (weeks), 'd' "
       "(days), 'h' (hours) or 'm' (minutes), or seconds if no units are "
@@ -75,135 +75,135 @@ g_admin_cmd_t g_admin_cmds[ ] =
       "[^3name|slot#|IP(/mask)^7] (^5duration^7) (^5reason^7)"
     },
 
-    {"builder", G_admin_builder, "builder",
+    {"builder", G_admin_builder, qtrue, "builder",
       "show who built a structure",
       ""
     },
 
-    {"buildlog", G_admin_buildlog, "buildlog",
+    {"buildlog", G_admin_buildlog, qfalse, "buildlog",
       "show buildable log",
       "(^5name|slot#^7) (^5id^7)"
     },
 
-    {"cancelvote", G_admin_endvote, "cancelvote",
+    {"cancelvote", G_admin_endvote, qfalse, "cancelvote",
       "cancel a vote taking place",
       "(^5a|h^7)"
     },
 
-    {"changemap", G_admin_changemap, "changemap",
+    {"changemap", G_admin_changemap, qfalse, "changemap",
       "load a map (and optionally force layout)",
       "[^3mapname^7] (^5layout^7)"
     },
 
-    {"denybuild", G_admin_denybuild, "denybuild",
+    {"denybuild", G_admin_denybuild, qfalse, "denybuild",
       "take away a player's ability to build",
       "[^3name|slot#^7]"
     },
 
-    {"kick", G_admin_kick, "kick",
+    {"kick", G_admin_kick, qfalse, "kick",
       "kick a player with an optional reason",
       "[^3name|slot#^7] (^5reason^7)"
     },
 
-    {"listadmins", G_admin_listadmins, "listadmins",
+    {"listadmins", G_admin_listadmins, qtrue, "listadmins",
       "display a list of all server admins and their levels",
       "(^5name|start admin#^7)"
     },
 
-    {"listlayouts", G_admin_listlayouts, "listlayouts",
+    {"listlayouts", G_admin_listlayouts, qtrue, "listlayouts",
       "display a list of all available layouts for a map",
       "(^5mapname^7)"
     },
 
-    {"listplayers", G_admin_listplayers, "listplayers",
+    {"listplayers", G_admin_listplayers, qtrue, "listplayers",
       "display a list of players, their client numbers and their levels",
       ""
     },
 
-    {"lock", G_admin_lock, "lock",
+    {"lock", G_admin_lock, qfalse, "lock",
       "lock a team to prevent anyone from joining it",
       "[^3a|h^7]"
     },
 
-    {"mute", G_admin_mute, "mute",
+    {"mute", G_admin_mute, qfalse, "mute",
       "mute a player",
       "[^3name|slot#^7]"
     },
 
-    {"namelog", G_admin_namelog, "namelog",
+    {"namelog", G_admin_namelog, qtrue, "namelog",
       "display a list of names used by recently connected players",
       "(^5name|IP(/mask)^7)"
     },
 
-    {"nextmap", G_admin_nextmap, "nextmap",
+    {"nextmap", G_admin_nextmap, qfalse, "nextmap",
       "go to the next map in the cycle",
       ""
     },
 
-    {"passvote", G_admin_endvote, "passvote",
+    {"passvote", G_admin_endvote, qfalse, "passvote",
       "pass a vote currently taking place",
       "(^5a|h^7)"
     },
     
-    {"pause", G_admin_pause, "pause",
+    {"pause", G_admin_pause, qfalse, "pause",
       "Pause (or unpause) the game.",
       ""
     },
 
-    {"putteam", G_admin_putteam, "putteam",
+    {"putteam", G_admin_putteam, qfalse, "putteam",
       "move a player to a specified team",
       "[^3name|slot#^7] [^3h|a|s^7]"
     },
 
-    {"readconfig", G_admin_readconfig, "readconfig",
+    {"readconfig", G_admin_readconfig, qfalse, "readconfig",
       "reloads the admin config file and refreshes permission flags",
       ""
     },
 
-    {"rename", G_admin_rename, "rename",
+    {"rename", G_admin_rename, qfalse, "rename",
       "rename a player",
       "[^3name|slot#^7] [^3new name^7]"
     },
 
-    {"restart", G_admin_restart, "restart",
+    {"restart", G_admin_restart, qfalse, "restart",
       "restart the current map (optionally using named layout or keeping/switching teams)",
       "(^5layout^7) (^5keepteams|switchteams|keepteamslock|switchteamslock^7)"
     },
 
-    {"revert", G_admin_revert, "revert",
+    {"revert", G_admin_revert, qfalse, "revert",
       "revert buildables to a given time",
       "[^3id^7]"
     },
 
-    {"setlevel", G_admin_setlevel, "setlevel",
+    {"setlevel", G_admin_setlevel, qfalse, "setlevel",
       "sets the admin level of a player",
       "[^3name|slot#|admin#^7] [^3level^7]"
     },
 
-    {"showbans", G_admin_showbans, "showbans",
+    {"showbans", G_admin_showbans, qtrue, "showbans",
       "display a (partial) list of active bans",
       "(^5start at ban#^7) (^5name|IP(/mask)^7)"
     },
 
-    {"spec999", G_admin_spec999, "spec999",
+    {"spec999", G_admin_spec999, qfalse, "spec999",
       "move 999 pingers to the spectator team",
       ""},
 
-    {"time", G_admin_time, "time",
+    {"time", G_admin_time, qtrue, "time",
       "show the current local server time",
       ""},
 
-    {"unban", G_admin_unban, "ban",
+    {"unban", G_admin_unban, qfalse, "ban",
       "unbans a player specified by the slot as seen in showbans",
       "[^3ban#^7]"
     },
 
-    {"unlock", G_admin_lock, "lock",
+    {"unlock", G_admin_lock, qfalse, "lock",
       "unlock a locked team",
       "[^3a|h^7]"
     },
 
-    {"unmute", G_admin_mute, "mute",
+    {"unmute", G_admin_mute, qfalse, "mute",
       "unmute a muted player",
       "[^3name|slot#^7]"
     }
@@ -910,7 +910,8 @@ qboolean G_admin_cmd_check( gentity_t *ent )
     {
       if( G_FloodLimited( ent ) )
         return qtrue;
-      admin_log( ent, command );
+      if( !admincmd->silent )
+        admin_log( ent, command );
       admincmd->handler( ent );
     }
     else
@@ -921,6 +922,52 @@ qboolean G_admin_cmd_check( gentity_t *ent )
     return qtrue;
   }
   return qfalse;
+}
+
+struct llist
+{
+  struct llist *next;
+};
+static void llsort( struct llist **head, int compar( const void *, const void * ) )
+{
+  struct llist *a, *b, *t, *l;
+  int i, c = 1, ns, as, bs;
+
+  if( !*head )
+    return;
+
+  do
+  {
+    a = *head, l = *head = NULL;
+    for( ns = 0; a; ns++, a = b )
+    {
+      b = a;
+      for( i = as = 0; i < c; i++ )
+      {
+        as++;
+        if( !( b = b->next ) )
+          break;
+      }
+      for( bs = c; ( b && bs ) || as; l = t )
+      {
+        if( as && ( !bs || !b || compar( a, b ) < 0 ) )
+          t = a, a = a->next, as--;
+        else
+          t = b, b = b->next, bs--;
+        if( l )
+          l->next = t;
+        else
+          *head = t;
+      }
+    }
+    l->next = NULL;
+    c *= 2;
+  } while( ns > 1 );
+}
+
+static int cmplevel( const void *a, const void *b )
+{
+  return ((g_admin_level_t *)b)->level - ((g_admin_level_t *)a)->level;
 }
 
 qboolean G_admin_readconfig( gentity_t *ent )
@@ -1127,6 +1174,11 @@ qboolean G_admin_readconfig( gentity_t *ent )
           lc, ac, bc, cc ) );
   if( lc == 0 )
     admin_default_levels();
+  else
+  {
+    llsort( (struct llist **)&g_admin_levels, cmplevel );
+    llsort( (struct llist **)&g_admin_admins, cmplevel );
+  }
 
   // restore admin mapping
   for( i = 0; i < level.maxclients; i++ )
@@ -2922,7 +2974,7 @@ qboolean G_admin_pause( gentity_t *ent )
 {
   if( !level.pausedTime ) 
   {
-    AP( va( "print \"^3!pause: ^7%s^7 paused the game.\n\"", 
+    AP( va( "print \"^3pause: ^7%s^7 paused the game.\n\"", 
           ( ent ) ? ent->client->pers.netname : "console" ) );
     level.pausedTime = 1;
     trap_SendServerCommand( -1, "cp \"The game has been paused. Please wait.\"" );
@@ -2936,7 +2988,7 @@ qboolean G_admin_pause( gentity_t *ent )
       return qfalse;
     }
 
-    AP( va( "print \"^3!pause: ^7%s^7 unpaused the game (Paused for %d msec) \n\"",
+    AP( va( "print \"^3pause: ^7%s^7 unpaused the game (Paused for %d msec) \n\"",
           ( ent ) ? ent->client->pers.netname : "console",level.pausedTime ) );
           trap_SendServerCommand( -1, "cp \"The game has been unpaused!\"" );
 

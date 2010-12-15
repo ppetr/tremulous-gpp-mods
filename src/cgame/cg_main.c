@@ -1577,7 +1577,7 @@ static int CG_OwnerDrawWidth( int ownerDraw, float scale )
   switch( ownerDraw )
   {
     case CG_KILLER:
-      return UI_Text_Width( CG_GetKillerText( ), scale, 0 );
+      return UI_Text_Width( CG_GetKillerText( ), scale );
       break;
   }
 
@@ -1625,6 +1625,9 @@ void CG_LoadHudMenu( void )
                        ( 480.0f * cgs.glconfig.vidWidth ) );
   cgDC.xscale = cgs.glconfig.vidWidth / 640.0f;
   cgDC.yscale = cgs.glconfig.vidHeight / 480.0f;
+
+  cgDC.smallFontScale = CG_Cvar_Get( "ui_smallFont" );
+  cgDC.bigFontScale = CG_Cvar_Get( "ui_bigFont" );
 
   cgDC.registerShaderNoMip  = &trap_R_RegisterShaderNoMip;
   cgDC.setColor             = &trap_R_SetColor;
