@@ -33,6 +33,7 @@ typedef struct
   int     cvarFlags;
   int     modificationCount;  // for tracking changes
   qboolean  trackChange;  // track this variable, and announce if changed
+  void    (*update)( const char *, vmCvar_t * );
 } cvarTable_t;
 
 gentity_t   g_entities[ MAX_GENTITIES ];
@@ -142,6 +143,14 @@ vmCvar_t  g_censorship;
 
 vmCvar_t  g_tag;
 
+static void G_cvgravity( const char *name, vmCvar_t *cvar );
+static void G_cvhumanMaxStage( const char *name, vmCvar_t *cvar );
+static void G_cvhumanStage2Threshold( const char *name, vmCvar_t *cvar );
+static void G_cvhumanStage3Threshold( const char *name, vmCvar_t *cvar );
+static void G_cvalienMaxStage( const char *name, vmCvar_t *cvar );
+static void G_cvalienStage2Threshold( const char *name, vmCvar_t *cvar );
+static void G_cvalienStage3Threshold( const char *name, vmCvar_t *cvar );
+
 static cvarTable_t   gameCvarTable[ ] =
 {
   // don't override the cheat state set by the system
@@ -186,7 +195,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_dedicated, "dedicated", "0", 0, 0, qfalse  },
 
   { &g_speed, "g_speed", "320", 0, 0, qtrue  },
-  { &g_gravity, "g_gravity", "800", 0, 0, qtrue  },
+  { &g_gravity, "g_gravity", "800", 0, 0, qtrue, G_cvgravity },
   { &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },
   { &g_inactivity, "g_inactivity", "0", 0, 0, qtrue },
   { &g_debugMove, "g_debugMove", "0", 0, 0, qfalse },
@@ -215,22 +224,22 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_humanRepeaterBuildQueueTime, "g_humanRepeaterBuildQueueTime", DEFAULT_HUMAN_REPEATER_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanStage, "g_humanStage", "0", 0, 0, qfalse  },
   { &g_humanCredits, "g_humanCredits", "0", 0, 0, qfalse  },
-  { &g_humanMaxStage, "g_humanMaxStage", DEFAULT_HUMAN_MAX_STAGE, 0, 0, qfalse  },
-  { &g_humanStage2Threshold, "g_humanStage2Threshold", DEFAULT_HUMAN_STAGE2_THRESH, 0, 0, qfalse  },
-  { &g_humanStage3Threshold, "g_humanStage3Threshold", DEFAULT_HUMAN_STAGE3_THRESH, 0, 0, qfalse  },
+  { &g_humanMaxStage, "g_humanMaxStage", DEFAULT_HUMAN_MAX_STAGE, 0, 0, qfalse, G_cvhumanMaxStage },
+  { &g_humanStage2Threshold, "g_humanStage2Threshold", DEFAULT_HUMAN_STAGE2_THRESH, 0, 0, qfalse, G_cvhumanStage2Threshold },
+  { &g_humanStage3Threshold, "g_humanStage3Threshold", DEFAULT_HUMAN_STAGE3_THRESH, 0, 0, qfalse, G_cvhumanStage3Threshold },
   { &g_alienStage, "g_alienStage", "0", 0, 0, qfalse  },
   { &g_alienCredits, "g_alienCredits", "0", 0, 0, qfalse  },
-  { &g_alienMaxStage, "g_alienMaxStage", DEFAULT_ALIEN_MAX_STAGE, 0, 0, qfalse  },
-  { &g_alienStage2Threshold, "g_alienStage2Threshold", DEFAULT_ALIEN_STAGE2_THRESH, 0, 0, qfalse  },
-  { &g_alienStage3Threshold, "g_alienStage3Threshold", DEFAULT_ALIEN_STAGE3_THRESH, 0, 0, qfalse  },
+  { &g_alienMaxStage, "g_alienMaxStage", DEFAULT_ALIEN_MAX_STAGE, 0, 0, qfalse, G_cvalienMaxStage },
+  { &g_alienStage2Threshold, "g_alienStage2Threshold", DEFAULT_ALIEN_STAGE2_THRESH, 0, 0, qfalse, G_cvalienStage2Threshold },
+  { &g_alienStage3Threshold, "g_alienStage3Threshold", DEFAULT_ALIEN_STAGE3_THRESH, 0, 0, qfalse, G_cvalienStage3Threshold },
   { &g_teamImbalanceWarnings, "g_teamImbalanceWarnings", "30", CVAR_ARCHIVE, 0, qfalse  },
   { &g_freeFundPeriod, "g_freeFundPeriod", DEFAULT_FREEKILL_PERIOD, CVAR_ARCHIVE, 0, qtrue },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 
-  { &g_disabledEquipment, "g_disabledEquipment", "", CVAR_ROM, 0, qfalse  },
-  { &g_disabledClasses, "g_disabledClasses", "", CVAR_ROM, 0, qfalse  },
-  { &g_disabledBuildables, "g_disabledBuildables", "", CVAR_ROM, 0, qfalse  },
+  { &g_disabledEquipment, "g_disabledEquipment", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
+  { &g_disabledClasses, "g_disabledClasses", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
+  { &g_disabledBuildables, "g_disabledBuildables", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
 
   { &g_sayAreaRange, "g_sayAreaRange", "1000", CVAR_ARCHIVE, 0, qtrue  },
 
@@ -253,7 +262,7 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_layouts, "g_layouts", "", CVAR_LATCH, 0, qfalse  },
   { &g_layoutAuto, "g_layoutAuto", "1", CVAR_ARCHIVE, 0, qfalse  },
-  
+
   { &g_emoticonsAllowedInNames, "g_emoticonsAllowedInNames", "1", CVAR_LATCH|CVAR_ARCHIVE, 0, qfalse  },
 
   { &g_admin, "g_admin", "admin.dat", CVAR_ARCHIVE, 0, qfalse  },
@@ -335,6 +344,35 @@ Q_EXPORT intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, i
   }
 
   return -1;
+}
+
+static void G_cvgravity( const char *name, vmCvar_t *cvar )
+{
+  level.gravity = cvar->value;
+}
+static void G_cvhumanMaxStage( const char *name, vmCvar_t *cvar )
+{
+  level.humanMaxStage = cvar->integer;
+}
+static void G_cvhumanStage2Threshold( const char *name, vmCvar_t *cvar )
+{
+  level.humanStage2Threshold = cvar->integer;
+}
+static void G_cvhumanStage3Threshold( const char *name, vmCvar_t *cvar )
+{
+  level.humanStage3Threshold = cvar->integer;
+}
+static void G_cvalienMaxStage( const char *name, vmCvar_t *cvar )
+{
+  level.alienMaxStage = cvar->integer;
+}
+static void G_cvalienStage2Threshold( const char *name, vmCvar_t *cvar )
+{
+  level.alienStage2Threshold = cvar->integer;
+}
+static void G_cvalienStage3Threshold( const char *name, vmCvar_t *cvar )
+{
+  level.alienStage3Threshold = cvar->integer;
 }
 
 
@@ -447,6 +485,9 @@ void G_RegisterCvars( void )
 
     if( cv->vmCvar )
       cv->modificationCount = cv->vmCvar->modificationCount;
+
+    if( cv->update )
+      cv->update( cv->cvarName, cv->vmCvar );
   }
 }
 
@@ -473,6 +514,9 @@ void G_UpdateCvars( void )
         if( cv->trackChange )
           trap_SendServerCommand( -1, va( "print \"Server: %s changed to %s\n\"",
             cv->cvarName, cv->vmCvar->string ) );
+
+        if( cv->update )
+          cv->update( cv->cvarName, cv->vmCvar );
       }
     }
   }
@@ -552,7 +596,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart )
 
       t = trap_RealTime( &qt );
       G_LogPrintf("RealTime: %04i/%02i/%02i %02i:%02i:%02i\n",
-            qt.tm_year+1900, qt.tm_mon+1, qt.tm_mday, 
+            qt.tm_year+1900, qt.tm_mon+1, qt.tm_mday,
             qt.tm_hour, qt.tm_min, qt.tm_sec );
 
     }
@@ -641,7 +685,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart )
   G_CountSpawns( );
 
   G_UpdateTeamConfigStrings( );
-  
+
   if( g_lockTeamsAtStart.integer )
   {
     level.alienTeamLocked = qtrue;
@@ -1028,7 +1072,7 @@ void G_SpawnClients( team_t team )
 /*
 ============
 G_CountSpawns
- 
+
 Counts the number of spawns for each team
 ============
 */
@@ -1061,7 +1105,7 @@ G_TimeTilSuddenDeath
 #define SUDDENDEATHWARNING 60000
 int G_TimeTilSuddenDeath( void )
 {
-  if( ( !g_suddenDeathTime.integer && level.suddenDeathBeginTime==0 ) || 
+  if( ( !g_suddenDeathTime.integer && level.suddenDeathBeginTime == 0 ) ||
       ( level.suddenDeathBeginTime < 0 ) )
     return SUDDENDEATHWARNING + 1; // Always some time away
 
@@ -1114,7 +1158,7 @@ void G_CalculateBuildPoints( void )
   else if( G_TimeTilSuddenDeath( ) <= SUDDENDEATHWARNING &&
     level.suddenDeathWarning < TW_IMMINENT )
   {
-    trap_SendServerCommand( -1, va( "cp \"Sudden Death in %d seconds!\"", 
+    trap_SendServerCommand( -1, va( "cp \"Sudden Death in %d seconds!\"",
           (int)(G_TimeTilSuddenDeath() / 1000 ) ) );
     level.suddenDeathWarning = TW_IMMINENT;
   }
@@ -1239,8 +1283,8 @@ void G_CalculateStages( void )
     humanPlayerCountMod = 0.1f;
 
   if( g_alienCredits.integer >=
-      (int)( ceil( (float)g_alienStage2Threshold.integer * alienPlayerCountMod ) ) &&
-      g_alienStage.integer == S1 && g_alienMaxStage.integer > S1 )
+      (int)( ceil( (float)level.alienStage2Threshold * alienPlayerCountMod ) ) &&
+      g_alienStage.integer == S1 && level.alienMaxStage > S1 )
   {
     trap_Cvar_Set( "g_alienStage", va( "%d", S2 ) );
     level.alienStage2Time = level.time;
@@ -1249,8 +1293,8 @@ void G_CalculateStages( void )
   }
 
   if( g_alienCredits.integer >=
-      (int)( ceil( (float)g_alienStage3Threshold.integer * alienPlayerCountMod ) ) &&
-      g_alienStage.integer == S2 && g_alienMaxStage.integer > S2 )
+      (int)( ceil( (float)level.alienStage3Threshold * alienPlayerCountMod ) ) &&
+      g_alienStage.integer == S2 && level.alienMaxStage > S2 )
   {
     trap_Cvar_Set( "g_alienStage", va( "%d", S3 ) );
     level.alienStage3Time = level.time;
@@ -1259,8 +1303,8 @@ void G_CalculateStages( void )
   }
 
   if( g_humanCredits.integer >=
-      (int)( ceil( (float)g_humanStage2Threshold.integer * humanPlayerCountMod ) ) &&
-      g_humanStage.integer == S1 && g_humanMaxStage.integer > S1 )
+      (int)( ceil( (float)level.humanStage2Threshold * humanPlayerCountMod ) ) &&
+      g_humanStage.integer == S1 && level.humanMaxStage > S1 )
   {
     trap_Cvar_Set( "g_humanStage", va( "%d", S2 ) );
     level.humanStage2Time = level.time;
@@ -1269,8 +1313,8 @@ void G_CalculateStages( void )
   }
 
   if( g_humanCredits.integer >=
-      (int)( ceil( (float)g_humanStage3Threshold.integer * humanPlayerCountMod ) ) &&
-      g_humanStage.integer == S2 && g_humanMaxStage.integer > S2 )
+      (int)( ceil( (float)level.humanStage3Threshold * humanPlayerCountMod ) ) &&
+      g_humanStage.integer == S2 && level.humanMaxStage > S2 )
   {
     trap_Cvar_Set( "g_humanStage", va( "%d", S3 ) );
     level.humanStage3Time = level.time;
@@ -1302,17 +1346,17 @@ void G_CalculateStages( void )
     lastHumanStageModCount = g_humanStage.modificationCount;
   }
 
-  if( g_alienStage.integer == S1 && g_alienMaxStage.integer > S1 )
-    alienNextStageThreshold = (int)( ceil( (float)g_alienStage2Threshold.integer * alienPlayerCountMod ) );
-  else if( g_alienStage.integer == S2 && g_alienMaxStage.integer > S2 )
-    alienNextStageThreshold = (int)( ceil( (float)g_alienStage3Threshold.integer * alienPlayerCountMod ) );
+  if( g_alienStage.integer == S1 && level.alienMaxStage > S1 )
+    alienNextStageThreshold = (int)( ceil( (float)level.alienStage2Threshold * alienPlayerCountMod ) );
+  else if( g_alienStage.integer == S2 && level.alienMaxStage > S2 )
+    alienNextStageThreshold = (int)( ceil( (float)level.alienStage3Threshold * alienPlayerCountMod ) );
   else
     alienNextStageThreshold = -1;
 
-  if( g_humanStage.integer == S1 && g_humanMaxStage.integer > S1 )
-    humanNextStageThreshold = (int)( ceil( (float)g_humanStage2Threshold.integer * humanPlayerCountMod ) );
-  else if( g_humanStage.integer == S2 && g_humanMaxStage.integer > S2 )
-    humanNextStageThreshold = (int)( ceil( (float)g_humanStage3Threshold.integer * humanPlayerCountMod ) );
+  if( g_humanStage.integer == S1 && level.humanMaxStage > S1 )
+    humanNextStageThreshold = (int)( ceil( (float)level.humanStage2Threshold * humanPlayerCountMod ) );
+  else if( g_humanStage.integer == S2 && level.humanMaxStage > S2 )
+    humanNextStageThreshold = (int)( ceil( (float)level.humanStage3Threshold * humanPlayerCountMod ) );
   else
     humanNextStageThreshold = -1;
 
@@ -1643,7 +1687,7 @@ void G_AdminMessage( gentity_t *ent, const char *msg )
   int     i;
 
   Com_sprintf( string, sizeof( string ), "chat %d %d \"%s\"",
-    ent ? ent - g_entities : -1, 
+    ent ? ent - g_entities : -1,
     G_admin_permission( ent, ADMF_ADMINCHAT ) ? SAY_ADMINS : SAY_ADMINS_PUBLIC,
     msg );
 
@@ -2197,8 +2241,8 @@ void CheckCvars( void )
     G_ClearDeconMarks( );
   }
 
-  // If we change g_suddenDeathTime during a map, we need to update 
-  // when sd will begin 
+  // If we change g_suddenDeathTime during a map, we need to update
+  // when sd will begin
   if( g_suddenDeathTime.modificationCount != lastSDTimeModCount )
   {
     lastSDTimeModCount = g_suddenDeathTime.modificationCount;
@@ -2291,7 +2335,7 @@ void G_RunFrame( int levelTime )
   if( level.restarted )
     return;
 
-  if( level.pausedTime ) 
+  if( level.pausedTime )
   {
     msec = levelTime - level.time - level.pausedTime;
     level.pausedTime = levelTime - level.time;
@@ -2301,13 +2345,24 @@ void G_RunFrame( int levelTime )
     {
       ptime3000 -= 3000;
       trap_SendServerCommand( -1, "cp \"The game has been paused. Please wait.\"" );
+
+      if( level.pausedTime >= 110000  && level.pausedTime <= 119000 )
+        trap_SendServerCommand( -1, va( "print \"Server: Game will auto-unpause in %d seconds\n\"", 
+          (int) ( (float) ( 120000 - level.pausedTime ) / 1000.0f ) ) );
     }
-    
+
     // Prevents clients from getting lagged-out messages
     for( i = 0; i < level.maxclients; i++ )
     {
       if( level.clients[ i ].pers.connected == CON_CONNECTED )
         level.clients[ i ].ps.commandTime = levelTime;
+    }
+
+    if( level.pausedTime > 120000 )
+    {
+      trap_SendServerCommand( -1, "print \"Server: The game has been unpaused automatically (2 minute max)\n\"" );
+      trap_SendServerCommand( -1, "cp \"The game has been unpaused!\"" );
+      level.pausedTime = 0;
     }
 
     return;

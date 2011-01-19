@@ -624,6 +624,15 @@ typedef struct
   gentity_t         *markedBuildables[ MAX_GENTITIES ];
   int               numBuildablesForRemoval;
 
+  // map/cvar-set values
+  float             gravity;
+  int               humanMaxStage;
+  int               humanStage2Threshold;
+  int               humanStage3Threshold;
+  int               alienMaxStage;
+  int               alienStage2Threshold;
+  int               alienStage3Threshold;
+
   int               alienKills;
   int               humanKills;
 
@@ -712,8 +721,7 @@ void      G_StopFromFollowing( gentity_t *ent );
 void      G_FollowLockView( gentity_t *ent );
 qboolean  G_FollowNewClient( gentity_t *ent, int dir );
 void      G_ToggleFollow( gentity_t *ent );
-void      G_MatchOnePlayer( int *plist, int num, char *err, int len );
-int       G_ClientNumberFromString( char *s );
+int       G_ClientNumberFromString( char *s, char *err, int len );
 int       G_ClientNumbersFromString( char *s, int *plist, int max );
 char      *ConcatArgs( int start );
 void      G_Say( gentity_t *ent, saymode_t mode, const char *chatText );
