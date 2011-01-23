@@ -540,7 +540,7 @@ void Cmd_Team_f( gentity_t *ent )
 
   // stop switching teams for gameplay exploit reasons by enforcing a long
   // wait before they can come back
-  if( !force && ent->client->pers.aliveSeconds && 
+  if( !force && !g_cheats.integer && ent->client->pers.aliveSeconds && 
       level.time - ent->client->pers.teamChangeTime < 30000 )
   {
     trap_SendServerCommand( ent-g_entities,
@@ -1095,6 +1095,7 @@ void Cmd_CallVote_f( gentity_t *ent )
   char   reason[ MAX_TOKEN_CHARS ];
   char   *creason;
   int    clientNum = -1;
+  int    id = -1;
   team_t team;
 
   trap_Argv( 0, cmd, sizeof( cmd ) );
@@ -1161,6 +1162,7 @@ void Cmd_CallVote_f( gentity_t *ent )
     }
 
     G_DecolorString( level.clients[ clientNum ].pers.netname, name, sizeof( name ) );
+    id = level.clients[ clientNum ].pers.namelog->id;
 
     if( !Q_stricmp( vote, "kick" ) || !Q_stricmp( vote, "mute" ) ||
         !Q_stricmp( vote, "denybuild" ) )
@@ -1223,7 +1225,7 @@ void Cmd_CallVote_f( gentity_t *ent )
       }
 
       Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
-        "mute %d", clientNum );
+        "mute %d", id );
       Com_sprintf( level.voteDisplayString[ team ],
         sizeof( level.voteDisplayString[ team ] ),
         "Mute player '%s'", name );
@@ -1244,7 +1246,7 @@ void Cmd_CallVote_f( gentity_t *ent )
       }
 
       Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
-        "unmute %d", clientNum );
+        "unmute %d", id );
       Com_sprintf( level.voteDisplayString[ team ],
         sizeof( level.voteDisplayString[ team ] ),
         "Unmute player '%s'", name );
@@ -1346,7 +1348,7 @@ void Cmd_CallVote_f( gentity_t *ent )
     }
 
     Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
-      "denybuild %d", clientNum );
+      "denybuild %d", id );
     Com_sprintf( level.voteDisplayString[ team ],
       sizeof( level.voteDisplayString[ team ] ),
       "Take away building rights from '%s'", name );
@@ -1367,7 +1369,7 @@ void Cmd_CallVote_f( gentity_t *ent )
     }
 
     Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
-      "allowbuild %d", clientNum );
+      "allowbuild %d", id );
     Com_sprintf( level.voteDisplayString[ team ],
       sizeof( level.voteDisplayString[ team ] ),
       "Allow '%s' to build", name );
@@ -2363,7 +2365,7 @@ void Cmd_Build_f( gentity_t *ent )
     dynMenu_t err;
     dist = BG_Class( ent->client->ps.stats[ STAT_CLASS ] )->buildDist;
 
-    ent->client->ps.stats[ STAT_BUILDABLE ] = 0;
+    ent->client->ps.stats[ STAT_BUILDABLE ] = BA_NONE;
 
     //these are the errors displayed when the builder first selects something to use
     switch( G_CanBuild( ent, buildable, dist, origin ) )

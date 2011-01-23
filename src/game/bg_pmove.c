@@ -1971,8 +1971,10 @@ static void PM_GroundClimbTrace( void )
 
       case 1:
         //trace straight down anto "ground" surface
+        //mask out CONTENTS_BODY to not hit other players and avoid the camera flipping out when
+        // wallwalkers touch
         VectorMA( pm->ps->origin, -0.25f, surfNormal, point );
-        pm->trace( &trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask );
+        pm->trace( &trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask & ~CONTENTS_BODY );
         break;
 
       case 2:
@@ -2137,7 +2139,7 @@ static void PM_GroundClimbTrace( void )
       pm->ps->eFlags |= EF_WALLCLIMB;
 
       //if we're not stuck to the ceiling then set grapplePoint to be a surface normal
-      if( !VectorCompare( trace.plane.normal, ceilingNormal ) )
+      if( !VectorCompareEpsilon( trace.plane.normal, ceilingNormal, 0.000001f ) )
       {
         //so we know what surface we're stuck to
         VectorCopy( trace.plane.normal, pm->ps->grapplePoint );

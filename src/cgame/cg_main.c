@@ -145,6 +145,7 @@ vmCvar_t  cg_tracerLength;
 vmCvar_t  cg_thirdPerson;
 vmCvar_t  cg_thirdPersonAngle;
 vmCvar_t  cg_thirdPersonShoulderViewMode;
+vmCvar_t  cg_staticDeathCam;
 vmCvar_t  cg_thirdPersonPitchFollow;
 vmCvar_t  cg_thirdPersonRange;
 vmCvar_t  cg_stereoSeparation;
@@ -274,6 +275,7 @@ static cvarTable_t cvarTable[ ] =
   { &cg_thirdPersonAngle, "cg_thirdPersonAngle", "0", CVAR_CHEAT },
   { &cg_thirdPersonPitchFollow, "cg_thirdPersonPitchFollow", "0", 0 },
   { &cg_thirdPersonShoulderViewMode, "cg_thirdPersonShoulderViewMode", "1", CVAR_ARCHIVE },
+  { &cg_staticDeathCam, "cg_staticDeathCam", "0", CVAR_ARCHIVE },
   { &cg_stats, "cg_stats", "0", 0 },
   { &cg_drawTeamOverlay, "cg_drawTeamOverlay", "1", CVAR_ARCHIVE },
   { &cg_teamOverlaySortMode, "cg_teamOverlaySortMode", "1", CVAR_ARCHIVE },
