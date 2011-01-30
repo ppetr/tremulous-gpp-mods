@@ -106,7 +106,8 @@ int G_ClientNumberFromString( char *s, char *err, int len )
 
   // check for a name match
   G_SanitiseString( s, s2, sizeof( s2 ) );
-
+  if( !s2[ 0 ] )
+    return -1;
   for( i = 0, cl = level.clients; i < level.maxclients; i++, cl++ )
   {
     if( cl->pers.connected == CON_DISCONNECTED )
@@ -183,7 +184,7 @@ int G_ClientNumbersFromString( char *s, int *plist, int max )
 
   // now look for name matches
   G_SanitiseString( s, s2, sizeof( s2 ) );
-  if( strlen( s2 ) < 1 )
+  if( !s2[ 0 ] )
     return 0;
   for( i = 0; i < level.maxclients && found < max; i++ )
   {
@@ -267,7 +268,7 @@ void ScoreboardMessage( gentity_t *ent )
 
     j = strlen( entry );
 
-    if( stringlength + j > 1024 )
+    if( stringlength + j >= 1024 )
       break;
 
     strcpy( string + stringlength, entry );
@@ -1784,6 +1785,7 @@ void Cmd_Destroy_f( gentity_t *ent )
     if( traceEnt->health <= 0 )
     {
       G_QueueBuildPoints( traceEnt );
+      G_RewardAttackers( traceEnt );
       G_FreeEntity( traceEnt );
       return;
     }
@@ -2523,7 +2525,7 @@ void G_StopFollowing( gentity_t *ent )
   }
   ent->client->sess.spectatorClient = -1;
   ent->client->ps.pm_flags &= ~PMF_FOLLOW;
-  ent->client->ps.stats[ STAT_STATE ] &= ~SS_WALLCLIMBING;
+  ent->client->ps.stats[ STAT_STATE ] = 0;
   ent->client->ps.stats[ STAT_VIEWLOCK ] = 0;
   ent->client->ps.eFlags &= ~( EF_WALLCLIMB | EF_WALLCLIMBCEILING );
   ent->client->ps.viewangles[ PITCH ] = 0.0f;
@@ -3051,7 +3053,7 @@ void ClientCommand( int clientNum )
   commands_t *command;
 
   ent = g_entities + clientNum;
-  if( !ent->client )
+  if( !ent->client || ent->client->pers.connected != CON_CONNECTED )
     return;   // not fully in game yet
 
   trap_Argv( 0, cmd, sizeof( cmd ) );
