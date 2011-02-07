@@ -749,7 +749,7 @@ static int admin_search( gentity_t *ent,
       if( i >= start && ( limit < 1 || count < limit ) )
       {
         out( l, str );
-        ADMBP( va( "%-3d %s" S_COLOR_WHITE "\n", i + offset, str ) );
+        ADMBP( va( "%-3d %s\n", i + offset, str ) );
         count++;
         end = i;
       }
@@ -845,6 +845,7 @@ qboolean G_admin_ban_check( gentity_t *ent, char *reason, int rlen )
   int i;
   int t;
   g_admin_ban_t *ban;
+  char warningMessage[ MAX_STRING_CHARS ];
 
   t = trap_RealTime( NULL );
   if( ent->client->pers.localClient )
@@ -860,6 +861,7 @@ qboolean G_admin_ban_check( gentity_t *ent, char *reason, int rlen )
       char duration[ MAX_DURATION_LENGTH ];
       G_admin_duration( ban->expires - t,
         duration, sizeof( duration ) );
+
       if( reason )
         Com_sprintf(
           reason,
@@ -869,12 +871,18 @@ qboolean G_admin_ban_check( gentity_t *ent, char *reason, int rlen )
           ban->reason,
           duration
         );
-      G_Printf( S_COLOR_YELLOW "Banned player %s" S_COLOR_YELLOW
+
+      Com_sprintf( warningMessage, sizeof( warningMessage ),
+        S_COLOR_YELLOW "Banned player %s" S_COLOR_YELLOW
         " tried to connect from %s (ban #%d)\n",
         ent->client->pers.netname[ 0 ] ? ent->client->pers.netname :
           ban->name,
         ent->client->pers.ip.str,
         i + 1 );
+      trap_Print( warningMessage );
+      // don't spam admins
+      if( ban->warnCount++ < 5 )
+        G_AdminMessage( NULL, warningMessage );
       return qtrue;
     }
   }
@@ -1594,7 +1602,10 @@ qboolean G_admin_ban( gentity_t *ent )
     }
   }
   else if( !( match = G_NamelogFromString( ent, search ) ) || match->banned )
+  {
+    ADMP( "^3ban: ^7no match\n" );
     return qfalse;
+  }
 
   if( ent && !admin_higher_guid( ent->client->pers.guid, match->guid ) )
   {
@@ -1791,7 +1802,10 @@ qboolean G_admin_adjustban( gentity_t *ent )
     char *p = strchr( ban->ip.str, '/' );
     if( !p )
       p = ban->ip.str + strlen( ban->ip.str );
-    Com_sprintf( p, sizeof( ban->ip.str ) - ( p - ban->ip.str ), "/%d", mask );
+    if( mask == ( ban->ip.type == IPv6 ? 128 : 32 ) )
+      *p = '\0';
+    else
+      Com_sprintf( p, sizeof( ban->ip.str ) - ( p - ban->ip.str ), "/%d", mask );
     ban->ip.mask = mask;
   }
   reason = ConcatArgs( 3 + skiparg );
@@ -2189,17 +2203,19 @@ static qboolean ban_matchip( void *ban, const void *ip )
 static qboolean ban_matchname( void *ban, const void *name )
 {
   char match[ MAX_NAME_LENGTH ];
+
   G_SanitiseString( ( (g_admin_ban_t *)ban )->name, match, sizeof( match ) );
   return strstr( match, (const char *)name ) != NULL;
 }
 static void ban_out( void *ban, char *str )
 {
   int i;
-  int colorlen1 = 0, colorlen2 = 0;
+  int colorlen1 = 0;
   char duration[ MAX_DURATION_LENGTH ];
+  char *d_color = S_COLOR_WHITE;
   char date[ 11 ];
   g_admin_ban_t *b = ( g_admin_ban_t * )ban;
-  int secs = b->expires ? abs( b->expires - trap_RealTime( NULL ) ) : -1;
+  int t = trap_RealTime( NULL );
   char *made = b->made;
 
   for( i = 0; b->name[ i ]; i++ )
@@ -2208,26 +2224,30 @@ static void ban_out( void *ban, char *str )
       colorlen1 += 2;
   }
 
-  for( i = 0; b->banner[ i ]; i++ )
-  {
-    if( Q_IsColorString( &b->banner[ i ] ) )
-      colorlen2 += 2;
-  }
-
   // only print out the the date part of made
   date[ 0 ] = '\0';
   for( i = 0; *made && *made != ' ' && i < sizeof( date ) - 1; i++ )
     date[ i ] = *made++;
   date[ i ] = 0;
 
-  G_admin_duration( secs, duration, sizeof( duration ) );
+  if( !b->expires || b->expires - t > 0 )
+    G_admin_duration( b->expires ? b->expires - t : - 1,
+                      duration, sizeof( duration ) );
+  else
+  {
+    Q_strncpyz( duration, "expired", sizeof( duration ) );
+    d_color = S_COLOR_CYAN;
+  }
 
-  Com_sprintf( str, MAX_STRING_CHARS, "%-*s " S_COLOR_WHITE "%-15s %-8s %-*s "
-    S_COLOR_WHITE "%s\n     \\__ %s",
+  Com_sprintf( str, MAX_STRING_CHARS, "%-*s %s%-15s " S_COLOR_WHITE "%-8s %s"
+    "\n     \\__ %s%-*s " S_COLOR_WHITE "%s",
     MAX_NAME_LENGTH + colorlen1 - 1, b->name,
+    ( strchr( b->ip.str, '/' ) ) ? S_COLOR_RED : S_COLOR_WHITE,
     b->ip.str,
     date,
-    MAX_NAME_LENGTH + colorlen2 - 1, b->banner,
+    b->banner,
+    d_color,
+    MAX_DURATION_LENGTH - 1,
     duration,
     b->reason );
 }
@@ -2631,12 +2651,14 @@ static void namelog_out( void *namelog, char *str )
   namelog_t *n = (namelog_t *)namelog;
   char *p = str;
   int l, l2 = MAX_STRING_CHARS, i;
+  const char *scolor;
 
   if( n->slot > -1 )
   {
     l = Q_snprintf( p, l2, "^3%-2d", n->slot );
     p += l;
     l2 -= l;
+    scolor = S_COLOR_YELLOW;
   }
   else
   {
@@ -2644,6 +2666,7 @@ static void namelog_out( void *namelog, char *str )
     *p++ = ' ';
     *p = '\0';
     l2 -= 2;
+    scolor = S_COLOR_WHITE;
   }
 
   for( i = 0; i < MAX_NAMELOG_ADDRS && n->ip[ i ].str[ 0 ]; i++ )
@@ -2655,8 +2678,8 @@ static void namelog_out( void *namelog, char *str )
 
   for( i = 0; i < MAX_NAMELOG_NAMES && n->name[ i ][ 0 ]; i++ )
   {
-    l = Q_snprintf( p, l2, " '%s" S_COLOR_WHITE "'%s", n->name[ i ],
-                  ( i == n->nameOffset ) ? "*" : "" );
+    l = Q_snprintf( p, l2, " '" S_COLOR_WHITE "%s%s'%s", n->name[ i ], scolor,
+                    i == n->nameOffset ? "*" : "" );
     p += l;
     l2 -= l;
   }
@@ -2686,7 +2709,7 @@ qboolean G_admin_namelog( gentity_t *ent )
       G_SanitiseString( search, s2, sizeof( s2 ) );
   }
 
-  admin_search( ent, "namelog", "recent clients",
+  admin_search( ent, "namelog", "recent players",
     ipmatch ? namelog_matchip : namelog_matchname, namelog_out, level.namelogs,
     ipmatch ? (void *)&ip : s2, start, MAX_CLIENTS, MAX_ADMIN_LISTITEMS );
   return qtrue;
@@ -2760,7 +2783,7 @@ namelog_t *G_NamelogFromString( gentity_t *ent, char *s )
     return m;
 
   if( found > 1 )
-    admin_search( ent, "namelog", "recent clients", namelog_matchname,
+    admin_search( ent, "namelog", "recent players", namelog_matchname,
       namelog_out, level.namelogs, s2, 0, MAX_CLIENTS, -1 );
 
   return NULL;
