@@ -254,7 +254,7 @@
     itemDef
     {
       name "ammo"
-      rect 494 430 60 15
+      rect 507 430 53 15
       aspectBias ALIGN_RIGHT
       visible MENU_TRUE
       decoration
@@ -361,22 +361,6 @@
       forecolor COMMON_HUD_R COMMON_HUD_G COMMON_HUD_B 0.25
       style WINDOW_STYLE_SHADER
       background "ui/assets/neutral/selected.tga"
-    }
-
-    //SPECTATOR TEXT
-    itemDef
-    {
-      name "followtext"
-      rect 200 375 240 25
-      foreColor 1 1 1 1
-      aspectBias ALIGN_CENTER
-      textalign ALIGN_CENTER
-      textvalign VALIGN_TOP
-      visible MENU_TRUE
-      decoration
-      textScale .7
-      textStyle ITEM_TEXTSTYLE_SHADOWED
-      ownerdraw CG_FOLLOW
     }
 
     //TEAM OVERLAY

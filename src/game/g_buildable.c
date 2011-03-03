@@ -335,7 +335,7 @@ G_GetBuildPoints
 Get the number of build points from a position
 ==================
 */
-int G_GetBuildPoints( const vec3_t pos, team_t team, int extraDistance )
+int G_GetBuildPoints( const vec3_t pos, team_t team )
 {
   if( G_TimeTilSuddenDeath( ) <= 0 )
   {
@@ -364,6 +364,52 @@ int G_GetBuildPoints( const vec3_t pos, team_t team, int extraDistance )
   }
 
   return 0;
+}
+
+/*
+==================
+G_GetMarkedBuildPoints
+
+Get the number of marked build points from a position
+==================
+*/
+int G_GetMarkedBuildPoints( const vec3_t pos, team_t team )
+{
+  gentity_t *ent;
+  int       i;
+  int sum = 0;
+
+  if( G_TimeTilSuddenDeath( ) <= 0 )
+    return 0;
+
+  if( !g_markDeconstruct.integer )
+    return 0;
+
+  for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
+  {
+    if( ent->s.eType != ET_BUILDABLE )
+      continue;
+
+    if( team == TEAM_HUMANS &&
+        ent->s.modelindex != BA_H_REACTOR &&
+        ent->s.modelindex != BA_H_REPEATER &&
+        ent->parentNode != G_PowerEntityForPoint( pos ) )
+      continue;
+
+    if( !ent->inuse )
+      continue;
+
+    if( ent->health <= 0 )
+      continue;
+
+    if( ent->buildableTeam != team )
+      continue;
+
+    if( ent->deconstruct )
+      sum += BG_Buildable( ent->s.modelindex )->buildPoints;
+  }
+
+  return sum;
 }
 
 /*
@@ -3053,7 +3099,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
 
   if( team == TEAM_ALIENS )
   {
-    remainingBP     = G_GetBuildPoints( origin, team, 0 );
+    remainingBP     = G_GetBuildPoints( origin, team );
     remainingSpawns = level.numAlienSpawns;
     bpError         = IBE_NOALIENBP;
     spawn           = BA_A_SPAWN;
@@ -3064,7 +3110,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
     if( buildable == BA_H_REACTOR || buildable == BA_H_REPEATER )
       remainingBP   = level.humanBuildPoints;
     else
-      remainingBP   = G_GetBuildPoints( origin, team, 0 );
+      remainingBP   = G_GetBuildPoints( origin, team );
 
     remainingSpawns = level.numHumanSpawns;
     bpError         = IBE_NOHUMANBP;
@@ -3471,13 +3517,17 @@ G_Build
 Spawns a buildable
 ================
 */
-static gentity_t *G_Build( gentity_t *builder, buildable_t buildable, vec3_t origin, vec3_t angles )
+static gentity_t *G_Build( gentity_t *builder, buildable_t buildable,
+    const vec3_t origin, const vec3_t angles )
 {
   gentity_t *built;
   vec3_t    normal;
+  vec3_t    localOrigin;
   char      readable[ MAX_STRING_CHARS ];
   char      buildnums[ MAX_STRING_CHARS ];
   buildLog_t *log;
+
+  VectorCopy( origin, localOrigin );
 
   if( builder->client )
     log = G_BuildLogNew( builder, BF_CONSTRUCT );
@@ -3522,7 +3572,7 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable, vec3_t ori
   // when building the initial layout, spawn the entity slightly off its
   // target surface so that it can be "dropped" onto it
   if( !builder->client )
-    VectorMA( origin, 1.0f, normal, origin );
+    VectorMA( localOrigin, 1.0f, normal, localOrigin );
 
   built->health = 1;
 
@@ -3654,7 +3704,7 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable, vec3_t ori
   else
     built->builtBy = -1;
 
-  G_SetOrigin( built, origin );
+  G_SetOrigin( built, localOrigin );
 
   // gently nudge the buildable onto the surface :)
   VectorScale( normal, -50.0f, built->s.pos.trDelta );
@@ -4223,7 +4273,7 @@ void G_BuildLogRevertThink( gentity_t *ent )
   int       victims = 0;
   int       i;
 
-  if( ent->suicideTime > level.time )
+  if( ent->suicideTime > 0 )
   {
     BG_BuildableBoundingBox( ent->s.modelindex, mins, maxs );
     VectorAdd( ent->s.pos.trBase, mins, mins );
@@ -4244,6 +4294,8 @@ void G_BuildLogRevertThink( gentity_t *ent )
         victims++;
       }
     }
+
+    ent->suicideTime--;
 
     if( victims )
     {
@@ -4316,7 +4368,9 @@ void G_BuildLogRevert( int id )
 
       builder->think = G_BuildLogRevertThink;
       builder->nextthink = level.time + FRAMETIME;
-      builder->suicideTime = level.time + 3000;
+
+      // Number of thinks before giving up and killing players in the way
+      builder->suicideTime = 30; 
 
       if( log->fate == BF_DESTROY || log->fate == BF_TEAMKILL )
       {

@@ -707,7 +707,7 @@ static void admin_log( gentity_t *admin, char *cmd )
                ( admin && admin->client->pers.admin ) ?
                           admin->client->pers.admin->level : 0,
                cmd,
-               ConcatArgs( args ) );
+               ConcatArgsPrintable( args ) );
 }
 
 struct llist
@@ -874,12 +874,12 @@ qboolean G_admin_ban_check( gentity_t *ent, char *reason, int rlen )
 
       Com_sprintf( warningMessage, sizeof( warningMessage ),
         S_COLOR_YELLOW "Banned player %s" S_COLOR_YELLOW
-        " tried to connect from %s (ban #%d)\n",
+        " tried to connect from %s (ban #%d)",
         ent->client->pers.netname[ 0 ] ? ent->client->pers.netname :
           ban->name,
         ent->client->pers.ip.str,
         i + 1 );
-      trap_Print( warningMessage );
+      trap_Print( va( "%s\n", warningMessage ) );
       // don't spam admins
       if( ban->warnCount++ < 5 )
         G_AdminMessage( NULL, warningMessage );
@@ -2655,10 +2655,10 @@ static void namelog_out( void *namelog, char *str )
 
   if( n->slot > -1 )
   {
-    l = Q_snprintf( p, l2, "^3%-2d", n->slot );
+    scolor = S_COLOR_YELLOW;
+    l = Q_snprintf( p, l2, "%s%-2d", scolor, n->slot );
     p += l;
     l2 -= l;
-    scolor = S_COLOR_YELLOW;
   }
   else
   {

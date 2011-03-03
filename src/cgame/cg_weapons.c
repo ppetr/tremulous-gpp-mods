@@ -38,18 +38,24 @@ void CG_RegisterUpgrade( int upgradeNum )
   upgradeInfo_t   *upgradeInfo;
   char            *icon;
 
+  if( upgradeNum <= UP_NONE || upgradeNum >= UP_NUM_UPGRADES )
+  {
+    CG_Error( "CG_RegisterUpgrade: out of range: %d", upgradeNum );
+    return;
+  }
+
   upgradeInfo = &cg_upgrades[ upgradeNum ];
 
-  if( upgradeNum == 0 )
-    return;
-
   if( upgradeInfo->registered )
+  {
+    CG_Printf( "CG_RegisterUpgrade: already registered: (%d) %s\n", upgradeNum,
+      BG_Upgrade( upgradeNum )->name );
     return;
+  }
 
-  Com_Memset( upgradeInfo, 0, sizeof( *upgradeInfo ) );
   upgradeInfo->registered = qtrue;
 
-  if( strlen( BG_Upgrade( upgradeNum )->name ) <= 0 )
+  if( !BG_Upgrade( upgradeNum )->name[ 0 ] )
     CG_Error( "Couldn't find upgrade %i", upgradeNum );
 
   upgradeInfo->humanName = BG_Upgrade( upgradeNum )->humanName;
@@ -632,18 +638,24 @@ void CG_RegisterWeapon( int weaponNum )
   vec3_t        mins, maxs;
   int           i;
 
+  if( weaponNum <= WP_NONE || weaponNum >= WP_NUM_WEAPONS )
+  {
+    CG_Error( "CG_RegisterWeapon: out of range: %d", weaponNum );
+    return;
+  }
+
   weaponInfo = &cg_weapons[ weaponNum ];
 
-  if( weaponNum == 0 )
-    return;
-
   if( weaponInfo->registered )
+  {
+    CG_Printf( "CG_RegisterWeapon: already registered: (%d) %s\n", weaponNum,
+      BG_Weapon( weaponNum )->name );
     return;
+  }
 
-  Com_Memset( weaponInfo, 0, sizeof( *weaponInfo ) );
   weaponInfo->registered = qtrue;
 
-  if( strlen( BG_Weapon( weaponNum )->name ) <= 0 )
+  if( !BG_Weapon( weaponNum )->name[ 0 ] )
     CG_Error( "Couldn't find weapon %i", weaponNum );
 
   Com_sprintf( path, MAX_QPATH, "models/weapons/%s/weapon.cfg", BG_Weapon( weaponNum )->name );
@@ -657,10 +669,6 @@ void CG_RegisterWeapon( int weaponNum )
   trap_R_ModelBounds( weaponInfo->weaponModel, mins, maxs );
   for( i = 0 ; i < 3 ; i++ )
     weaponInfo->weaponMidpoint[ i ] = mins[ i ] + 0.5 * ( maxs[ i ] - mins[ i ] );
-
-  //FIXME:
-  for( i = WPM_NONE + 1; i < WPM_NUM_WEAPONMODES; i++ )
-    weaponInfo->wim[ i ].loopFireSound = qfalse;
 }
 
 /*
@@ -891,8 +899,13 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
   else
     firing = qfalse;
 
-  CG_RegisterWeapon( weaponNum );
   weapon = &cg_weapons[ weaponNum ];
+  if( !weapon->registered )
+  {
+    Com_Printf( S_COLOR_YELLOW "WARNING: CG_AddPlayerWeapon: weapon %d (%s) "
+        "is not registered\n", weaponNum, BG_Weapon( weaponNum )->name );
+    return;
+  }
 
   // add the weapon
   Com_Memset( &gun, 0, sizeof( gun ) );
@@ -1107,18 +1120,23 @@ void CG_AddViewWeapon( playerState_t *ps )
   weapon_t      weapon = ps->weapon;
   weaponMode_t  weaponMode = ps->generic1;
 
+  // no weapon carried - can't draw it
+  if( weapon == WP_NONE )
+    return;
+
   if( weaponMode <= WPM_NONE || weaponMode >= WPM_NUM_WEAPONMODES )
     weaponMode = WPM_PRIMARY;
 
-  CG_RegisterWeapon( weapon );
   wi = &cg_weapons[ weapon ];
+  if( !wi->registered )
+  {
+    Com_Printf( S_COLOR_YELLOW "WARNING: CG_AddViewWeapon: weapon %d (%s) "
+        "is not registered\n", weapon, BG_Weapon( weapon )->name );
+    return;
+  }
   cent = &cg.predictedPlayerEntity; // &cg_entities[cg.snap->ps.clientNum];
 
   if( ps->persistant[PERS_SPECSTATE] != SPECTATOR_NOT )
-    return;
-
-  // no weapon carried - can't draw it
-  if( weapon == WP_NONE )
     return;
 
   if( ps->pm_type == PM_INTERMISSION )
@@ -1315,7 +1333,12 @@ void CG_DrawItemSelect( rectDef_t *rect, vec4_t color )
     if( i == cg.weaponSelect )
       selectedItem = numItems;
 
-    CG_RegisterWeapon( i );
+    if( !cg_weapons[ i ].registered )
+    {
+      Com_Printf( S_COLOR_YELLOW "WARNING: CG_DrawItemSelect: weapon %d (%s) "
+  	"is not registered\n", i, BG_Weapon( i )->name );
+      continue;
+    }
     items[ numItems ] = i;
     numItems++;
   }
@@ -1332,7 +1355,12 @@ void CG_DrawItemSelect( rectDef_t *rect, vec4_t color )
     if( i == cg.weaponSelect - 32 )
       selectedItem = numItems;
 
-    CG_RegisterUpgrade( i );
+    if( !cg_upgrades[ i ].registered )
+    {
+      Com_Printf( S_COLOR_YELLOW "WARNING: CG_DrawItemSelect: upgrade %d (%s) "
+  	"is not registered\n", i, BG_Upgrade( i )->name );
+      continue;
+    }
     items[ numItems ] = i + 32;
     numItems++;
   }

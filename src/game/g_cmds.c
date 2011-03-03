@@ -332,6 +332,53 @@ char *ConcatArgs( int start )
   return line;
 }
 
+/*
+==================
+ConcatArgsPrintable
+Duplicate of concatargs but enquotes things that need to be
+Used to log command arguments in a way that preserves user intended tokenizing
+==================
+*/
+char *ConcatArgsPrintable( int start )
+{
+  int         i, c, tlen;
+  static char line[ MAX_STRING_CHARS ];
+  int         len;
+  char        arg[ MAX_STRING_CHARS + 2 ];
+  char        *printArg;
+
+  len = 0;
+  c = trap_Argc( );
+
+  for( i = start; i < c; i++ )
+  {
+    printArg = arg;
+    trap_Argv( i, arg, sizeof( arg ) );
+    if( strchr( arg, ' ' ) )
+      printArg = va( "\"%s\"", arg );
+    tlen = strlen( printArg );
+
+    if( len + tlen >= MAX_STRING_CHARS - 1 )
+      break;
+
+    memcpy( line + len, printArg, tlen );
+    len += tlen;
+
+    if( len == MAX_STRING_CHARS - 1 )
+      break;
+
+    if( i != c - 1 )
+    {
+      line[ len ] = ' ';
+      len++;
+    }
+  }
+
+  line[ len ] = 0;
+
+  return line;
+}
+
 
 /*
 ==================
@@ -345,6 +392,14 @@ void Cmd_Give_f( gentity_t *ent )
   char      *name;
   qboolean  give_all = qfalse;
 
+  if( trap_Argc( ) < 2 )
+  {
+    ADMP( "usage: give [what]\n" );
+    ADMP( "usage: valid choices are: all, health, funds [amount], stamina, "
+          "poison, gas, ammo\n" );
+    return;
+  }
+
   name = ConcatArgs( 1 );
   if( Q_stricmp( name, "all" ) == 0 )
     give_all = qtrue;
@@ -357,15 +412,24 @@ void Cmd_Give_f( gentity_t *ent )
 
   if( give_all || Q_stricmpn( name, "funds", 5 ) == 0 )
   {
-    float credits = atof( name + 6 );
+    float credits;
 
-    if( ent->client->pers.teamSelection == TEAM_ALIENS )
-      credits *= ALIEN_CREDITS_PER_KILL;
+    if( give_all || trap_Argc( ) < 3 )
+      credits = 30000.0f;
+    else
+    {
+      credits = atof( name + 6 ) *
+        ( ent->client->pers.teamSelection == 
+          TEAM_ALIENS ? ALIEN_CREDITS_PER_KILL : 1.0f );
 
-    if( give_all )
-      credits = ALIEN_MAX_CREDITS;
+      // clamp credits manually, as G_AddCreditToClient() expects a short int
+      if( credits > SHRT_MAX )
+        credits = 30000.0f;
+      else if( credits < SHRT_MIN )
+        credits = -30000.0f;
+    }
 
-    G_AddCreditToClient( ent->client, credits, qtrue );
+    G_AddCreditToClient( ent->client, (short)credits, qtrue );
   }
 
   if( give_all || Q_stricmp( name, "stamina" ) == 0 )
@@ -1183,6 +1247,13 @@ void Cmd_CallVote_f( gentity_t *ent )
       {
         trap_SendServerCommand( ent-g_entities,
           va( "print \"%s: admin is immune\n\"", cmd ) );
+
+        G_AdminMessage( NULL, va( S_COLOR_WHITE "%s" S_COLOR_YELLOW " attempted %s %s"
+                                " on immune admin " S_COLOR_WHITE "%s" S_COLOR_YELLOW
+                                " for: %s",
+                                ent->client->pers.netname, cmd, vote, 
+                                g_entities[ clientNum ].client->pers.netname, 
+                                reason[ 0 ] ? reason : "no reason" ) );
         return;
       }
 
@@ -1413,9 +1484,29 @@ void Cmd_CallVote_f( gentity_t *ent )
   }
   else
   {
-    G_TeamCommand( team, va( "print \"%s" S_COLOR_WHITE
-      " called a team vote: %s\n\"", ent->client->pers.netname,
-      level.voteDisplayString[ team ] ) );
+    int i;
+
+    for( i = 0 ; i < level.maxclients ; i++ )
+    {
+      if( level.clients[ i ].pers.connected == CON_CONNECTED )
+      {
+        if( level.clients[ i ].pers.teamSelection == team ||
+            ( level.clients[ i ].pers.teamSelection == TEAM_NONE &&
+            G_admin_permission( &g_entities[ i ], ADMF_SPEC_ALLCHAT ) ) )
+        {
+          trap_SendServerCommand( i, va( "print \"%s" S_COLOR_WHITE
+            " called a team vote: %s\n\"", ent->client->pers.netname,
+            level.voteDisplayString[ team ] ) );
+        }
+        else if( G_admin_permission( &g_entities[ i ], ADMF_ADMINCHAT ) )
+        {
+          trap_SendServerCommand( i, va( "chat -1 %d \"" S_COLOR_YELLOW "%s" 
+            S_COLOR_YELLOW " called a team vote (%ss): %s\"", SAY_ADMINS,
+            ent->client->pers.netname, BG_TeamName( team ), 
+            level.voteDisplayString[ team ] ) );
+        }
+      }
+    }
   }
 
   G_DecolorString( ent->client->pers.netname, caller, sizeof( caller ) );
@@ -3210,13 +3301,13 @@ void Cmd_PrivateMessage_f( gentity_t *ent )
   int pids[ MAX_CLIENTS ];
   char name[ MAX_NAME_LENGTH ];
   char cmd[ 12 ];
-  char str[ MAX_STRING_CHARS ];
   char text[ MAX_STRING_CHARS ];
   char *msg;
   char color;
   int i, pcount;
   int count = 0;
   qboolean teamonly = qfalse;
+  char recipients[ MAX_STRING_CHARS ] = "";
 
   if( !g_privateMessages.integer && ent )
   {
@@ -3238,19 +3329,22 @@ void Cmd_PrivateMessage_f( gentity_t *ent )
   msg = ConcatArgs( 2 );
   pcount = G_ClientNumbersFromString( name, pids, MAX_CLIENTS );
 
+  G_CensorString( text, msg, sizeof( text ), ent );
+
   // send the message
   for( i = 0; i < pcount; i++ )
+  {
     if( G_SayTo( ent, &g_entities[ pids[ i ] ],
-        teamonly ? SAY_TPRIVMSG : SAY_PRIVMSG, msg ) )
+        teamonly ? SAY_TPRIVMSG : SAY_PRIVMSG, text ) )
+    {
       count++;
+      Q_strcat( recipients, sizeof( recipients ), va( "%s" S_COLOR_WHITE ", ",
+        level.clients[ pids[ i ] ].pers.netname ) );
+    }
+  }
 
   // report the results
   color = teamonly ? COLOR_CYAN : COLOR_YELLOW;
-
-  Com_sprintf( str, sizeof( str ), "^%csent to %i player%s", color, count,
-    ( count == 1 ) ? "" : "s" );
-
-  G_CensorString( text, msg, sizeof( text ), ent );
 
   if( !count )
     ADMP( va( "^3No player matching ^7\'%s^7\' ^3to send message to.\n",
@@ -3258,7 +3352,10 @@ void Cmd_PrivateMessage_f( gentity_t *ent )
   else
   {
     ADMP( va( "^%cPrivate message: ^7%s\n", color, text ) );
-    ADMP( va( "%s\n", str ) );
+    // remove trailing ", "
+    recipients[ strlen( recipients ) - 2 ] = '\0';
+    ADMP( va( "^%csent to %i player%s: " S_COLOR_WHITE "%s\n", color, count,
+      count == 1 ? "" : "s", recipients ) );
 
     G_LogPrintf( "%s: %d \"%s" S_COLOR_WHITE "\" \"%s\": ^%c%s\n",
       ( teamonly ) ? "TPrivMsg" : "PrivMsg",
