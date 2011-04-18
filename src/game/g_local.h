@@ -579,6 +579,7 @@ typedef struct
   char              voteDisplayString[ NUM_TEAMS ][ MAX_STRING_CHARS ];
   int               voteTime[ NUM_TEAMS ];        // level.time vote was called
   int               voteExecuteTime[ NUM_TEAMS ]; // time the vote is executed
+  int               voteDelay[ NUM_TEAMS ];       // it doesn't make sense to always delay vote execution
   int               voteYes[ NUM_TEAMS ];
   int               voteNo[ NUM_TEAMS ];
   int               numVotingClients[ NUM_TEAMS ];// set by CalculateRanks
@@ -773,8 +774,9 @@ typedef enum
   IBE_MAXERRORS
 } itemBuildError_t;
 
-gentity_t         *G_CheckSpawnPoint( int spawnNum, vec3_t origin, vec3_t normal,
-                    buildable_t spawn, vec3_t spawnOrigin );
+gentity_t         *G_CheckSpawnPoint( int spawnNum, const vec3_t origin,
+                                      const vec3_t normal, buildable_t spawn,
+                                      vec3_t spawnOrigin );
 
 buildable_t       G_IsPowered( vec3_t origin );
 qboolean          G_IsDCCBuilt( void );
@@ -963,7 +965,6 @@ gentity_t *G_SelectTremulousSpawnPoint( team_t team, vec3_t preference, vec3_t o
 gentity_t *G_SelectSpawnPoint( vec3_t avoidPoint, vec3_t origin, vec3_t angles );
 gentity_t *G_SelectAlienLockSpawnPoint( vec3_t origin, vec3_t angles );
 gentity_t *G_SelectHumanLockSpawnPoint( vec3_t origin, vec3_t angles );
-void      SpawnCorpse( gentity_t *ent );
 void      respawn( gentity_t *ent );
 void      BeginIntermission( void );
 void      ClientSpawn( gentity_t *ent, gentity_t *spawn, vec3_t origin, vec3_t angles );

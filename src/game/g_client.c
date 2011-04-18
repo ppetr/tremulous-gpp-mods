@@ -149,75 +149,6 @@ qboolean SpotWouldTelefrag( gentity_t *spot )
   return qfalse;
 }
 
-/*
-================
-G_SelectNearestDeathmatchSpawnPoint
-
-Find the spot that we DON'T want to use
-================
-*/
-#define MAX_SPAWN_POINTS  128
-gentity_t *G_SelectNearestDeathmatchSpawnPoint( vec3_t from )
-{
-  gentity_t *spot;
-  vec3_t    delta;
-  float     dist, nearestDist;
-  gentity_t *nearestSpot;
-
-  nearestDist = 999999;
-  nearestSpot = NULL;
-  spot = NULL;
-
-  while( (spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL )
-  {
-    VectorSubtract( spot->s.origin, from, delta );
-    dist = VectorLength( delta );
-
-    if( dist < nearestDist )
-    {
-      nearestDist = dist;
-      nearestSpot = spot;
-    }
-  }
-
-  return nearestSpot;
-}
-
-
-/*
-================
-G_SelectRandomDeathmatchSpawnPoint
-
-go to a random point that doesn't telefrag
-================
-*/
-#define MAX_SPAWN_POINTS  128
-gentity_t *G_SelectRandomDeathmatchSpawnPoint( void )
-{
-  gentity_t *spot;
-  int       count;
-  int       selection;
-  gentity_t *spots[ MAX_SPAWN_POINTS ];
-
-  count = 0;
-  spot = NULL;
-
-  while( ( spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL )
-  {
-    if( SpotWouldTelefrag( spot ) )
-      continue;
-
-    spots[ count ] = spot;
-    count++;
-  }
-
-  if( !count ) // no spots that won't telefrag
-    return G_Find( NULL, FOFS( classname ), "info_player_deathmatch" );
-
-  selection = rand( ) % count;
-  return spots[ selection ];
-}
-
 
 /*
 ===========
@@ -226,7 +157,7 @@ G_SelectRandomFurthestSpawnPoint
 Chooses a player start, deathmatch start, etc
 ============
 */
-gentity_t *G_SelectRandomFurthestSpawnPoint ( vec3_t avoidPoint, vec3_t origin, vec3_t angles )
+static gentity_t *G_SelectRandomFurthestSpawnPoint ( vec3_t avoidPoint, vec3_t origin, vec3_t angles )
 {
   gentity_t *spot;
   vec3_t    delta;
@@ -304,101 +235,44 @@ gentity_t *G_SelectRandomFurthestSpawnPoint ( vec3_t avoidPoint, vec3_t origin, 
 
 /*
 ================
-G_SelectAlienSpawnPoint
+G_SelectSpawnBuildable
 
-go to a random point that doesn't telefrag
+find the nearest buildable of the right type that is
+spawned/healthy/unblocked etc.
 ================
 */
-gentity_t *G_SelectAlienSpawnPoint( vec3_t preference )
+static gentity_t *G_SelectSpawnBuildable( vec3_t preference, buildable_t buildable )
 {
-  gentity_t *spot;
-  int       count;
-  gentity_t *spots[ MAX_SPAWN_POINTS ];
+  gentity_t *search, *spot;
 
-  if( level.numAlienSpawns <= 0 )
-    return NULL;
+  search = spot = NULL;
 
-  count = 0;
-  spot = NULL;
-
-  while( ( spot = G_Find( spot, FOFS( classname ),
-    BG_Buildable( BA_A_SPAWN )->entityName ) ) != NULL )
+  while( ( search = G_Find( search, FOFS( classname ),
+    BG_Buildable( buildable )->entityName ) ) != NULL )
   {
-    if( !spot->spawned )
+    if( !search->spawned )
       continue;
 
-    if( spot->health <= 0 )
+    if( search->health <= 0 )
       continue;
 
-    if( !spot->s.groundEntityNum )
+    if( !search->s.groundEntityNum )
       continue;
 
-    if( spot->clientSpawnTime > 0 )
+    if( search->clientSpawnTime > 0 )
       continue;
 
-    if( G_CheckSpawnPoint( spot->s.number, spot->s.origin,
-          spot->s.origin2, BA_A_SPAWN, NULL ) != NULL )
+    if( G_CheckSpawnPoint( search->s.number, search->s.origin,
+          search->s.origin2, buildable, NULL ) != NULL )
       continue;
 
-    spots[ count ] = spot;
-    count++;
+    if( !spot || DistanceSquared( preference, search->s.origin ) <
+                 DistanceSquared( preference, spot->s.origin ) )
+      spot = search;
   }
 
-  if( !count )
-    return NULL;
-
-  return G_ClosestEnt( preference, spots, count );
+  return spot;
 }
-
-
-/*
-================
-G_SelectHumanSpawnPoint
-
-go to a random point that doesn't telefrag
-================
-*/
-gentity_t *G_SelectHumanSpawnPoint( vec3_t preference )
-{
-  gentity_t *spot;
-  int       count;
-  gentity_t *spots[ MAX_SPAWN_POINTS ];
-
-  if( level.numHumanSpawns <= 0 )
-    return NULL;
-
-  count = 0;
-  spot = NULL;
-
-  while( ( spot = G_Find( spot, FOFS( classname ),
-    BG_Buildable( BA_H_SPAWN )->entityName ) ) != NULL )
-  {
-    if( !spot->spawned )
-      continue;
-
-    if( spot->health <= 0 )
-      continue;
-
-    if( !spot->s.groundEntityNum )
-      continue;
-
-    if( spot->clientSpawnTime > 0 )
-      continue;
-
-    if( G_CheckSpawnPoint( spot->s.number, spot->s.origin,
-          spot->s.origin2, BA_H_SPAWN, NULL ) != NULL )
-      continue;
-
-    spots[ count ] = spot;
-    count++;
-  }
-
-  if( !count )
-    return NULL;
-
-  return G_ClosestEnt( preference, spots, count );
-}
-
 
 /*
 ===========
@@ -425,9 +299,19 @@ gentity_t *G_SelectTremulousSpawnPoint( team_t team, vec3_t preference, vec3_t o
   gentity_t *spot = NULL;
 
   if( team == TEAM_ALIENS )
-    spot = G_SelectAlienSpawnPoint( preference );
+  {
+    if( level.numAlienSpawns <= 0 )
+      return NULL;
+
+    spot = G_SelectSpawnBuildable( preference, BA_A_SPAWN );
+  }
   else if( team == TEAM_HUMANS )
-    spot = G_SelectHumanSpawnPoint( preference );
+  {
+    if( level.numHumanSpawns <= 0 )
+      return NULL;
+
+    spot = G_SelectSpawnBuildable( preference, BA_H_SPAWN );
+  }
 
   //no available spots
   if( !spot )
@@ -448,42 +332,11 @@ gentity_t *G_SelectTremulousSpawnPoint( team_t team, vec3_t preference, vec3_t o
 
 /*
 ===========
-G_SelectInitialSpawnPoint
-
-Try to find a spawn point marked 'initial', otherwise
-use normal spawn selection.
-============
-*/
-gentity_t *G_SelectInitialSpawnPoint( vec3_t origin, vec3_t angles )
-{
-  gentity_t *spot;
-
-  spot = NULL;
-  while( ( spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL )
-  {
-    if( spot->spawnflags & 1 )
-      break;
-  }
-
-  if( !spot || SpotWouldTelefrag( spot ) )
-  {
-    return G_SelectSpawnPoint( vec3_origin, origin, angles );
-  }
-
-  VectorCopy( spot->s.origin, origin );
-  origin[ 2 ] += 9;
-  VectorCopy( spot->s.angles, angles );
-
-  return spot;
-}
-
-/*
-===========
 G_SelectSpectatorSpawnPoint
 
 ============
 */
-gentity_t *G_SelectSpectatorSpawnPoint( vec3_t origin, vec3_t angles )
+static gentity_t *G_SelectSpectatorSpawnPoint( vec3_t origin, vec3_t angles )
 {
   FindIntermissionPoint( );
 
@@ -560,7 +413,7 @@ BodySink
 After sitting around for five seconds, fall into the ground and dissapear
 =============
 */
-void BodySink( gentity_t *ent )
+static void BodySink( gentity_t *ent )
 {
   //run on first BodySink call
   if( !ent->active )
@@ -585,30 +438,13 @@ void BodySink( gentity_t *ent )
 
 /*
 =============
-BodyFree
-
-After sitting around for a while the body becomes a freebie
-=============
-*/
-void BodyFree( gentity_t *ent )
-{
-  ent->killedBy = -1;
-
-  //if not claimed in the next minute destroy
-  ent->think = BodySink;
-  ent->nextthink = level.time + 60000;
-}
-
-
-/*
-=============
 SpawnCorpse
 
 A player is respawning, so make an entity that looks
 just like the existing corpse to leave behind.
 =============
 */
-void SpawnCorpse( gentity_t *ent )
+static void SpawnCorpse( gentity_t *ent )
 {
   gentity_t   *body;
   int         contents;
