@@ -240,7 +240,7 @@ qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
             }
           }
 
-          if( self->usesBuildPointZone && level.buildPointZones[ ent->buildPointZone ].active )
+          if( ent->usesBuildPointZone && level.buildPointZones[ ent->buildPointZone ].active )
             buildPoints -= level.buildPointZones[ ent->buildPointZone ].queuedBuildPoints;
 
           buildPoints -= BG_Buildable( self->s.modelindex )->buildPoints;
@@ -932,11 +932,7 @@ Think function for Alien Overmind
 void AOvermind_Think( gentity_t *self )
 {
   vec3_t range = { OVERMIND_ATTACK_RANGE, OVERMIND_ATTACK_RANGE, OVERMIND_ATTACK_RANGE };
-  vec3_t mins, maxs;
   int    i;
-
-  VectorAdd( self->s.origin, range, maxs );
-  VectorSubtract( self->s.origin, range, mins );
 
   if( self->spawned && ( self->health > 0 ) )
   {
@@ -947,7 +943,7 @@ void AOvermind_Think( gentity_t *self )
       self->timestamp = level.time;
       G_SetBuildableAnim( self, BANIM_ATTACK1, qfalse );
     }
-    
+
     // just in case an egg finishes building after we tell overmind to stfu
     if( level.numAlienSpawns > 0 )
       level.overmindMuted = qfalse;
@@ -1814,8 +1810,9 @@ void HRepeater_Think( gentity_t *self )
 
       if( !zone->active )
       {
-        // Initialise the BP queue with all BP queued
-        zone->queuedBuildPoints = zone->totalBuildPoints = g_humanRepeaterBuildPoints.integer;
+        // Initialise the BP queue with no BP queued
+        zone->queuedBuildPoints = 0;
+        zone->totalBuildPoints = g_humanRepeaterBuildPoints.integer;
         zone->nextQueueTime = level.time;
         zone->active = qtrue;
 
@@ -2469,15 +2466,18 @@ void HTeslaGen_Think( gentity_t *self )
 
   if( self->spawned && self->timestamp < level.time )
   {
-    vec3_t range, mins, maxs;
+    vec3_t origin, range, mins, maxs;
     int entityList[ MAX_GENTITIES ], i, num;
 
     // Communicates firing state to client
     self->s.eFlags &= ~EF_FIRING;
 
+    // Move the muzzle from the entity origin up a bit to fire over turrets
+    VectorMA( self->s.origin, self->r.maxs[ 2 ], self->s.origin2, origin );
+
     VectorSet( range, TESLAGEN_RANGE, TESLAGEN_RANGE, TESLAGEN_RANGE );
-    VectorAdd( self->s.origin, range, maxs );
-    VectorSubtract( self->s.origin, range, mins );
+    VectorAdd( origin, range, maxs );
+    VectorSubtract( origin, range, mins );
 
     // Attack nearby Aliens
     num = trap_EntitiesInBox( mins, maxs, entityList, MAX_GENTITIES );
@@ -2490,8 +2490,7 @@ void HTeslaGen_Think( gentity_t *self )
 
       if( self->enemy->client && self->enemy->health > 0 &&
           self->enemy->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS &&
-          Distance( self->enemy->s.pos.trBase,
-                    self->s.pos.trBase ) <= TESLAGEN_RANGE )
+          Distance( origin, self->enemy->s.pos.trBase ) <= TESLAGEN_RANGE )
         FireWeapon( self );
     }
     self->enemy = NULL;
@@ -3355,10 +3354,10 @@ G_CanBuild
 Checks to see if a buildable can be built
 ================
 */
-itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance, vec3_t origin )
+itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance, vec3_t origin, vec3_t normal )
 {
   vec3_t            angles;
-  vec3_t            entity_origin, normal;
+  vec3_t            entity_origin;
   vec3_t            mins, maxs;
   trace_t           tr1, tr2, tr3;
   itemBuildError_t  reason = IBE_NONE, tempReason;
@@ -3367,7 +3366,6 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
   qboolean          invert;
   int               contents;
   playerState_t     *ps = &ent->client->ps;
-  int               buildPoints;
 
   // Stop all buildables from interacting with traces
   G_SetBuildableLinkState( qfalse );
@@ -3392,7 +3390,6 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     reason = IBE_NORMAL;
 
   contents = trap_PointContents( entity_origin, -1 );
-  buildPoints = BG_Buildable( buildable )->buildPoints;
 
   if( ( tempReason = G_SufficientBPAvailable( buildable, origin ) ) != IBE_NONE )
     reason = tempReason;
@@ -3511,10 +3508,9 @@ Spawns a buildable
 ================
 */
 static gentity_t *G_Build( gentity_t *builder, buildable_t buildable,
-    const vec3_t origin, const vec3_t angles )
+    const vec3_t origin, const vec3_t normal, const vec3_t angles )
 {
   gentity_t *built;
-  vec3_t    normal;
   vec3_t    localOrigin;
   char      readable[ MAX_STRING_CHARS ];
   char      buildnums[ MAX_STRING_CHARS ];
@@ -3539,28 +3535,6 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable,
   built->s.modelindex = buildable;
   built->buildableTeam = built->s.modelindex2 = BG_Buildable( buildable )->team;
   BG_BuildableBoundingBox( buildable, built->r.mins, built->r.maxs );
-
-  // detect the buildable's normal vector
-  if( !builder->client )
-  {
-    // initial base layout created by server
-
-    if( builder->s.origin2[ 0 ] ||
-        builder->s.origin2[ 1 ] ||
-        builder->s.origin2[ 2 ] )
-    {
-      VectorCopy( builder->s.origin2, normal );
-    }
-    else if( BG_Buildable( buildable )->traj == TR_BUOYANCY )
-      VectorSet( normal, 0.0f, 0.0f, -1.0f );
-    else
-      VectorSet( normal, 0.0f, 0.0f, 1.0f );
-  }
-  else
-  {
-    // in-game building by a player
-    BG_GetClientNormal( &builder->client->ps, normal );
-  }
 
   // when building the initial layout, spawn the entity slightly off its
   // target surface so that it can be "dropped" onto it
@@ -3771,14 +3745,14 @@ G_BuildIfValid
 qboolean G_BuildIfValid( gentity_t *ent, buildable_t buildable )
 {
   float         dist;
-  vec3_t        origin;
+  vec3_t        origin, normal;
 
   dist = BG_Class( ent->client->ps.stats[ STAT_CLASS ] )->buildDist;
 
-  switch( G_CanBuild( ent, buildable, dist, origin ) )
+  switch( G_CanBuild( ent, buildable, dist, origin, normal ) )
   {
     case IBE_NONE:
-      G_Build( ent, buildable, origin, ent->s.apos.trBase );
+      G_Build( ent, buildable, origin, normal, ent->s.apos.trBase );
       return qtrue;
 
     case IBE_NOALIENBP:
@@ -3851,11 +3825,18 @@ free fall from their spawn points
 static gentity_t *G_FinishSpawningBuildable( gentity_t *ent, qboolean force )
 {
   trace_t     tr;
-  vec3_t      dest;
+  vec3_t      normal, dest;
   gentity_t   *built;
   buildable_t buildable = ent->s.modelindex;
 
-  built = G_Build( ent, buildable, ent->s.pos.trBase, ent->s.angles );
+  if( ent->s.origin2[ 0 ] || ent->s.origin2[ 1 ] || ent->s.origin2[ 2 ] )
+    VectorCopy( ent->s.origin2, normal );
+  else if( BG_Buildable( buildable )->traj == TR_BUOYANCY )
+    VectorSet( normal, 0.0f, 0.0f, -1.0f );
+  else
+    VectorSet( normal, 0.0f, 0.0f, 1.0f );
+
+  built = G_Build( ent, buildable, ent->s.pos.trBase, normal, ent->s.angles );
 
   built->takedamage = qtrue;
   built->spawned = qtrue; //map entities are already spawned

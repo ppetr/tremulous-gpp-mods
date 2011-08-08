@@ -1856,7 +1856,7 @@ Cmd_Destroy_f
 */
 void Cmd_Destroy_f( gentity_t *ent )
 {
-  vec3_t      forward, end;
+  vec3_t      viewOrigin, forward, end;
   trace_t     tr;
   gentity_t   *traceEnt;
   char        cmd[ 12 ];
@@ -1873,10 +1873,11 @@ void Cmd_Destroy_f( gentity_t *ent )
   if( Q_stricmp( cmd, "destroy" ) == 0 )
     deconstruct = qfalse;
 
+  BG_GetClientViewOrigin( &ent->client->ps, viewOrigin );
   AngleVectors( ent->client->ps.viewangles, forward, NULL, NULL );
-  VectorMA( ent->client->ps.origin, 100, forward, end );
+  VectorMA( viewOrigin, 100, forward, end );
 
-  trap_Trace( &tr, ent->client->ps.origin, NULL, NULL, end, ent->s.number, MASK_PLAYERSOLID );
+  trap_Trace( &tr, viewOrigin, NULL, NULL, end, ent->s.number, MASK_PLAYERSOLID );
   traceEnt = &g_entities[ tr.entityNum ];
 
   if( tr.fraction < 1.0f &&
@@ -2435,7 +2436,7 @@ void Cmd_Build_f( gentity_t *ent )
   char          s[ MAX_TOKEN_CHARS ];
   buildable_t   buildable;
   float         dist;
-  vec3_t        origin;
+  vec3_t        origin, normal;
   team_t        team;
 
   if( ent->client->pers.namelog->denyBuild )
@@ -2474,7 +2475,7 @@ void Cmd_Build_f( gentity_t *ent )
     ent->client->ps.stats[ STAT_BUILDABLE ] = BA_NONE;
 
     //these are the errors displayed when the builder first selects something to use
-    switch( G_CanBuild( ent, buildable, dist, origin ) )
+    switch( G_CanBuild( ent, buildable, dist, origin, normal ) )
     {
       // can place right away, set the blueprint and the valid togglebit
       case IBE_NONE:

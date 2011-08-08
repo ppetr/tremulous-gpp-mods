@@ -148,9 +148,6 @@ vmCvar_t  g_tag;
 static char cv_gravity[ MAX_CVAR_VALUE_STRING ];
 static char cv_humanMaxStage[ MAX_CVAR_VALUE_STRING ];
 static char cv_alienMaxStage[ MAX_CVAR_VALUE_STRING ];
-static char cv_disabledBuildables[ MAX_CVAR_VALUE_STRING ];
-static char cv_disabledClasses[ MAX_CVAR_VALUE_STRING ];
-static char cv_disabledEquipment[ MAX_CVAR_VALUE_STRING ];
 
 static cvarTable_t   gameCvarTable[ ] =
 {
@@ -235,9 +232,9 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 
-  { &g_disabledEquipment, "g_disabledEquipment", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse, cv_disabledEquipment  },
-  { &g_disabledClasses, "g_disabledClasses", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse, cv_disabledClasses  },
-  { &g_disabledBuildables, "g_disabledBuildables", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse, cv_disabledBuildables  },
+  { &g_disabledEquipment, "g_disabledEquipment", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
+  { &g_disabledClasses, "g_disabledClasses", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
+  { &g_disabledBuildables, "g_disabledBuildables", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
 
   { &g_sayAreaRange, "g_sayAreaRange", "1000", CVAR_ARCHIVE, 0, qtrue  },
 
@@ -1242,11 +1239,10 @@ void G_CalculateBuildPoints( void )
         while( zone->queuedBuildPoints > 0 &&
                zone->nextQueueTime < level.time )
         {
+          zone->queuedBuildPoints--;
           zone->nextQueueTime += G_NextQueueTime( zone->queuedBuildPoints,
                                      zone->totalBuildPoints,
                                      g_humanRepeaterBuildQueueTime.integer );
-
-          zone->queuedBuildPoints--;
         }
       }
       else
@@ -2055,7 +2051,8 @@ void CheckExitRules( void )
   }
 
   if( level.uncondHumanWin ||
-      ( ( level.time > level.startTime + 1000 ) &&
+      ( !level.uncondAlienWin &&
+        ( level.time > level.startTime + 1000 ) &&
         ( level.numAlienSpawns == 0 ) &&
         ( level.numLiveAlienClients == 0 ) ) )
   {

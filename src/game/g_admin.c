@@ -482,7 +482,6 @@ static void admin_writeconfig( void )
 {
   fileHandle_t f;
   int t;
-  char levels[ MAX_STRING_CHARS ] = {""};
   g_admin_admin_t *a;
   g_admin_level_t *l;
   g_admin_ban_t *b;
@@ -555,7 +554,6 @@ static void admin_writeconfig( void )
   }
   for( c = g_admin_commands; c; c = c->next )
   {
-    levels[ 0 ] = '\0';
     trap_FS_Write( "[command]\n", 10, f );
     trap_FS_Write( "command = ", 10, f );
     admin_writeconfig_string( c->command, f );
@@ -873,7 +871,7 @@ static void G_admin_ban_message(
   if( areason && ent )
   {
     // we just want the ban number
-    int n = 0;
+    int n = 1;
     g_admin_ban_t *b = g_admin_bans;
     for( ; b && b != ban; b = b->next, n++ )
       ;
