@@ -43,7 +43,8 @@ typedef struct gclient_s gclient_t;
 #define INTERMISSION_DELAY_TIME 1000
 #define SP_INTERMISSION_DELAY_TIME 5000
 
-#define GRANGER_DANCE_ADDS_HP   24
+#define GRANGER_DANCE_ADDS_HP   11
+#define GRANGER_DANCE_RADIUS    150
 
 // gentity->flags
 #define FL_GODMODE        0x00000010

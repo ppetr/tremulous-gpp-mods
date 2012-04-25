@@ -4388,11 +4388,10 @@ void G_CheckGrangerDance( gentity_t *self )
     gentity_t *ent;
     gentity_t *om = NULL;
     int       distance = -1;
-    int       minDistance = 150; // TODO: As a constant/variable
     int       maxHealth;
     int       buildTime;
     vec3_t    temp_v;
-    const playerState_t* ps = &self->client->ps;
+    playerState_t* ps = &self->client->ps;
 
     // Only applicable for grangers.
     switch (ps->stats[STAT_CLASS]) {
@@ -4419,15 +4418,20 @@ void G_CheckGrangerDance( gentity_t *self )
         break;
       }
     }
-    if( (om == NULL) || (distance > minDistance) )
+    if( (om == NULL) || (distance > GRANGER_DANCE_RADIUS) )
       return;
 
-    // Add some health to OM:
     maxHealth = BG_Buildable( om->s.modelindex )->health;
     buildTime = BG_Buildable( om->s.modelindex )->buildTime;
+    // If OM is not healthy:
     if( om->health < maxHealth - GRANGER_DANCE_ADDS_HP) {
+        // Update the granger's build timer
+        if( ps->stats[ STAT_MISC ] == 0 )
+          ps->stats[ STAT_MISC ] = buildTime * (maxHealth - om->health) / maxHealth;
+
+        // Add health:
         if( !om -> spawned ) // update the build timer too
-            om->buildTime -= buildTime * GRANGER_DANCE_ADDS_HP / maxHealth;
+          om->buildTime -= buildTime * GRANGER_DANCE_ADDS_HP / maxHealth;
         om->health += GRANGER_DANCE_ADDS_HP;
     }
 }
