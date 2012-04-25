@@ -99,6 +99,13 @@ vmCvar_t  g_alienStage3Threshold;
 vmCvar_t  g_teamImbalanceWarnings;
 vmCvar_t  g_freeFundPeriod;
 
+vmCvar_t  g_alienAnticampBonusMax;
+vmCvar_t  g_alienAnticampBonus1;
+vmCvar_t  g_alienAnticampRange;
+vmCvar_t  g_humanAnticampBonusMax;
+vmCvar_t  g_humanAnticampBonus1;
+vmCvar_t  g_humanAnticampRange;
+
 vmCvar_t  g_unlagged;
 
 vmCvar_t  g_disabledEquipment;
@@ -229,6 +236,13 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_alienStage3Threshold, "g_alienStage3Threshold", DEFAULT_ALIEN_STAGE3_THRESH, 0, 0, qfalse  },
   { &g_teamImbalanceWarnings, "g_teamImbalanceWarnings", "30", CVAR_ARCHIVE, 0, qfalse  },
   { &g_freeFundPeriod, "g_freeFundPeriod", DEFAULT_FREEKILL_PERIOD, CVAR_ARCHIVE, 0, qtrue },
+
+  { &g_alienAnticampBonusMax, "g_alienAnticampBonusMax", "1", 0, 0, qfalse  },
+  { &g_alienAnticampBonus1, "g_alienAnticampBonus1", "0.3", 0, 0, qfalse  },
+  { &g_alienAnticampRange, "g_alienAnticampRange", "600", 0, 0, qfalse  },
+  { &g_humanAnticampBonusMax, "g_humanAnticampBonusMax", "1", 0, 0, qfalse  },
+  { &g_humanAnticampBonus1, "g_humanAnticampBonus1", "0.3", 0, 0, qfalse  },
+  { &g_humanAnticampRange, "g_humanAnticampRange", "800", 0, 0, qfalse  },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 
