@@ -891,6 +891,10 @@ void ClientEvents( gentity_t *ent, int oldEventSequence )
       case EV_NOAMMO:
         break;
 
+      case EV_TAUNT:
+        G_CheckGrangerDance( ent );
+        break;
+
       default:
         break;
     }

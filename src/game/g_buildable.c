@@ -4381,3 +4381,53 @@ void G_BuildLogRevert( int id )
   }
 }
 
+
+void G_CheckGrangerDance( gentity_t *self )
+{
+    int       i;
+    gentity_t *ent;
+    gentity_t *om = NULL;
+    int       distance = -1;
+    int       minDistance = 150; // TODO: As a constant/variable
+    int       maxHealth;
+    int       buildTime;
+    vec3_t    temp_v;
+    const playerState_t* ps = &self->client->ps;
+
+    // Only applicable for grangers.
+    switch (ps->stats[STAT_CLASS]) {
+      case PCL_ALIEN_BUILDER0:
+      case PCL_ALIEN_BUILDER0_UPG: break; // a granger
+      default: return; // no granger
+    }
+    // The player is a granger.
+
+    // And must be flying:
+    if( self->s.groundEntityNum == -1 )
+      return;
+
+    for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
+    {
+      if( ent->s.eType != ET_BUILDABLE )
+        continue;
+
+      if( ( ent->s.modelindex == BA_A_OVERMIND ) && ( ent->health > 0 ) )
+      {
+        om = ent;
+        VectorSubtract( ps->origin, ent->s.origin, temp_v );
+        distance = VectorLength( temp_v );
+        break;
+      }
+    }
+    if( (om == NULL) || (distance > minDistance) )
+      return;
+
+    // Add some health to OM:
+    maxHealth = BG_Buildable( om->s.modelindex )->health;
+    buildTime = BG_Buildable( om->s.modelindex )->buildTime;
+    if( om->health < maxHealth - GRANGER_DANCE_ADDS_HP) {
+        if( !om -> spawned ) // update the build timer too
+            om->buildTime -= buildTime * GRANGER_DANCE_ADDS_HP / maxHealth;
+        om->health += GRANGER_DANCE_ADDS_HP;
+    }
+}

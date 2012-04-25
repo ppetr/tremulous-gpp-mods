@@ -43,6 +43,8 @@ typedef struct gclient_s gclient_t;
 #define INTERMISSION_DELAY_TIME 1000
 #define SP_INTERMISSION_DELAY_TIME 5000
 
+#define GRANGER_DANCE_ADDS_HP   24
+
 // gentity->flags
 #define FL_GODMODE        0x00000010
 #define FL_NOTARGET       0x00000020
@@ -812,6 +814,8 @@ buildLog_t        *G_BuildLogNew( gentity_t *actor, buildFate_t fate );
 void              G_BuildLogSet( buildLog_t *log, gentity_t *ent );
 void              G_BuildLogAuto( gentity_t *actor, gentity_t *buildable, buildFate_t fate );
 void              G_BuildLogRevert( int id );
+
+void              G_CheckGrangerDance( gentity_t *self );
 
 //
 // g_utils.c
