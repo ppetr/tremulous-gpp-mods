@@ -43,7 +43,6 @@ typedef struct gclient_s gclient_t;
 #define INTERMISSION_DELAY_TIME 1000
 #define SP_INTERMISSION_DELAY_TIME 5000
 
-#define GRANGER_DANCE_ADDS_HP   11
 #define GRANGER_DANCE_RADIUS    150
 
 // gentity->flags
@@ -1138,6 +1137,7 @@ extern  vmCvar_t  g_alienCredits;
 extern  vmCvar_t  g_alienMaxStage;
 extern  vmCvar_t  g_alienStage2Threshold;
 extern  vmCvar_t  g_alienStage3Threshold;
+extern  vmCvar_t  g_alienGrangerDanceBonus;
 extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
 
