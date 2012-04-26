@@ -4390,9 +4390,12 @@ void G_CheckGrangerDance( gentity_t *self )
     int       distance = -1;
     int       maxHealth;
     int       buildTime;
-    int       bonus;
+    int       bonus = g_alienGrangerDanceBonus.integer;
     vec3_t    temp_v;
     playerState_t* ps = &self->client->ps;
+
+    if( bonus <= 0 )
+        return;
 
     // Only applicable for grangers.
     switch (ps->stats[STAT_CLASS]) {
@@ -4424,7 +4427,6 @@ void G_CheckGrangerDance( gentity_t *self )
 
     maxHealth = BG_Buildable( om->s.modelindex )->health;
     buildTime = BG_Buildable( om->s.modelindex )->buildTime;
-    bonus = g_alienGrangerDanceBonus.integer;
     // If OM is not healthy:
     if( om->health < maxHealth - bonus) {
         // Update the granger's build timer
