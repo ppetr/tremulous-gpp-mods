@@ -4406,7 +4406,7 @@ void G_CheckGrangerDance( gentity_t *self )
     // The player is a granger.
 
     // And must be flying:
-    if( self->s.groundEntityNum == -1 )
+    if( self->s.groundEntityNum != ENTITYNUM_NONE )
       return;
 
     for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
