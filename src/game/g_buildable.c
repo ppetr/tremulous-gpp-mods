@@ -4405,8 +4405,12 @@ void G_CheckGrangerDance( gentity_t *self )
     }
     // The player is a granger.
 
+    // Health must be > than the HP bonus.
+    if( self->health <= bonus )
+        return;
+
     // And must be flying:
-    if( self->s.groundEntityNum == -1 )
+    if( self->s.groundEntityNum != ENTITYNUM_NONE )
       return;
 
     for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
@@ -4429,10 +4433,9 @@ void G_CheckGrangerDance( gentity_t *self )
     buildTime = BG_Buildable( om->s.modelindex )->buildTime;
     // If OM is not healthy:
     if( om->health < maxHealth - bonus) {
-        // Update the granger's build timer
-        if( ps->stats[ STAT_MISC ] == 0 )
-          ps->stats[ STAT_MISC ] = buildTime * (maxHealth - om->health) / maxHealth;
-
+        // Subtract granger's health:
+        self->health -= bonus;
+        self->lastDamageTime = level.time;
         // Add health:
         if( !om -> spawned ) // update the build timer too
           om->buildTime -= buildTime * bonus / maxHealth;
