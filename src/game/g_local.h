@@ -813,6 +813,8 @@ void              G_BuildLogSet( buildLog_t *log, gentity_t *ent );
 void              G_BuildLogAuto( gentity_t *actor, gentity_t *buildable, buildFate_t fate );
 void              G_BuildLogRevert( int id );
 
+void              G_CheckScared( gentity_t *self );
+
 //
 // g_utils.c
 //

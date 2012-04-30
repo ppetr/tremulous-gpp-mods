@@ -438,3 +438,74 @@ void SP_misc_light_flare( gentity_t *self )
 
   trap_LinkEntity( self );
 }
+
+
+#define SCARE_RANGE 500
+/*
+===============
+G_CheckScared
+
+Check if a taunt scared someone.
+===============
+*/
+void G_CheckScared( gentity_t *self )
+{
+  int       entityList[ MAX_GENTITIES ];
+  vec3_t    range = { SCARE_RANGE, SCARE_RANGE, SCARE_RANGE };
+  vec3_t    mins, maxs;
+  int       i, num;
+  gentity_t *humanPlayer;
+  trace_t   tr;
+
+  vec3_t    forward, right, up;
+  vec3_t    muzzle;
+
+  gentity_t *grenade;
+  vec3_t    relPos;
+
+  // 50% chance it won't work
+  if (level.time & 1 != 0)
+    return;
+
+  // Only applicable to rants/goons.
+  switch (self->client->ps.stats[STAT_CLASS]) {
+    case PCL_ALIEN_LEVEL3:
+    case PCL_ALIEN_LEVEL3_UPG:
+    case PCL_ALIEN_LEVEL4: break;
+    default: return; // nobody is scared by small aliens
+  }
+
+  VectorAdd( self->client->ps.origin, range, maxs );
+  VectorSubtract( self->client->ps.origin, range, mins );
+
+  //G_UnlaggedOn( ent, ent->client->ps.origin, LEVEL1_PCLOUD_RANGE );
+  num = trap_EntitiesInBox( mins, maxs, entityList, MAX_GENTITIES );
+  for( i = 0; i < num; i++ )
+  {
+    humanPlayer = &g_entities[ entityList[ i ] ];
+
+    if( humanPlayer->client &&
+        humanPlayer->client->pers.teamSelection == TEAM_HUMANS )
+    {
+      if( BG_InventoryContainsUpgrade( UP_GRENADE, humanPlayer->client->ps.stats ) )
+      {
+        // check if the alien is behind the human
+        AngleVectors( humanPlayer->client->ps.viewangles, forward, right, up );
+        CalcMuzzlePoint( humanPlayer, forward, right, up, muzzle );
+        VectorSubtract( self->client->ps.origin, humanPlayer->client->ps.origin, relPos );
+        if (DotProduct(relPos, forward) >= 0)
+          continue;
+
+        //remove the grenade
+        BG_DeactivateUpgrade( UP_GRENADE, humanPlayer->client->ps.stats );
+        BG_RemoveUpgradeFromInventory( UP_GRENADE, humanPlayer->client->ps.stats );
+        // TODO: Check if the alien is behind the human.
+
+        grenade = launch_grenade( humanPlayer, muzzle, forward );
+        grenade->r.ownerNum = self->s.number;
+        grenade->parent = self;
+      }
+    }
+  }
+  //G_UnlaggedOff( );
+}
