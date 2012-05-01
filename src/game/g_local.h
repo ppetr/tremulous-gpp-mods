@@ -43,6 +43,8 @@ typedef struct gclient_s gclient_t;
 #define INTERMISSION_DELAY_TIME 1000
 #define SP_INTERMISSION_DELAY_TIME 5000
 
+#define GRANGER_DANCE_RADIUS    150
+
 // gentity->flags
 #define FL_GODMODE        0x00000010
 #define FL_NOTARGET       0x00000020
@@ -814,6 +816,7 @@ void              G_BuildLogAuto( gentity_t *actor, gentity_t *buildable, buildF
 void              G_BuildLogRevert( int id );
 
 void              G_CheckScared( gentity_t *self );
+void              G_CheckGrangerDance( gentity_t *self );
 
 //
 // g_utils.c
@@ -1135,6 +1138,7 @@ extern  vmCvar_t  g_alienCredits;
 extern  vmCvar_t  g_alienMaxStage;
 extern  vmCvar_t  g_alienStage2Threshold;
 extern  vmCvar_t  g_alienStage3Threshold;
+extern  vmCvar_t  g_alienGrangerDanceBonus;
 extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
 

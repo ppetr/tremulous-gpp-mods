@@ -893,6 +893,8 @@ void ClientEvents( gentity_t *ent, int oldEventSequence )
 
       case EV_TAUNT:
         G_CheckScared( ent );
+        G_CheckGrangerDance( ent );
+        break;
 
       default:
         break;
