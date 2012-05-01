@@ -441,6 +441,7 @@ void SP_misc_light_flare( gentity_t *self )
 
 
 #define SCARE_RANGE 500
+#define SCARED_DROP_CHANCE 0.5f
 /*
 ===============
 G_CheckScared
@@ -463,10 +464,6 @@ void G_CheckScared( gentity_t *self )
   gentity_t *grenade;
   vec3_t    relPos;
 
-  // 50% chance it won't work
-  if (level.time & 1 != 0)
-    return;
-
   // Only applicable to rants/goons.
   switch (self->client->ps.stats[STAT_CLASS]) {
     case PCL_ALIEN_LEVEL3:
@@ -478,7 +475,7 @@ void G_CheckScared( gentity_t *self )
   VectorAdd( self->client->ps.origin, range, maxs );
   VectorSubtract( self->client->ps.origin, range, mins );
 
-  //G_UnlaggedOn( ent, ent->client->ps.origin, LEVEL1_PCLOUD_RANGE );
+  //G_UnlaggedOn( ent, ent->client->ps.origin, SCARE_RANGE );
   num = trap_EntitiesInBox( mins, maxs, entityList, MAX_GENTITIES );
   for( i = 0; i < num; i++ )
   {
@@ -487,8 +484,12 @@ void G_CheckScared( gentity_t *self )
     if( humanPlayer->client &&
         humanPlayer->client->pers.teamSelection == TEAM_HUMANS )
     {
-      if( BG_InventoryContainsUpgrade( UP_GRENADE, humanPlayer->client->ps.stats ) )
+      if( BG_InventoryContainsUpgrade( UP_GRENADE, humanPlayer->client->ps.stats ) 
+          && !BG_UpgradeIsActive( UP_GRENADE, humanPlayer->client->ps.stats ))
       {
+        if( random( ) >= SCARED_DROP_CHANCE )
+          continue;
+
         // check if the alien is behind the human
         AngleVectors( humanPlayer->client->ps.viewangles, forward, right, up );
         CalcMuzzlePoint( humanPlayer, forward, right, up, muzzle );
@@ -499,7 +500,6 @@ void G_CheckScared( gentity_t *self )
         //remove the grenade
         BG_DeactivateUpgrade( UP_GRENADE, humanPlayer->client->ps.stats );
         BG_RemoveUpgradeFromInventory( UP_GRENADE, humanPlayer->client->ps.stats );
-        // TODO: Check if the alien is behind the human.
 
         grenade = launch_grenade( humanPlayer, muzzle, forward );
         grenade->r.ownerNum = self->s.number;
