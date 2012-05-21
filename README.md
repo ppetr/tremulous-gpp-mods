@@ -1,10 +1,10 @@
 Antifeed
 ========
 Each player has a new variable holding so called *spawn points*. The variable
-ranges from 0 to /g_spawnLimitBuffer/. Spawning is possible only when the value
+ranges from 0 to *g_spawnLimitBuffer*. Spawning is possible only when the value
 is greater than 0. Each time the player spawns (s)he spends one of these
 points. The points replenish over time with the rate 1 point per
-/g_spawnLimitTime/ seconds. At the beginning each player has the maximum
+*g_spawnLimitTime* seconds. At the beginning each player has the maximum
 possible number of spawn points.
 
 This prevents excesive feeding of newbies, but still allows a player to
