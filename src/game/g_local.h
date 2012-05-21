@@ -327,6 +327,7 @@ typedef struct
 
   int                 aliveSeconds;       // time player has been alive in seconds
   qboolean            hasHealed;          // has healed a player (basi regen aura) in the last 10sec (for score use)
+  int                 feedProtectionTime; // see Cmd_Class_f
 
   // used to save persistant[] values while in SPECTATOR_FOLLOW mode
   int                 credit;
@@ -1094,6 +1095,9 @@ extern  vmCvar_t  g_restarted;
 extern  vmCvar_t  g_lockTeamsAtStart;
 extern  vmCvar_t  g_minNameChangePeriod;
 extern  vmCvar_t  g_maxNameChanges;
+
+extern  vmCvar_t  g_spawnLimitBuffer;
+extern  vmCvar_t  g_spawnLimitTime;
 
 extern  vmCvar_t  g_timelimit;
 extern  vmCvar_t  g_suddenDeathTime;
