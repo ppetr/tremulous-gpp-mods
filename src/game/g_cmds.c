@@ -1688,9 +1688,12 @@ void Cmd_Class_f( gentity_t *ent )
       G_StopFollowing( ent );
     if( ent->client->pers.teamSelection == TEAM_ALIENS )
     {
-      if( newClass != PCL_ALIEN_BUILDER0 &&
-          newClass != PCL_ALIEN_BUILDER0_UPG &&
-          newClass != PCL_ALIEN_LEVEL0 )
+      // Allow grangers only before SD, or if there is no OM.
+      if( !( ( ( ( newClass == PCL_ALIEN_BUILDER0 ) ||
+                 ( newClass == PCL_ALIEN_BUILDER0_UPG ) ) &&
+               ( ( G_TimeTilSuddenDeath() > 0 ) ||
+                 ( G_Overmind() == NULL  ) ) ) ||
+             ( newClass == PCL_ALIEN_LEVEL0 ) ) )
       {
         G_TriggerMenuArgs( ent->client->ps.clientNum, MN_A_CLASSNOTSPAWN, newClass );
         return;
