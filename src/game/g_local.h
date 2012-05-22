@@ -1123,6 +1123,8 @@ extern  vmCvar_t  g_humanBuildQueueTime;
 extern  vmCvar_t  g_humanRepeaterBuildPoints;
 extern  vmCvar_t  g_humanRepeaterBuildQueueTime;
 extern  vmCvar_t  g_humanRepeaterMaxZones;
+extern  vmCvar_t  g_humanDefenceComputerLimit;
+extern  vmCvar_t  g_humanDefenceComputerRate;
 extern  vmCvar_t  g_humanStage;
 extern  vmCvar_t  g_humanCredits;
 extern  vmCvar_t  g_humanMaxStage;
