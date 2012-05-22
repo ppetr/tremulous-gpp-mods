@@ -89,6 +89,8 @@ vmCvar_t  g_humanBuildQueueTime;
 vmCvar_t  g_humanRepeaterBuildPoints;
 vmCvar_t  g_humanRepeaterBuildQueueTime;
 vmCvar_t  g_humanRepeaterMaxZones;
+vmCvar_t  g_humanDefenceComputerLimit;
+vmCvar_t  g_humanDefenceComputerRate;
 vmCvar_t  g_humanStage;
 vmCvar_t  g_humanCredits;
 vmCvar_t  g_humanMaxStage;
@@ -223,6 +225,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_humanBuildQueueTime, "g_humanBuildQueueTime", DEFAULT_HUMAN_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanRepeaterBuildPoints, "g_humanRepeaterBuildPoints", DEFAULT_HUMAN_REPEATER_BUILDPOINTS, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanRepeaterMaxZones, "g_humanRepeaterMaxZones", DEFAULT_HUMAN_REPEATER_MAX_ZONES, CVAR_ARCHIVE, 0, qfalse  },
+  { &g_humanDefenceComputerLimit, "g_humanDefenceComputerLimit", "3", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_humanDefenceComputerRate, "g_humanDefenceComputerRate", "4", CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanRepeaterBuildQueueTime, "g_humanRepeaterBuildQueueTime", DEFAULT_HUMAN_REPEATER_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanStage, "g_humanStage", "0", 0, 0, qfalse  },
   { &g_humanCredits, "g_humanCredits", "0", 0, 0, qfalse  },
