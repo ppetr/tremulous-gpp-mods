@@ -3060,6 +3060,48 @@ void Cmd_ListMaps_f( gentity_t *ent )
 
 /*
 =================
+Cmd_ListTeam_f
+
+List all maps on the server
+=================
+*/
+
+void Cmd_ListTeam_f( gentity_t *ent )
+{
+  qboolean allTeams;
+  team_t team, pteam;
+  gentity_t *player;
+  gclient_t *cl;
+  int credevos;
+  int i;
+
+  team = ent->client->pers.teamSelection;
+  allTeams = ( team == TEAM_NONE );
+
+  ADMBP_begin( );
+  for( i = 0; i < MAX_CLIENTS; i++)
+  {
+    player = g_entities + i ;
+    cl = player->client;
+    pteam = cl->pers.teamSelection;
+
+    if( /* ent == player || */ !cl || ((pteam != team) && !allTeams) ||
+            !player->inuse )
+      continue;
+
+    switch( pteam ) {
+        case TEAM_ALIENS: credevos = cl->pers.credit / ALIEN_CREDITS_PER_KILL; break;
+        case TEAM_HUMANS: credevos = cl->pers.credit; break;
+        default: continue;
+    }
+
+    ADMBP( va( "^5%4d^7 %s\n", credevos, cl->pers.netname ) );
+  }
+  ADMBP_end( );
+}
+
+/*
+=================
 Cmd_Test_f
 =================
 */
@@ -3164,6 +3206,7 @@ commands_t cmds[ ] = {
   { "kill", CMD_TEAM|CMD_LIVING, Cmd_Kill_f },
   { "levelshot", CMD_CHEAT, Cmd_LevelShot_f },
   { "listmaps", CMD_MESSAGE|CMD_INTERMISSION, Cmd_ListMaps_f },
+  { "listteam", CMD_MESSAGE|CMD_INTERMISSION, Cmd_ListTeam_f },
   { "m", CMD_MESSAGE|CMD_INTERMISSION, Cmd_PrivateMessage_f },
   { "mt", CMD_MESSAGE|CMD_INTERMISSION, Cmd_PrivateMessage_f },
   { "noclip", CMD_CHEAT_TEAM, Cmd_Noclip_f },
