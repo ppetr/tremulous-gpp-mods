@@ -3074,11 +3074,13 @@ void Cmd_ListTeam_f( gentity_t *ent )
   gclient_t *cl;
   int credevos;
   int i;
+  char *type;
 
   team = ent->client->pers.teamSelection;
   allTeams = ( team == TEAM_NONE );
 
   ADMBP_begin( );
+  ADMBP( va( "^8Players' credits/evos:\n" ) );
   for( i = 0; i < MAX_CLIENTS; i++)
   {
     player = g_entities + i ;
@@ -3090,12 +3092,18 @@ void Cmd_ListTeam_f( gentity_t *ent )
       continue;
 
     switch( pteam ) {
-        case TEAM_ALIENS: credevos = cl->pers.credit / ALIEN_CREDITS_PER_KILL; break;
-        case TEAM_HUMANS: credevos = cl->pers.credit; break;
+        case TEAM_ALIENS:
+            credevos = cl->pers.credit / ALIEN_CREDITS_PER_KILL;
+            type = "evos";
+            break;
+        case TEAM_HUMANS:
+            credevos = cl->pers.credit;
+            type = "credits";
+            break;
         default: continue;
     }
 
-    ADMBP( va( "^5%4d^7 %s\n", credevos, cl->pers.netname ) );
+    ADMBP( va( "^5%4d ^8%-7s ^7%s\n", credevos, type, cl->pers.netname ) );
   }
   ADMBP_end( );
 }
