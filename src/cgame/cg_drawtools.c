@@ -437,3 +437,31 @@ char CG_GetColorCharForHealth( int clientnum )
     health_char = '3';
   return health_char;
 }
+
+/*
+=================
+CG_GetColorCharForCredit
+=================
+*/
+char CG_GetColorCharForCredit( int clientnum )
+{
+  char credit_char = '2';
+  int credit = cgs.clientinfo[ clientnum ].credit;
+  int maxCredit;
+  float creditPercent;
+
+  if( cgs.clientinfo[ clientnum ].team == TEAM_ALIENS )
+    maxCredit = ALIEN_MAX_CREDITS;
+  else if( cgs.clientinfo[ clientnum ].team == TEAM_HUMANS )
+    maxCredit = HUMAN_MAX_CREDITS;
+  else
+    return credit_char;  
+
+  creditPercent = (int) ( 100.0f * (float) credit / (float) maxCredit );
+
+  if( creditPercent < 33 )
+    credit_char = '1';
+  else if( creditPercent < 67 )
+    credit_char = '3';
+  return credit_char;
+}

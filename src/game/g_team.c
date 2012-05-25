@@ -368,12 +368,13 @@ void TeamplayInfoMessage( gentity_t *ent )
       upgrade = UP_NONE;
     }
  
-    tmp = va( "%i %i %i %i",
+    tmp = va( "%i %i %i %i %i",
       player->client->pers.location,
       player->client->ps.stats[ STAT_HEALTH ] < 1 ? 0 :
         player->client->ps.stats[ STAT_HEALTH ],
       curWeaponClass, 
-      upgrade );
+      upgrade,
+      player->client->pers.credit );
 
     if( !strcmp( ent->client->pers.cinfo[ i ], tmp ) )
       continue;

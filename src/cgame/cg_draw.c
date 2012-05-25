@@ -1753,6 +1753,7 @@ static void CG_DrawTeamOverlay( rectDef_t *rect, float scale, vec4_t color )
   float             maxX = rect->x + rect->w;
   float             maxXCp = maxX;
   weapon_t          curWeapon = WP_NONE;
+  int               credit;
   teamOverlayMode_t mode = cg_drawTeamOverlay.integer;
   teamOverlaySort_t sort = cg_teamOverlaySortMode.integer;
   int               displayClients[ MAX_CLIENTS ];
@@ -1890,9 +1891,16 @@ static void CG_DrawTeamOverlay( rectDef_t *rect, float scale, vec4_t color )
         }
       }
 
-      s = va( " [^%c%3d^7] ^7%s",
+      credit = ci->credit;
+      if( ci->team == TEAM_ALIENS )
+          credit /= ALIEN_CREDITS_PER_KILL;
+
+      s = va( " [^%c%3d^7] $^%c%*d^7 ^7%s",
               CG_GetColorCharForHealth( displayClients[ i ] ),
               ci->health,
+              CG_GetColorCharForCredit( displayClients[ i ] ),
+              ( ci->team == TEAM_ALIENS ) ? 1 : 4, // padding of the number
+              ci->credit,
               CG_ConfigString( CS_LOCATIONS + ci->location ) );
     }
 
