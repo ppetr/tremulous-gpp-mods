@@ -1895,9 +1895,10 @@ static void CG_DrawTeamOverlay( rectDef_t *rect, float scale, vec4_t color )
       if( ci->team == TEAM_ALIENS )
           credit /= ALIEN_CREDITS_PER_KILL;
 
-      s = va( " [^%c%3d^7] $^%c%*d^7 ^7%s",
+      s = va( " [^%c%3d^7] %c^%c%*d^7 ^7%s",
               CG_GetColorCharForHealth( displayClients[ i ] ),
               ci->health,
+              ( ci->team == TEAM_ALIENS ) ? 'e' : '$', // evos/$
               CG_GetColorCharForCredit( displayClients[ i ] ),
               ( ci->team == TEAM_ALIENS ) ? 1 : 4, // padding of the number
               credit,
