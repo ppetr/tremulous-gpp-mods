@@ -261,6 +261,48 @@ static void ClientShove( gentity_t *ent, gentity_t *victim )
   }
 }
 
+static void ClientContagion( gentity_t *ent, gentity_t *other ) {
+  gclient_t *c1 = ent->client, *c2;
+  qboolean poisoned1 = c1->ps.stats[ STAT_STATE ] & SS_POISONED, poisoned2;
+  int lastTime;
+
+    if( ( c1->pers.teamSelection != TEAM_HUMANS ) ||
+        ( c1->poisonImmunityTime >= level.time ) )
+      return;
+
+  if( other->client ) {
+    // touching another human
+    c2 = other->client;
+    poisoned2 = c2->ps.stats[ STAT_STATE ] & SS_POISONED;
+
+    if( !( poisoned1 || poisoned2) ||
+        ( c2->pers.teamSelection != TEAM_HUMANS ) ||
+        ( c2->poisonImmunityTime >= level.time ) )
+      return;
+
+    if (poisoned1 && !poisoned2) {
+      lastTime = c1->lastPoisonTime;
+      c2->lastPoisonClient = c1->lastPoisonClient;
+    } else if (!poisoned1 && poisoned2) {
+      lastTime = c2->lastPoisonTime;
+      c1->lastPoisonClient = c2->lastPoisonClient;
+    } else { // both are poisoned
+      lastTime = MIN(c1->lastPoisonTime, c2->lastPoisonTime);
+    }
+    c1->lastPoisonTime = lastTime;
+    c2->lastPoisonTime = lastTime;
+    c1->ps.stats[ STAT_STATE ] |= SS_POISONED;
+    c2->ps.stats[ STAT_STATE ] |= SS_POISONED;
+  } else if( ( other->s.eType == ET_BUILDABLE) &&
+             ( other->s.modelindex == BA_A_BOOSTER ) &&
+             other->spawned && ( other->health > 0 ) && other->powered ) {
+    // touching booster
+    c1->ps.stats[ STAT_STATE ] |= SS_POISONED;
+    c1->lastPoisonTime = level.time;
+    c1->lastPoisonClient = &g_entities[ ENTITYNUM_WORLD ];
+  }
+}
+
 /*
 ==============
 ClientImpacts
@@ -293,9 +335,13 @@ void ClientImpacts( gentity_t *ent, pmove_t *pm )
       G_CrushAttack( ent, other );
     }
 
-    // shove players
+    // Shove players
     if( ent->client && other->client )
       ClientShove( ent, other );
+
+    // spread poison
+    if( ent->client )
+      ClientContagion( ent, other );
 
     // touch triggers
     if( other->touch )
