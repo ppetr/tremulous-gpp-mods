@@ -261,13 +261,21 @@ static void ClientShove( gentity_t *ent, gentity_t *victim )
   }
 }
 
+static qboolean ClientIsOnMedi( gclient_t *cl ) {
+  const int ent = cl->ps.groundEntityNum;
+  if( ( ent < 0 ) || ( ent >= MAX_GENTITIES ) )
+    return qfalse;
+  return ( g_entities[ ent ].s.modelindex == BA_H_MEDISTAT );
+}
+
 static void ClientContagion( gentity_t *ent, gentity_t *other ) {
   gclient_t *c1 = ent->client, *c2;
   qboolean poisoned1 = c1->ps.stats[ STAT_STATE ] & SS_POISONED, poisoned2;
   int lastTime;
 
     if( ( c1->pers.teamSelection != TEAM_HUMANS ) ||
-        ( c1->poisonImmunityTime >= level.time ) )
+        ( c1->poisonImmunityTime >= level.time ) || 
+        ClientIsOnMedi(c1) )
       return;
 
   if( other->client ) {
@@ -277,7 +285,8 @@ static void ClientContagion( gentity_t *ent, gentity_t *other ) {
 
     if( !( poisoned1 || poisoned2) ||
         ( c2->pers.teamSelection != TEAM_HUMANS ) ||
-        ( c2->poisonImmunityTime >= level.time ) )
+        ( c2->poisonImmunityTime >= level.time ) ||
+        ClientIsOnMedi(c2) )
       return;
 
     if (poisoned1 && !poisoned2) {
