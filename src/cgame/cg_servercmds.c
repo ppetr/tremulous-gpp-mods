@@ -82,24 +82,24 @@ static void CG_ParseTeamInfo( void )
   int   count;
   int   client;
 
-  count = ( trap_Argc( ) - 1 ) / 5;
+  count = ( trap_Argc( ) - 1 ) / 6;
 
   cgs.teaminfoReceievedTime = cg.time;
 
   for( i = 0; i < count; i++ )
   {
-    client = atoi( CG_Argv( i * 5 + 1 ) );
+    client = atoi( CG_Argv( i * 6 + 1 ) );
     if( client < 0 || client >= MAX_CLIENTS )
     {
       CG_Printf( "[skipnotify]CG_ParseTeamInfo: bad client number: %d\n", client );
       return;
     }
 
-    cgs.clientinfo[ client ].location = atoi( CG_Argv( i * 5 + 2 ) );
-    cgs.clientinfo[ client ].health = atoi( CG_Argv( i * 5 + 3 ) );
-    cgs.clientinfo[ client ].curWeaponClass = atoi( CG_Argv( i * 5 + 4 ) );
-    cgs.clientinfo[ client ].upgrade = atoi( CG_Argv( i * 5 + 5 ) );
-    cgs.clientinfo[ client ].credit = atoi( CG_Argv( i * 5 + 6 ) );
+    cgs.clientinfo[ client ].location = atoi( CG_Argv( i * 6 + 2 ) );
+    cgs.clientinfo[ client ].health = atoi( CG_Argv( i * 6 + 3 ) );
+    cgs.clientinfo[ client ].curWeaponClass = atoi( CG_Argv( i * 6 + 4 ) );
+    cgs.clientinfo[ client ].upgrade = atoi( CG_Argv( i * 6 + 5 ) );
+    cgs.clientinfo[ client ].credit = atoi( CG_Argv( i * 6 + 6 ) );
   }
 }
 
