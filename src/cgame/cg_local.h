@@ -1605,6 +1605,7 @@ void        CG_DrawTopBottom(float x, float y, float w, float h, float size);
 qboolean    CG_WorldToScreen( vec3_t point, float *x, float *y );
 char        *CG_KeyBinding( const char *bind );
 char        CG_GetColorCharForHealth( int clientnum );
+char        CG_GetColorCharForCredit( int clientnum );
 
 //
 // cg_draw.c

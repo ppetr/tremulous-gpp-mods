@@ -1900,7 +1900,7 @@ static void CG_DrawTeamOverlay( rectDef_t *rect, float scale, vec4_t color )
               ci->health,
               CG_GetColorCharForCredit( displayClients[ i ] ),
               ( ci->team == TEAM_ALIENS ) ? 1 : 4, // padding of the number
-              ci->credit,
+              credit,
               CG_ConfigString( CS_LOCATIONS + ci->location ) );
     }
 
