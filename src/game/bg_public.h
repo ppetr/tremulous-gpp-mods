@@ -563,7 +563,6 @@ typedef enum
   MN_H_TEAMLOCKED,
   MN_PLAYERLIMIT,
   MN_WARMUP,
-  MN_SPAWNLIMIT,
 
   // cmd stuff
   MN_CMD_CHEAT,

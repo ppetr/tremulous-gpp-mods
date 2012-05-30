@@ -811,6 +811,25 @@ void ClientTimerActions( gentity_t *ent, int msec )
           G_AddCreditToClient( client, FREEKILL_HUMAN, qtrue );
       }
     }
+
+    // give credits from the queue
+    if( client->pers.creditQueue > 0 ) {
+        int max = 0;
+        int give = 0;
+
+        if( client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
+          max = ALIEN_MAX_CREDITS;
+        else if( client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+          max = HUMAN_MAX_CREDITS;
+
+        give = max / MAX(1, g_creditReleaseTime.integer);
+        if( give < 1 )
+          give = 1;
+        if( give > client->pers.creditQueue )
+          give = client->pers.creditQueue;
+        client->pers.creditQueue -= give;
+        G_AddCreditToClient( client, give, qtrue );
+    }
   }
 
   while( client->time10000 >= 10000 )

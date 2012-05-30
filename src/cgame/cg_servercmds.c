@@ -520,11 +520,6 @@ void CG_Menu( int menu, int arg )
       type      = DT_COMMAND;
       break;
 
-    case MN_SPAWNLIMIT:
-      shortMsg  = va( "You spawn too frequently. You can spawn again in %d seconds.", arg );
-      type      = DT_ARMOURYEVOLVE;
-      break;
-
     //===============================
 
     // Since cheating commands have no default binds, they will often be done
