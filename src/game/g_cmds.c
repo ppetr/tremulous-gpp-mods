@@ -1686,43 +1686,6 @@ void Cmd_Class_f( gentity_t *ent )
   {
     if( ent->client->sess.spectatorState == SPECTATOR_FOLLOW )
       G_StopFollowing( ent );
-    
-    // Feed protection timer. Each player has to wait g_spawnLimitTime before
-    // each spawn. However, by staying alive, the player can accumulate up to
-    // g_spawnLimitBuffer spawns, which are not constrained by the limit.
-    //
-    // This prevents excesive feeding of newbies, but still allows a player to
-    // spawn several times quickly, if (s)he hasn't fed before (for example
-    // when defending a base).
-    //
-    // Implementation: Each player has an additional field feedProtectionTime.
-    // It's value is always kept larger than level.time (when it gets below it, it's
-    // updated after the next spawn, see below).
-    // When it's value gets above level.time + g_spawnLimitTime * g_spawnLimitBuffer,
-    // the player cannot spawn and has to wait until the appropriate amout of
-    // time elapses.  With each spawn, it's value is incremented by
-    // g_spawnLimitTime seconds.
-    {
-      const int timeDiff = 
-          ( ent->client->pers.feedProtectionTime - level.time ) / 1000
-          - g_spawnLimitTime.integer * g_spawnLimitBuffer.integer;
-      //G_LogPrintf( "%s" S_COLOR_WHITE ": feedProtectionTime %d, level time %d, diff %d\n",
-      //  ent->client->pers.netname, ent->client->pers.feedProtectionTime, level.time, timeDiff );
-      if( timeDiff > 0 )
-      {
-        // Too much feed, delay spawning.
-        G_LogPrintf( "%s" S_COLOR_WHITE ": spawn disabled for %ds, feeds to much\n",
-            ent->client->pers.netname, timeDiff );
-        G_TriggerMenuArgs( ent->client->ps.clientNum, MN_SPAWNLIMIT, timeDiff );
-        return;
-      }
-      // Update the timer. The MAX(...) expression forces the timer to be at
-      // least level.time.
-      ent->client->pers.feedProtectionTime = MAX(ent->client->pers.feedProtectionTime, level.time) + g_spawnLimitTime.integer * 1000;
-      //G_LogPrintf( "%s" S_COLOR_WHITE ": feedProtectionTime updated to %d\n",
-      //  ent->client->pers.netname, ent->client->pers.feedProtectionTime );
-    }
-
     if( ent->client->pers.teamSelection == TEAM_ALIENS )
     {
       if( newClass != PCL_ALIEN_BUILDER0 &&

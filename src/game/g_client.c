@@ -112,6 +112,33 @@ void G_AddCreditToClient( gclient_t *client, short credit, qboolean cap )
   client->ps.persistant[ PERS_CREDIT ] = client->pers.credit;
 }
 
+/*
+===============
+G_QueueCreditToClient
+===============
+*/
+void G_QueueCreditToClient( gclient_t *client, short credit )
+{
+  int capAmount;
+
+  if( !client )
+    return;
+
+  if( credit < 0 ) { // subtract credits immediately
+    G_AddCreditToClient(client, credit, qtrue);
+    return;
+  }
+
+  capAmount = client->pers.teamSelection == TEAM_ALIENS ?
+              ALIEN_MAX_CREDITS : HUMAN_MAX_CREDITS;
+  if( client->pers.creditQueue < capAmount )
+  {
+    client->pers.creditQueue += credit;
+    if( client->pers.creditQueue > capAmount )
+      client->pers.creditQueue = capAmount;
+  }
+}
+
 
 /*
 =======================================================================

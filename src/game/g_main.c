@@ -79,8 +79,7 @@ vmCvar_t  pmove_msec;
 vmCvar_t  g_minNameChangePeriod;
 vmCvar_t  g_maxNameChanges;
 
-vmCvar_t  g_spawnLimitBuffer;
-vmCvar_t  g_spawnLimitTime;
+vmCvar_t  g_creditReleaseTime;
 
 vmCvar_t  g_alienBuildPoints;
 vmCvar_t  g_alienBuildQueueTime;
@@ -209,8 +208,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_minNameChangePeriod, "g_minNameChangePeriod", "5", 0, 0, qfalse},
   { &g_maxNameChanges, "g_maxNameChanges", "5", 0, 0, qfalse},
 
-  { &g_spawnLimitBuffer, "g_spawnLimitBuffer", "4", 0, 0, qfalse  },
-  { &g_spawnLimitTime, "g_spawnLimitTime", "40", 0, 0, qfalse  },
+  { &g_creditReleaseTime, "g_creditReleaseTime", "60", 0, 0, qfalse  },
 
   { &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse},
   { &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse},
