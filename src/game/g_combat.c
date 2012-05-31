@@ -198,7 +198,7 @@ float G_RewardAttackers( gentity_t *self )
       // killing buildables earns score, but not credits
       if( self->s.eType != ET_BUILDABLE )
       {
-        G_QueueCreditToClient( player->client, stageValue );
+        G_AddCreditToClient( player->client, stageValue, qtrue );
 
         // add to stage counters
         if( player->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
@@ -247,8 +247,6 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
   self->client->ps.pm_type = PM_DEAD;
   self->suicideTime = 0;
-  // clear credit queue
-  self->client->pers.creditQueue = 0;
 
   if( attacker )
   {

@@ -330,7 +330,6 @@ typedef struct
 
   // used to save persistant[] values while in SPECTATOR_FOLLOW mode
   int                 credit;
-  int                 creditQueue;
 
   int                 voted;
   int                 vote;
@@ -967,7 +966,6 @@ void      G_ClearPlayerZapEffects( gentity_t *player );
 // g_client.c
 //
 void      G_AddCreditToClient( gclient_t *client, short credit, qboolean cap );
-void      G_QueueCreditToClient( gclient_t *client, short credit );
 team_t    TeamCount( int ignoreClientNum, int team );
 void      G_SetClientViewAngle( gentity_t *ent, vec3_t angle );
 gentity_t *G_SelectTremulousSpawnPoint( team_t team, vec3_t preference, vec3_t origin, vec3_t angles );
@@ -1096,8 +1094,6 @@ extern  vmCvar_t  g_restarted;
 extern  vmCvar_t  g_lockTeamsAtStart;
 extern  vmCvar_t  g_minNameChangePeriod;
 extern  vmCvar_t  g_maxNameChanges;
-
-extern  vmCvar_t  g_creditReleaseTime;
 
 extern  vmCvar_t  g_timelimit;
 extern  vmCvar_t  g_suddenDeathTime;
