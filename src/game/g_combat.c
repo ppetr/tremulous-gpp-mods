@@ -132,7 +132,7 @@ char *modNames[ ] =
 G_RewardAttackers
 
 Function to distribute rewards to entities that killed this one.
-Returns the total damage dealt.
+Returns the total number of credits rewarded.
 ==================
 */
 float G_RewardAttackers( gentity_t *self )
@@ -199,6 +199,7 @@ float G_RewardAttackers( gentity_t *self )
       if( self->s.eType != ET_BUILDABLE )
       {
         G_AddCreditToClient( player->client, stageValue, qtrue );
+        player->client->pers.creditLife += stageValue;
 
         // add to stage counters
         if( player->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
@@ -223,7 +224,7 @@ float G_RewardAttackers( gentity_t *self )
     trap_Cvar_Update( &g_humanCredits );
   }
   
-  return totalDamage;
+  return alienCredits + humanCredits;
 }
 
 /*
@@ -317,8 +318,30 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
       AddScore( self, -HUMAN_TK_SUICIDE_PENALTY );
   }
 
-  // give credits for killing this player
-  G_RewardAttackers( self );
+  {
+    int       reward, earned;
+    float     rewardFrags, earnedFrags;
+
+    // give credits for killing this player
+    reward = G_RewardAttackers( self );
+    // and compute the credits gained in this life
+    earned = self->client->pers.creditLife;
+    self->client->pers.creditLife = 0;
+
+    // display an info message
+    if( self->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS ) {
+      earnedFrags = (float)earned / ALIEN_CREDITS_PER_KILL;
+      rewardFrags = (float)reward / LEVEL0_VALUE;
+    } else if( self->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS ) {
+      earnedFrags = (float)earned / LEVEL0_VALUE;
+      rewardFrags = (float)reward / ALIEN_CREDITS_PER_KILL;
+    }
+
+    G_LogPrintf( "%s^7 killed %f and fed %f\n",
+        self->client->pers.netname, earnedFrags, rewardFrags );
+    trap_SendServerCommand( self - g_entities,
+        va( "dinfo %f %f", earnedFrags, rewardFrags ) );
+  }
 
   ScoreboardMessage( self );    // show scores
 
