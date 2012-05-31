@@ -102,6 +102,38 @@ static void CG_ParseTeamInfo( void )
   }
 }
 
+/*
+=================
+CG_ParseDeathInfo
+
+=================
+*/
+static void CG_ParseDeathInfo( void )
+{
+  float   earnedFrags, rewardFrags;
+  char    *msg;
+
+  if( trap_Argc( ) != 3 ) {
+    CG_Printf( "[skipnotify]CG_ParseDeathInfo: illegal number of parameters: %d\n", trap_Argc( ) );
+    return;
+  }
+  earnedFrags = (float)atof( CG_Argv( 1 ) );
+  rewardFrags = (float)atof( CG_Argv( 2 ) );
+
+  if( rewardFrags > earnedFrags ) { // feeder!
+    msg = va( "%sThis life's kill/death ratio: %.1f / %.1f frags.\nYour enemy is happy!",
+        S_COLOR_RED, earnedFrags, rewardFrags );
+  } else if( rewardFrags == earnedFrags ) { // balanced
+    msg = va( "%sThis life's kill/death ratio: %.1f / %.1f frags.",
+        S_COLOR_YELLOW, earnedFrags, rewardFrags );
+  } else {
+    msg = va( "%sThis life's kill/death ratio: %.1f / %.1f frags.\nGood job!",
+        S_COLOR_GREEN, earnedFrags, rewardFrags );
+  }
+  CG_Printf( "%s\n", msg );
+  CG_CenterPrint( msg, 350, GIANTCHAR_WIDTH * 4 );
+}
+
 
 /*
 ================
@@ -1252,6 +1284,7 @@ static consoleCommand_t svcommands[ ] =
   { "cmds", CG_GameCmds_f },
   { "cp", CG_CenterPrint_f },
   { "cs", CG_ConfigStringModified },
+  { "dinfo", CG_ParseDeathInfo },
   { "map_restart", CG_MapRestart },
   { "poisoncloud", CG_PoisonCloud_f },
   { "print", CG_Print_f },
