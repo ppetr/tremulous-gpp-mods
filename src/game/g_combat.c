@@ -135,9 +135,53 @@ Function to distribute rewards to entities that killed this one.
 Returns the total number of credits rewarded.
 ==================
 */
+float G_BountyBonus( gentity_t *self )
+{
+  team_t    team;
+  int       total = 0, n = 0, credit, avg, max;
+  int       i;
+  gentity_t *player;
+  gclient_t *cl;
+  float     b = 1.0f;
+
+  if( self->client )
+  {
+    team = self->client->pers.teamSelection;
+    credit = self->client->pers.credit;
+
+    for( i = 0; i < MAX_CLIENTS; i++)
+    {
+      player = g_entities + i ;
+      cl = player->client;
+
+      if( !cl || team != cl->pers.teamSelection || !player->inuse )
+        continue;
+
+      total += cl->pers.credit;
+      n++;
+    }
+
+    if( n >= 2 )
+    {
+      avg = total / n;
+      max = ( team == TEAM_ALIENS ) ? ALIEN_MAX_CREDITS : HUMAN_MAX_CREDITS;
+      if( ( credit > avg ) && ( max > avg ) )
+        b = 1.0f + ( MAX( g_bountyHighest.value, 1.0f ) - 1.0f )
+                    * (float)( MIN(max, credit) - avg ) / ( max - avg );
+      else if( ( credit < avg ) && ( avg > 0 ) )
+        b = 1.0f + ( MIN( g_bountyLowest.value, 1.0f ) - 1.0f )
+                    * (float)( avg - credit ) / avg;
+    }
+    if( b < 0.0f )
+      b = 0.0f;
+  }
+  return b;
+}
+
 float G_RewardAttackers( gentity_t *self )
 {
   float     value, totalDamage = 0;
+  float     bountyBonus = 1.0f;
   int       team, i, maxHealth = 0;
   int       alienCredits = 0, humanCredits = 0;
   gentity_t *player;
@@ -161,6 +205,8 @@ float G_RewardAttackers( gentity_t *self )
     value = BG_GetValueOfPlayer( &self->client->ps );
     team = self->client->pers.teamSelection;
     maxHealth = self->client->ps.stats[ STAT_MAX_HEALTH ];
+
+    bountyBonus = G_BountyBonus( self );
   }
   else if( self->s.eType == ET_BUILDABLE )
   {
@@ -198,7 +244,7 @@ float G_RewardAttackers( gentity_t *self )
       // killing buildables earns score, but not credits
       if( self->s.eType != ET_BUILDABLE )
       {
-        G_AddCreditToClient( player->client, stageValue, qtrue );
+        G_AddCreditToClient( player->client, (short)( stageValue * bountyBonus ), qtrue );
         player->client->pers.creditLife += stageValue;
 
         // add to stage counters

@@ -1145,6 +1145,9 @@ extern  vmCvar_t  g_alienGrangerDanceBonus;
 extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
 
+extern  vmCvar_t  g_bountyLowest;
+extern  vmCvar_t  g_bountyHighest;
+
 extern  vmCvar_t  g_unlagged;
 
 extern  vmCvar_t  g_disabledEquipment;
