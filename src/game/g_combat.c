@@ -177,7 +177,7 @@ float G_RewardAttackers( gentity_t *self )
     maxHealth = BG_Buildable( self->s.modelindex )->health;
   }
   else
-    return totalDamage;
+    return 0.0f; // no credits awarded
 
   // Give credits and empty the array
   for( i = 0; i < level.maxclients; i++ )
