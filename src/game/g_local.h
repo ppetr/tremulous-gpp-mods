@@ -1146,6 +1146,7 @@ extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
 
 extern  vmCvar_t  g_bounty;
+extern  vmCvar_t  g_contagionProb;
 
 extern  vmCvar_t  g_unlagged;
 

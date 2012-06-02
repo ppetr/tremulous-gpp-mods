@@ -103,6 +103,7 @@ vmCvar_t  g_teamImbalanceWarnings;
 vmCvar_t  g_freeFundPeriod;
 
 vmCvar_t  g_bounty;
+vmCvar_t  g_contagionProb;
 
 vmCvar_t  g_unlagged;
 
@@ -239,6 +240,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_freeFundPeriod, "g_freeFundPeriod", DEFAULT_FREEKILL_PERIOD, CVAR_ARCHIVE, 0, qtrue },
 
   { &g_bounty, "g_bounty", "0.5", CVAR_ARCHIVE, 0, qtrue },
+  { &g_contagionProb, "g_contagionProb", "0.5", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 

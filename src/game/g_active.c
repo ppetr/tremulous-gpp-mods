@@ -288,6 +288,8 @@ static void ClientContagion( gentity_t *ent, gentity_t *other ) {
         ( c2->poisonImmunityTime >= level.time ) ||
         ClientIsOnMedi(c2) )
       return;
+    if( random() > g_contagionProb.value )
+        return;
 
     if (poisoned1 && !poisoned2) {
       lastTime = c1->lastPoisonTime;
