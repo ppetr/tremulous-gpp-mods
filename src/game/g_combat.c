@@ -142,7 +142,13 @@ float G_BountyBonus( gentity_t *self )
   int       i;
   gentity_t *player;
   gclient_t *cl;
-  float     b = 1.0f;
+  float     bonusMul = 1.0f;
+  float     bounty = g_bounty.value;
+
+  if( bounty <= 0.0f )
+      return 1.0f; // no bounty bonus
+  if( bounty > 1.0f )
+      bounty = 1.0f;
 
   if( self->client )
   {
@@ -165,17 +171,16 @@ float G_BountyBonus( gentity_t *self )
     {
       avg = total / n;
       max = ( team == TEAM_ALIENS ) ? ALIEN_MAX_CREDITS : HUMAN_MAX_CREDITS;
-      if( ( credit > avg ) && ( max > avg ) )
-        b = 1.0f + ( MAX( g_bountyHighest.value, 1.0f ) - 1.0f )
-                    * (float)( MIN(max, credit) - avg ) / ( max - avg );
-      else if( ( credit < avg ) && ( avg > 0 ) )
-        b = 1.0f + ( MIN( g_bountyLowest.value, 1.0f ) - 1.0f )
-                    * (float)( avg - credit ) / avg;
+
+      bonusMul = (float)( credit - avg ) / max;
+      if( bonusMul > 1.0f )
+        bonusMul = 1.0f;
+      else if( bonusMul < -1.0f )
+        bonusMul = -1.0f;
+      bonusMul = 1.0f + bounty * bonusMul;
     }
-    if( b < 0.0f )
-      b = 0.0f;
   }
-  return b;
+  return bonusMul;
 }
 
 float G_RewardAttackers( gentity_t *self )
