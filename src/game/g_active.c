@@ -271,7 +271,7 @@ static qboolean ClientIsOnMedi( gclient_t *cl ) {
 static void ClientContagion( gentity_t *ent, gentity_t *other ) {
   gclient_t *c1 = ent->client, *c2;
   qboolean poisoned1 = c1->ps.stats[ STAT_STATE ] & SS_POISONED, poisoned2;
-  int lastTime;
+  int expiryTime;
 
     if( ( c1->pers.teamSelection != TEAM_HUMANS ) ||
         ( c1->poisonImmunityTime >= level.time ) || 
@@ -292,16 +292,16 @@ static void ClientContagion( gentity_t *ent, gentity_t *other ) {
         return;
 
     if (poisoned1 && !poisoned2) {
-      lastTime = c1->lastPoisonTime;
+      expiryTime = c1->poisonExpiryTime;
       c2->lastPoisonClient = c1->lastPoisonClient;
     } else if (!poisoned1 && poisoned2) {
-      lastTime = c2->lastPoisonTime;
+      expiryTime = c2->poisonExpiryTime;
       c1->lastPoisonClient = c2->lastPoisonClient;
     } else { // both are poisoned
-      lastTime = MIN(c1->lastPoisonTime, c2->lastPoisonTime);
+      expiryTime = MAX(c1->poisonExpiryTime, c2->poisonExpiryTime);
     }
-    c1->lastPoisonTime = lastTime;
-    c2->lastPoisonTime = lastTime;
+    c1->poisonExpiryTime = expiryTime;
+    c2->poisonExpiryTime = expiryTime;
     c1->ps.stats[ STAT_STATE ] |= SS_POISONED;
     c2->ps.stats[ STAT_STATE ] |= SS_POISONED;
   } else if( ( other->s.eType == ET_BUILDABLE) &&
@@ -309,7 +309,7 @@ static void ClientContagion( gentity_t *ent, gentity_t *other ) {
              other->spawned && ( other->health > 0 ) && other->powered ) {
     // touching booster
     c1->ps.stats[ STAT_STATE ] |= SS_POISONED;
-    c1->lastPoisonTime = level.time;
+    c1->poisonExpiryTime = level.time + g_boosterPoisonTime.integer * 1000;
     c1->lastPoisonClient = &g_entities[ ENTITYNUM_WORLD ];
   }
 }
@@ -1413,7 +1413,7 @@ void ClientThink_real( gentity_t *ent )
     client->ps.eFlags &= ~EF_POISONCLOUDED;
 
   if( client->ps.stats[ STAT_STATE ] & SS_POISONED &&
-      client->lastPoisonTime + ALIEN_POISON_TIME < level.time )
+      client->poisonExpiryTime < level.time )
     client->ps.stats[ STAT_STATE ] &= ~SS_POISONED;
 
   client->ps.gravity = g_gravity.value;

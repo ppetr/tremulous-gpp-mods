@@ -440,7 +440,7 @@ void Cmd_Give_f( gentity_t *ent )
     if( ent->client->pers.teamSelection == TEAM_HUMANS )
     {
       ent->client->ps.stats[ STAT_STATE ] |= SS_POISONED;
-      ent->client->lastPoisonTime = level.time;
+      ent->client->poisonExpiryTime = level.time + ALIEN_POISON_TIME;
       ent->client->lastPoisonClient = ent;
     }
     else
