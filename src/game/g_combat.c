@@ -744,7 +744,15 @@ static float G_CalcDamageModifier( vec3_t point, gentity_t *targ, gentity_t *att
 
   // Don't need to calculate angles and height for non-locational damage
   if( dflags & DAMAGE_NO_LOCDAMAGE )
+  {
+    const int mod = targ->client->lasthurt_mod;
+    // basi - flamer protection
+    if( ( ( mod == MOD_FLAMER ) || ( mod == MOD_FLAMER_SPLASH ) ) &&
+        ( ( class == PCL_ALIEN_LEVEL1 ) || ( class == PCL_ALIEN_LEVEL1_UPG ) ) )
+      return 0.1f;
+
     return GetNonLocDamageModifier( targ, class );
+  }
   
   // Get the point location relative to the floor under the target
   if( g_unlagged.integer && targ->client && targ->client->unlaggedCalc.used )
