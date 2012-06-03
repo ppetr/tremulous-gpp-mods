@@ -985,6 +985,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
   int     take;
   int     asave = 0;
   int     knockback;
+  int     poisonTime = 0;
 
   // Can't deal damage sometimes
   if( !targ->takedamage || targ->health <= 0 || level.intermissionQueued )
@@ -1183,17 +1184,31 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
                                                client->ps.stats[ STAT_CLASS ],
                                                dflags ) + 0.5f );
 
-    //if boosted poison every attack
-    if( attacker->client && attacker->client->ps.stats[ STAT_STATE ] & SS_BOOSTED )
+    // check possible poisoning
+    if( ( attacker->client ) && 
+        ( targ->client->poisonImmunityTime < level.time ) &&
+        ( targ->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS ) )
     {
-      if( targ->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS &&
+      //if boosted poison every attack
+      if( ( attacker->client->ps.stats[ STAT_STATE ] & SS_BOOSTED ) &&
           mod != MOD_LEVEL2_ZAP && mod != MOD_POISON &&
           mod != MOD_LEVEL1_PCLOUD && mod != MOD_HSPAWN &&
-          mod != MOD_ASPAWN && targ->client->poisonImmunityTime < level.time )
+          mod != MOD_ASPAWN )
+        poisonTime = level.time + ALIEN_POISON_TIME;
+      else if( mod == MOD_LEVEL1_CLAW )
+      {
+        if( attacker->client->ps.weapon == WP_ALEVEL1_UPG )
+          poisonTime = level.time + g_basiPoisonTime.integer * 1000;
+        else
+          poisonTime = level.time + g_basiUpgPoisonTime.integer * 1000;
+      }
+      if( poisonTime > 0 )
       {
         targ->client->ps.stats[ STAT_STATE ] |= SS_POISONED;
-        targ->client->lastPoisonTime = level.time;
-        targ->client->lastPoisonClient = attacker;
+        if( poisonTime > targ->client->poisonExpiryTime ) {
+          targ->client->poisonExpiryTime = poisonTime;
+          targ->client->lastPoisonClient = attacker;
+        }
       }
     }
   }

@@ -104,6 +104,9 @@ vmCvar_t  g_freeFundPeriod;
 
 vmCvar_t  g_bounty;
 vmCvar_t  g_contagionProb;
+vmCvar_t  g_boosterPoisonTime;
+vmCvar_t  g_basiPoisonTime;
+vmCvar_t  g_basiUpgPoisonTime;
 
 vmCvar_t  g_unlagged;
 
@@ -241,6 +244,9 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_bounty, "g_bounty", "0.5", CVAR_ARCHIVE, 0, qtrue },
   { &g_contagionProb, "g_contagionProb", "0.5", CVAR_ARCHIVE, 0, qfalse },
+  { &g_boosterPoisonTime, "g_boosterPoisonTime", "15", CVAR_ARCHIVE, 0, qfalse },
+  { &g_basiPoisonTime, "g_basiPoisonTime", "5", CVAR_ARCHIVE, 0, qfalse },
+  { &g_basiUpgPoisonTime, "g_basiUpgPoisonTime", "8", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 

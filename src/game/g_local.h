@@ -418,7 +418,7 @@ struct gclient_s
 
   char                *areabits;
 
-  int                 lastPoisonTime;
+  int                 poisonExpiryTime;
   int                 poisonImmunityTime;
   gentity_t           *lastPoisonClient;
   int                 lastPoisonCloudedTime;
@@ -1147,6 +1147,9 @@ extern  vmCvar_t  g_freeFundPeriod;
 
 extern  vmCvar_t  g_bounty;
 extern  vmCvar_t  g_contagionProb;
+extern  vmCvar_t  g_boosterPoisonTime;
+extern  vmCvar_t  g_basiPoisonTime;
+extern  vmCvar_t  g_basiUpgPoisonTime;
 
 extern  vmCvar_t  g_unlagged;
 
