@@ -110,6 +110,9 @@ vmCvar_t  g_basiUpgPoisonTime;
 
 vmCvar_t  g_unlagged;
 
+vmCvar_t  g_basiFlameMod;
+vmCvar_t  g_basiUpgFlameMod;
+
 vmCvar_t  g_disabledEquipment;
 vmCvar_t  g_disabledClasses;
 vmCvar_t  g_disabledBuildables;
@@ -249,6 +252,9 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_basiUpgPoisonTime, "g_basiUpgPoisonTime", "8", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
+
+  { &g_basiFlameMod, "g_basiFlameMod", "0.33", CVAR_ARCHIVE, 0, qtrue  },
+  { &g_basiUpgFlameMod, "g_basiUpgFlameMod", "0.25", CVAR_ARCHIVE, 0, qtrue  },
 
   { &g_disabledEquipment, "g_disabledEquipment", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
   { &g_disabledClasses, "g_disabledClasses", "", CVAR_ROM | CVAR_SYSTEMINFO, 0, qfalse  },
