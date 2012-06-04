@@ -609,21 +609,11 @@ static qboolean PM_CheckPounce( void )
   else
     jumpMagnitude = pm->ps->stats[ STAT_MISC ] *
                     LEVEL3_POUNCE_JUMP_MAG_UPG / LEVEL3_POUNCE_TIME_UPG;
-  if( pm->cmd.rightmove == 0 ) // standard pounce
-    VectorMA( pm->ps->velocity, jumpMagnitude, pml.forward, pm->ps->velocity );
-  else
-  {
-    vec3_t up = { 0.0f, 0.0f, 1.0f }, tmp;
-    jumpMagnitude *= 0.6;
-    RotatePointAroundVector( tmp, up, pml.forward,
-        ( pm->cmd.rightmove > 0 ) ? -90.0f : +90.0f );
-    VectorMA( pm->ps->velocity, jumpMagnitude, tmp, pm->ps->velocity );
-    pm->ps->pm_flags &= ~PMF_CHARGE; // jump only - no pounce
-  }
+  VectorMA( pm->ps->velocity, jumpMagnitude, pml.forward, pm->ps->velocity );
   PM_AddEvent( EV_JUMP );
 
   // Play jumping animation
-  if( pm->cmd.forwardmove >= 1 )
+  if( pm->cmd.forwardmove >= 0 )
   {
     if( !( pm->ps->persistant[ PERS_STATE ] & PS_NONSEGMODEL ) )
       PM_ForceLegsAnim( LEGS_JUMP );
