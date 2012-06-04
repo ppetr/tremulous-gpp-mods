@@ -34,6 +34,7 @@ typedef struct
 static bind_t bindings[ ] =
 {
   { "+button2",       "Activate Upgrade",       { -1, -1 } },
+  { "+button3",       "Taunt",                  { -1, -1 } },
   { "+speed",         "Run/Walk",               { -1, -1 } },
   { "+button6",       "Dodge",                  { -1, -1 } },
   { "+button8",       "Sprint",                 { -1, -1 } },
@@ -220,6 +221,12 @@ static void CG_AlienBuilderText( char *text, playerState_t *ps )
           va( "Press %s to destroy this structure\n",
             CG_KeyNameForCommand( "deconstruct" ) ) );
     }
+    if( BG_Buildable( es->modelindex )->number == BA_A_OVERMIND ) {
+      Q_strcat( text, MAX_TUTORIAL_TEXT,
+          va( "Jump and taunt in air (press %s) to heal the Overmind\n",
+            CG_KeyNameForCommand( "+button3" ) ) );
+    }
+
   }
 
   if( ( ps->stats[ STAT_BUILDABLE ] & ~SB_VALID_TOGGLEBIT ) == BA_NONE )
