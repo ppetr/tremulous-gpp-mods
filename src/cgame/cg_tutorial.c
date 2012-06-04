@@ -280,6 +280,13 @@ static void CG_AlienLevel1Text( char *text, playerState_t *ps )
   Q_strcat( text, MAX_TUTORIAL_TEXT,
       va( "Press %s to walk on walls\n",
         CG_KeyNameForCommand( "+movedown" ) ) );
+
+  if( ps->stats[ STAT_CLASS ] == PCL_ALIEN_LEVEL1_UPG )
+    Q_strcat( text, MAX_TUTORIAL_TEXT,
+        va( "You are very resistant to flames.\n" ) );
+  else
+    Q_strcat( text, MAX_TUTORIAL_TEXT,
+        va( "You are considerable resistant to flames.\n" ) );
 }
 
 /*
