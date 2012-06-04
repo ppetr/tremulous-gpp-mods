@@ -267,7 +267,7 @@ static void CG_AlienLevel1Text( char *text, playerState_t *ps )
       "Touch humans to grab them\n" );
 
   Q_strcat( text, MAX_TUTORIAL_TEXT,
-      va( "Press %s to swipe\n",
+      va( "Press %s to swipe and poison\n",
         CG_KeyNameForCommand( "+attack" ) ) );
 
   if( ps->stats[ STAT_CLASS ] == PCL_ALIEN_LEVEL1_UPG )
