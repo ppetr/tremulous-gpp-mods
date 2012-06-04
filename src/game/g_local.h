@@ -1138,6 +1138,9 @@ extern  vmCvar_t  g_freeFundPeriod;
 
 extern  vmCvar_t  g_unlagged;
 
+extern  vmCvar_t  g_basiFlameMod;
+extern  vmCvar_t  g_basiUpgFlameMod;
+
 extern  vmCvar_t  g_disabledEquipment;
 extern  vmCvar_t  g_disabledClasses;
 extern  vmCvar_t  g_disabledBuildables;
