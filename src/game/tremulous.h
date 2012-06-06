@@ -257,7 +257,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define BARRICADE_SPLASHDAMAGE      50
 #define BARRICADE_SPLASHRADIUS      100
 #define BARRICADE_CREEPSIZE         120
-#define BARRICADE_SHRINKPROP        0.25f
+#define BARRICADE_SHRINKPROP        0.1875f
 #define BARRICADE_SHRINKTIMEOUT     500
 #define BARRICADE_VALUE             ABVM(BARRICADE_BP)
 
