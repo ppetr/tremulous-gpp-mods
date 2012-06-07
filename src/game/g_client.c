@@ -1199,6 +1199,13 @@ void ClientBegin( int clientNum )
 
   // send the client a list of commands that can be used
   G_ListCommands( ent );
+
+  // display the help menu, if connecting the first time
+  if( !client->sess.seenWelcome )
+  {
+    client->sess.seenWelcome = 1;
+    G_TriggerMenu( client->ps.clientNum, MN_WELCOME );
+  }
 }
 
 /*

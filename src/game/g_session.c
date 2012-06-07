@@ -46,11 +46,12 @@ void G_WriteClientSessionData( gclient_t *client )
   const char  *s;
   const char  *var;
 
-  s = va( "%i %i %i %i %s",
+  s = va( "%i %i %i %i %i %s",
     client->sess.spectatorTime,
     client->sess.spectatorState,
     client->sess.spectatorClient,
     client->sess.restartTeam,
+    client->sess.seenWelcome,
     Com_ClientListString( &client->sess.ignoreList )
     );
 
@@ -77,11 +78,12 @@ void G_ReadSessionData( gclient_t *client )
   var = va( "session%i", client - level.clients );
   trap_Cvar_VariableStringBuffer( var, s, sizeof(s) );
 
-  sscanf( s, "%i %i %i %i %16s",
+  sscanf( s, "%i %i %i %i %i %16s",
     &client->sess.spectatorTime,
     &spectatorState,
     &client->sess.spectatorClient,
     &restartTeam,
+    &client->sess.seenWelcome,
     ignorelist
     );
 
@@ -126,6 +128,7 @@ void G_InitSessionData( gclient_t *client, char *userinfo )
   sess->spectatorTime = level.time;
   sess->spectatorClient = -1;
   memset( &sess->ignoreList, 0, sizeof( sess->ignoreList ) );
+  sess->seenWelcome = 0;
 
   G_WriteClientSessionData( client );
 }

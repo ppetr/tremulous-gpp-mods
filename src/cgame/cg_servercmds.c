@@ -475,6 +475,11 @@ void CG_Menu( int menu, int arg )
 
   switch( menu )
   {
+    case MN_WELCOME:
+      cmd       = "menu ingame_help\n";
+      type      = DT_INTERACTIVE;
+      break;
+
     case MN_TEAM:
       cmd       = "menu tremulous_teamselect\n";
       type      = DT_INTERACTIVE;
