@@ -805,7 +805,11 @@ void ClientTimerActions( gentity_t *ent, int msec )
         client->pers.aliveSeconds % g_freeFundPeriod.integer == 0 )
     {
       // Give clients some credit periodically
-      if( G_TimeTilSuddenDeath( ) > 0 )
+      // Basilisks receive even after sudden death
+      const class_t class = client->ps.stats[ STAT_CLASS ];
+      if( ( G_TimeTilSuddenDeath( ) > 0 ) ||
+              ( class == PCL_ALIEN_LEVEL1 ) ||
+              ( class == PCL_ALIEN_LEVEL1_UPG ) )
       {
         if( client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
           G_AddCreditToClient( client, FREEKILL_ALIEN, qtrue );
