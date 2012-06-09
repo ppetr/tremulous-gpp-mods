@@ -751,8 +751,9 @@ void ClientTimerActions( gentity_t *ent, int msec )
       // Basilisks receive even after sudden death
       const class_t class = client->ps.stats[ STAT_CLASS ];
       if( ( G_TimeTilSuddenDeath( ) > 0 ) ||
-              ( class == PCL_ALIEN_LEVEL1 ) ||
-              ( class == PCL_ALIEN_LEVEL1_UPG ) )
+              ( g_basiFreeFund.integer &&
+                ( ( class == PCL_ALIEN_LEVEL1 ) ||
+                  ( class == PCL_ALIEN_LEVEL1_UPG ) ) ) )
       {
         if( client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
           G_AddCreditToClient( client, FREEKILL_ALIEN, qtrue );
