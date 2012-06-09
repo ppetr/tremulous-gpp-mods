@@ -1,14 +1,59 @@
 {
-  "^3Welcome to the N7 Changelog^7"
+  "^3Welcome^7"
   {
+    "^1N7 Server Changelog^7\n"
     "In this section you will find a summary of major changes since GPP."
     "We are creating modifications to make Tremulous even better."
     "We hope you enjoy playing. And please report bugs to Nalf/Reaper!"
   }
-  "^1Basilisk / Advanced basilisk changes^7"
+  "^7Basilisk changes^7"
   {
-    "The basilisk has not been used very much, but it has a usefull feature now."
-    "The regular basilisk's attack poisons the enemy for 5 seconds and the advanced basilisk for 8 seconds."
-    "Both basilisks are considerably resistant to flamethrower, regular takes only 1/3 of damage, advanced only 1/4 of damage."
+    "More features for basilisk to make it a usefull class.\n"
+    "A regular basilisk's attack poisons the enemy for 5s, an advanced basilisk for 8s.\n"
+    "Both basilisks are considerably resistant to flamethrower, a regular takes only 1/3 of damage, an advanced only 1/4 of damage.\n"
+    "Basilisk is the only class that receies evos by staying alive even during sudden death."
+  }
+  "^7No grangers during SD^7"
+  {
+    "To prevent feeding by grangers when no building is allowed, spawning as grangers is disabled during sudden death."
+  }
+  "^7Defence computers^7"
+  {
+    "Each building can be repaired at most by 2 defence computers at a time."
+  }
+  "^7Teammates' credits/evos^7"
+  {
+    "You can see your teammates' evos/credits in the team overview panel on the left."
+    "You can also explicitly display it by issuing a new command ^5/listteam^7."
+  }
+  "^7Poison contagion^7"
+  {
+    "Humans transfer contagion on each other by touching each other."
+  }
+  "^7Bounties for good players^7"
+  {
+    "If you kill a player with an above-average amout of credits/evos, you get a higher reward."
+    "On the other hand, killing a player a below-average amout of credits/evos producess a lower reward."
+    "This partly diminishes the effect of feeding by poor players."
+  }
+  "^7Kill/death ratio^7"
+  {
+    "At every death, a kill/death ratio for the current life is displayed."
+  }
+  "^7Granger dance^7"
+  {
+    "A granger taunting in the air (while in a jump, for example) near an overmind tranfers a certain part its healh to the overmind.\n"
+    "It cannot die this way, if its health is too low, no health is transferred."
+  }
+  "^7Scare/nade^7"
+  {
+    "^6Experimental^7\n"
+    "If a large alien (a dragoon or a tyrant) taunts behind a human carrying a grenade,"
+    "the human has a chance of getting scared and dropping the grenade."
+  }
+  "^2You can help^7"
+  {
+    "If you want to help, perhaps only by commenting issues or suggesting ideas, visit\n"
+    "https://github.com/ppetr/tremulous-gpp-mods"
   }
 }
