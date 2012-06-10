@@ -465,7 +465,8 @@ gentity_t *G_InPowerZone( gentity_t *self )
 ================
 G_FindDCC
 
-attempt to find a controlling DCC for self, return number found
+attempt to find a controlling DCC for self, return number found;
+the number is bound by g_humanDefenceComputerLimit for efficiency.
 ================
 */
 int G_FindDCC( gentity_t *self )
@@ -492,7 +493,8 @@ int G_FindDCC( gentity_t *self )
       distance = VectorLength( temp_v );
       if( distance < DC_RANGE && ent->powered )
       {
-        foundDCC++; 
+        if( ++foundDCC >= g_humanDefenceComputerLimit.integer )
+          break;
       }
     }
   }
@@ -2738,7 +2740,7 @@ void G_BuildableThink( gentity_t *ent, int msec )
       else if( ent->buildableTeam == TEAM_HUMANS && ent->dcc &&
         ( ent->lastDamageTime + HUMAN_REGEN_DAMAGE_TIME ) < level.time )
       {
-        ent->health += g_humanDefenceComputerRate.integer * MIN(ent->dcc, g_humanDefenceComputerLimit.integer);
+        ent->health += g_humanDefenceComputerRate.integer * g_humanDefenceComputerLimit.integer;
       }
     }
 
