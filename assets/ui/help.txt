@@ -6,6 +6,10 @@
     "We are creating modifications to make Tremulous even better."
     "We hope you enjoy playing. And please report bugs to Nalf/Reaper!"
   }
+  "^8Bugfixes^7"
+  {
+    "A dragoon pouncing into water.\n"
+  }
   "^7Basilisk changes^7"
   {
     "More features for basilisk to make it a usefull class.\n"
@@ -39,6 +43,12 @@
   "^7Kill/death ratio^7"
   {
     "At every death, a kill/death ratio for the current life is displayed."
+  }
+  }
+  "^7Higher barricades^7"
+  {
+    "The bounding box of barricades was made higher."
+    "This means that it is no longer possible to shoot through the top part of the barricades."
   }
   "^7Granger dance^7"
   {
