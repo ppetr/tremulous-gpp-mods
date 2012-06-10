@@ -1138,7 +1138,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
       }
 
       // base is under attack warning if DCC'd
-      if( targ->buildableTeam == TEAM_HUMANS && G_FindDCC( targ ) &&
+      if( targ->buildableTeam == TEAM_HUMANS && ( targ->dcc ) &&
           level.time > level.humanBaseAttackTimer )
       {
         level.humanBaseAttackTimer = level.time + DC_ATTACK_PERIOD;
