@@ -1294,6 +1294,8 @@ typedef struct
   qhandle_t   healthCross3X;
   qhandle_t   healthCrossMedkit;
   qhandle_t   healthCrossPoisoned;
+
+  sfxHandle_t humanGibSound;
 } cgMedia_t;
 
 typedef struct

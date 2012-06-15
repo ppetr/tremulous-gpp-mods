@@ -869,7 +869,8 @@ void CG_EntityEvent( centity_t *cent, vec3_t position )
       break;
 
     case EV_GIB_PLAYER:
-      // no gibbing
+      // TODO - a visual effect
+      trap_S_StartSound( NULL, es->number, CHAN_VOICE, cgs.media.humanGibSound );
       break;
 
     case EV_STOPLOOPINGSOUND:

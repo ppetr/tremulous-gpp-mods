@@ -784,6 +784,10 @@ static float G_CalcDamageModifier( vec3_t point, gentity_t *targ, gentity_t *att
                                      g_numDamageRegions[ class ],
                                      hitRotation, hitRatio );
 
+  // For headshots, make a client event
+  if( modifier >= 1.2f )
+      G_AddEvent( targ, EV_GIB_PLAYER, 0 );
+
   for( i = UP_NONE + 1; i < UP_NUM_UPGRADES; i++ )
   {
     if( BG_InventoryContainsUpgrade( i, targ->client->ps.stats ) )
