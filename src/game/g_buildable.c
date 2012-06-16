@@ -3815,6 +3815,17 @@ qboolean G_BuildIfValid( gentity_t *ent, buildable_t buildable )
 }
 
 /*
+==============
+G_BuildableAllowedInSD
+==============
+*/
+qboolean G_BuildableAllowedInSD( buildable_t buildable )
+{
+  return g_suddenDeathRebuild.integer && 
+          ( ( buildable == BA_H_REACTOR ) || ( buildable == BA_A_OVERMIND ) );
+}
+
+/*
 ================
 G_FinishSpawningBuildable
 
