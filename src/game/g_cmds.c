@@ -2458,7 +2458,7 @@ void Cmd_Build_f( gentity_t *ent )
 
   buildable = BG_BuildableByName( s )->number;
 
-  if( G_TimeTilSuddenDeath( ) <= 0 )
+  if( ( G_TimeTilSuddenDeath( ) <= 0 ) && !G_BuildableAllowedInSD( buildable ) )
   {
     G_TriggerMenu( ent->client->ps.clientNum, MN_B_SUDDENDEATH );
     return;
