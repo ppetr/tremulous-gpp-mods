@@ -280,6 +280,20 @@ float G_RewardAttackers( gentity_t *self )
 
 /*
 ==================
+accidental_kill
+Kills that are considered "accidental" and do not result in credit penalty.
+==================
+*/
+qboolean accidental_kill( gentity_t *self, int meansOfDeath )
+{
+  // Trampling/crushing is only possible when the victim is a granger,
+  // and that's considered an accident.
+  return meansOfDeath == MOD_LEVEL4_TRAMPLE ||
+         meansOfDeath == MOD_LEVEL4_CRUSH;
+}
+
+/*
+==================
 player_die
 ==================
 */
@@ -346,7 +360,8 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
   {
     attacker->client->lastkilled_client = self->s.number;
 
-    if( ( attacker == self || OnSameTeam( self, attacker ) ) && meansOfDeath != MOD_HSPAWN )
+    if( ( attacker == self || OnSameTeam( self, attacker ) )
+            && meansOfDeath != MOD_HSPAWN && !accidental_kill( self, meansOfDeath ) )
     {
       //punish team kills and suicides
       if( attacker->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
@@ -1101,11 +1116,6 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
     // if the attacker was on the same team
     if( targ != attacker && OnSameTeam( targ, attacker ) )
     {
-      // don't do friendly fire on movement attacks
-      if( mod == MOD_LEVEL4_TRAMPLE || mod == MOD_LEVEL3_POUNCE ||
-          mod == MOD_LEVEL4_CRUSH )
-        return;
-
       // if dretchpunt is enabled and this is a dretch, do dretchpunt instead of damage
       if( g_dretchPunt.integer &&
           targ->client->ps.stats[ STAT_CLASS ] == PCL_ALIEN_LEVEL0 )
@@ -1125,6 +1135,16 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
       {
         return;
       }
+
+      // kill grangers instantly when hit by a rant's movement attack
+      if( ( mod == MOD_LEVEL4_TRAMPLE || mod == MOD_LEVEL4_CRUSH ) &&
+          ( targ->client->ps.stats[ STAT_CLASS ] == PCL_ALIEN_BUILDER0 ||
+            targ->client->ps.stats[ STAT_CLASS ] == PCL_ALIEN_BUILDER0_UPG ) )
+        damage = 999;
+      // don't do friendly fire on movement attacks
+      else if( mod == MOD_LEVEL4_TRAMPLE || mod == MOD_LEVEL3_POUNCE ||
+          mod == MOD_LEVEL4_CRUSH )
+        return;
     }
 
     if( targ->s.eType == ET_BUILDABLE && attacker->client &&
