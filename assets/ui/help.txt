@@ -17,9 +17,10 @@
     "Both basilisks are considerably resistant to flamethrower, a regular takes only 1/3 of damage, an advanced only 1/4 of damage.\n"
     "Basilisk is the only class that receies evos by staying alive even during sudden death."
   }
-  "^7No grangers during SD^7"
+  "^7Sudden death^7"
   {
-    "To prevent feeding by grangers when no building is allowed, spawning as grangers is disabled during sudden death."
+    "To prevent feeding by grangers when no building is allowed, spawning as grangers is disabled during sudden death.\n"
+    "Overminds and reactors can be rebuilt during sudden death."
   }
   "^7Defence computers^7"
   {
