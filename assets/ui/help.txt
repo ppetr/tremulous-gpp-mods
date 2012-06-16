@@ -10,6 +10,10 @@
   {
     "A dragoon pouncing into water.\n"
   }
+  "^7Granger changes^7"
+  {
+    "Grangers are ^1very^7 vulnerable to trampling. Keep out of tyrants' way!"
+  }
   "^7Dretch changes^7"
   {
     "Dretches are shorter in height so that they don't block and can be stepped on.\n"
@@ -20,6 +24,7 @@
     "More features for basilisk to make it a usefull class.\n"
     "A regular basilisk's attack poisons the enemy for 5s, an advanced basilisk for 8s.\n"
     "Both basilisks are considerably resistant to flamethrower, a regular takes only 1/3 of damage, an advanced only 1/4 of damage.\n"
+    "Basilisk is able to rotate its victim, so it can use the grabbed human as a meat shield\n."
     "Basilisk is the only class that receies evos by staying alive even during sudden death."
   }
   "^7Sudden death^7"
