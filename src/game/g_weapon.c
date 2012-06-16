@@ -927,6 +927,7 @@ void CheckGrabAttack( gentity_t *ent )
 {
   trace_t   tr;
   vec3_t    end, dir;
+  float     dot;
   gentity_t *traceEnt;
 
   // set aiming directions
@@ -956,13 +957,29 @@ void CheckGrabAttack( gentity_t *ent )
     if( traceEnt->client->ps.stats[ STAT_HEALTH ] <= 0 )
       return;
 
-    if( !( traceEnt->client->ps.stats[ STAT_STATE ] & SS_GRABBED ) )
+    // NOTE: Re-using end,dir for optimal/current target direction in the following
+    if( !( traceEnt->client->ps.stats[ STAT_STATE ] & SS_GRABBED ) )   
     {
       AngleVectors( traceEnt->client->ps.viewangles, dir, NULL, NULL );
       traceEnt->client->ps.stats[ STAT_VIEWLOCK ] = DirToByte( dir );
 
+      VectorSubtract(traceEnt->client->ps.origin,ent->client->ps.origin,end);
+      VectorNormalize(end);
+      ent->client->ps.stats[ STAT_MISC ] = DotProduct(dir, end);
+
       //event for client side grab effect
       G_AddPredictableEvent( ent, EV_LEV1_GRAB, 0 );
+    } else {
+      VectorSubtract(traceEnt->client->ps.origin,ent->client->ps.origin,end);
+      VectorNormalize(end);
+
+      AngleVectors( traceEnt->client->ps.viewangles, dir, NULL, NULL );
+      dot = DotProduct(dir, end);
+
+      if (dot >= ent->client->ps.stats[ STAT_MISC ]) {
+	traceEnt->client->ps.stats[ STAT_VIEWLOCK ] = DirToByte( end );
+	ent->client->ps.stats[ STAT_MISC ] = dot;
+      }
     }
 
     traceEnt->client->ps.stats[ STAT_STATE ] |= SS_GRABBED;
