@@ -320,7 +320,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
   {
     int       reward, earned;
-    float     rewardFrags, earnedFrags;
+    float     rewardFrags = 0.0f, earnedFrags = 0.0f;
 
     // give credits for killing this player
     reward = G_RewardAttackers( self );
