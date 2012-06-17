@@ -130,8 +130,8 @@ static void CG_ParseDeathInfo( void )
     color = S_COLOR_RED;
   else if( totalRewardFrags < totalEarnedFrags ) // balanced
     color = S_COLOR_GREEN;
-  CG_Printf( "%sTotal kill/death ratio: %.1f / %.1f frags.",
-             totalEarnedFrags, totalRewardFrags );
+  CG_Printf( "%sTotal kill/death ratio: %.1f / %.1f frags.\n",
+             color, totalEarnedFrags, totalRewardFrags );
 
   // this life
   if( rewardFrags > earnedFrags ) { // feeder!
