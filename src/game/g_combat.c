@@ -336,11 +336,17 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
       earnedFrags = (float)earned / LEVEL0_VALUE;
       rewardFrags = (float)reward / ALIEN_CREDITS_PER_KILL;
     }
+    self->client->pers.totalEarnedFrags += earnedFrags;
+    self->client->pers.totalRewardFrags += rewardFrags;
 
-    G_LogPrintf( "%s^7 killed %f and fed %f\n",
-        self->client->pers.netname, earnedFrags, rewardFrags );
+    G_LogPrintf( "%s^7 kill/death ratio: %.1f / %.1f (%d / %d total)\n",
+        self->client->pers.netname,
+        earnedFrags, rewardFrags,
+        (int)self->client->pers.totalEarnedFrags, (int)self->client->pers.totalRewardFrags );
     trap_SendServerCommand( self - g_entities,
-        va( "dinfo %f %f", earnedFrags, rewardFrags ) );
+        va( "dinfo %.2f %.2f %.2f %.2f",
+            earnedFrags, rewardFrags,
+            self->client->pers.totalEarnedFrags, self->client->pers.totalRewardFrags ) );
   }
 
   ScoreboardMessage( self );    // show scores

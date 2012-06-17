@@ -111,15 +111,29 @@ CG_ParseDeathInfo
 static void CG_ParseDeathInfo( void )
 {
   float   earnedFrags, rewardFrags;
+  float   totalEarnedFrags, totalRewardFrags;
   char    *msg;
+  const char *color;
 
-  if( trap_Argc( ) != 3 ) {
+  if( trap_Argc( ) != 5 ) {
     CG_Printf( "[skipnotify]CG_ParseDeathInfo: illegal number of parameters: %d\n", trap_Argc( ) );
     return;
   }
   earnedFrags = (float)atof( CG_Argv( 1 ) );
   rewardFrags = (float)atof( CG_Argv( 2 ) );
+  totalEarnedFrags = (float)atof( CG_Argv( 3 ) );
+  totalRewardFrags = (float)atof( CG_Argv( 4 ) );
 
+  // game total
+  color = S_COLOR_YELLOW;
+  if( totalRewardFrags > totalEarnedFrags ) // feeder!
+    color = S_COLOR_RED;
+  else if( totalRewardFrags < totalEarnedFrags ) // balanced
+    color = S_COLOR_GREEN;
+  CG_Printf( "%sTotal kill/death ratio: %.1f / %.1f frags.",
+             totalEarnedFrags, totalRewardFrags );
+
+  // this life
   if( rewardFrags > earnedFrags ) { // feeder!
     msg = va( "%sThis life's kill/death ratio: %.1f / %.1f frags.\nYour enemy is happy!",
         S_COLOR_RED, earnedFrags, rewardFrags );

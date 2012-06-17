@@ -329,6 +329,8 @@ typedef struct
   // used to save persistant[] values while in SPECTATOR_FOLLOW mode
   int                 credit;
   int                 creditLife; // credits earned in this life
+  float               totalEarnedFrags; // total frags earned in the game
+  float               totalRewardFrags; // total frags rewarded to enemies in the game
 
   int                 voted;
   int                 vote;
