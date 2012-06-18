@@ -1163,10 +1163,13 @@ map_change_alowed
 */
 qboolean map_change_alowed( const gentity_t *ent, const char *cmd ) {
   const int limit = g_mapChangeAllowedUntil.integer;
-  if( ( limit > 0 ) && ( level.time - level.startTime >= limit * 1000 ) )
+  if( ( limit > 0 ) && 
+      ( level.numHumanClients > 0 ) &&
+      ( level.numAlienClients > 0 ) &&
+      ( level.time - level.startTime >= limit * 1000 ) )
   {
     trap_SendServerCommand( ent-g_entities,
-      va( "print \"%s: Map changing/restarting is prohibited after %d:%02d. Use 'admitdefeat' instead.\n\"",
+      va( "print \"%s: Map changing/restarting is prohibited after %d:%02d if people play. Use 'admitdefeat' instead.\n\"",
         cmd, limit / 60, limit % 60 ) );
     return qfalse;
   } else
