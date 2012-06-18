@@ -969,6 +969,10 @@ void CheckGrabAttack( gentity_t *ent )
 
       //event for client side grab effect
       G_AddPredictableEvent( ent, EV_LEV1_GRAB, 0 );
+    } else if (ent->client->ps.stats[ STAT_MISC ] >= 0.9f) {
+      VectorSubtract(traceEnt->client->ps.origin,ent->client->ps.origin,end);
+      VectorNormalize(end);
+      traceEnt->client->ps.stats[ STAT_VIEWLOCK ] = DirToByte( end );
     } else {
       VectorSubtract(traceEnt->client->ps.origin,ent->client->ps.origin,end);
       VectorNormalize(end);
