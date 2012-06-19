@@ -6,6 +6,15 @@
     "We are creating modifications to make Tremulous even better."
     "We hope you enjoy playing. And please report bugs to Nalf/Reaper!"
   }
+  "^1Rules of the server^7"
+  {
+    "No killing your team-mates (unless (s)he asks you to), "
+    "no destroying your own team's buildings (unless moving etc.), "
+    "no insulting other players, "
+    "no spamming.\n"
+    "You may not call a draw when one of the teams if making progress.\n"
+    "Don't ask for admin privileges, you won't get any. Really."
+  }
   "^8Bugfixes^7"
   {
     "A dragoon pouncing into water.\n"
