@@ -14,10 +14,17 @@
     "no spamming.\n"
     "You may not call a draw when one of the teams if making progress.\n"
     "Don't ask for admin privileges, you won't get any. Really."
+    "But you can ask to become a registered player (level 1) to get a protected nickname."
   }
   "^8Bugfixes^7"
   {
-    "A dragoon pouncing into water.\n"
+    "A dragoon pouncing into water fixed.\n"
+  }
+  "^7Head shots^7"
+  {
+    "Head shots are now visualized by blood drops."
+    "You see immediately if you made a head shot or not.\n"
+    "Don't try it on your team mates though, you'll get banned for team bleeding."
   }
   "^7Granger changes^7"
   {
@@ -63,7 +70,6 @@
   "^7Kill/death ratio^7"
   {
     "At every death, a kill/death ratio for the current life is displayed."
-  }
   }
   "^7Higher barricades^7"
   {
