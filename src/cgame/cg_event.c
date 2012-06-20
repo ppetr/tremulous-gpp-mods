@@ -871,7 +871,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position )
     case EV_GIB_PLAYER: 
       {
         // TODO - a visual effect
-        particleSystem_t *ps = CG_SpawnNewParticleSystem( cgs.media.alienAcidTubePS );
+        particleSystem_t *ps = CG_SpawnNewParticleSystem( cgs.media.headShotPS );
 
         if( CG_IsParticleSystemValid( &ps ) )
         {
