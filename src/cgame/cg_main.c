@@ -697,6 +697,8 @@ static void CG_RegisterSounds( void )
 
   cgs.media.lCannonWarningSound     = trap_S_RegisterSound( "models/weapons/lcannon/warning.wav", qfalse );
   cgs.media.lCannonWarningSound2    = trap_S_RegisterSound( "models/weapons/lcannon/warning2.wav", qfalse );
+
+  cgs.media.humanGibSound           = trap_S_RegisterSound( "sound/player/human_base/gib.wav", qfalse );
 }
 
 
@@ -813,6 +815,8 @@ static void CG_RegisterGraphics( void )
 
   cgs.media.alienBleedPS              = CG_RegisterParticleSystem( "alienBleedPS" );
   cgs.media.humanBleedPS              = CG_RegisterParticleSystem( "humanBleedPS" );
+
+  cgs.media.headShotPS                = CG_RegisterParticleSystem( "headShotPS" );
 
   CG_BuildableStatusParse( "ui/assets/human/buildstat.cfg", &cgs.humanBuildStat );
   CG_BuildableStatusParse( "ui/assets/alien/buildstat.cfg", &cgs.alienBuildStat );

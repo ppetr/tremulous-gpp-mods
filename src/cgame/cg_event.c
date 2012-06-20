@@ -868,8 +868,20 @@ void CG_EntityEvent( centity_t *cent, vec3_t position )
       CG_Obituary( es );
       break;
 
-    case EV_GIB_PLAYER:
-      // no gibbing
+    case EV_GIB_PLAYER: 
+      {
+        // TODO - a visual effect
+        particleSystem_t *ps = CG_SpawnNewParticleSystem( cgs.media.headShotPS );
+
+        if( CG_IsParticleSystemValid( &ps ) )
+        {
+          CG_SetAttachmentCent( &ps->attachment, cent );
+          ByteToDir( es->eventParm, dir );
+          CG_SetParticleSystemNormal( ps, dir );
+          CG_AttachToCent( &ps->attachment );
+        }
+      }
+      //trap_S_StartSound( NULL, es->number, CHAN_VOICE, cgs.media.humanGibSound );
       break;
 
     case EV_STOPLOOPINGSOUND:
