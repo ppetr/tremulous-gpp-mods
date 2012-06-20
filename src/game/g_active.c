@@ -72,17 +72,15 @@ void P_DamageFeedback( gentity_t *player )
   // play an apropriate pain sound
   if( ( level.time > player->pain_debounce_time ) && !( player->flags & FL_GODMODE ) )
   {
+    int param;
     player->pain_debounce_time = level.time + 700;
-    G_AddEvent( player, EV_PAIN, player->health > 255 ? 255 : player->health );
+    param = player->health;
+    if( param >= EVENT_HEADSHOT_BIT )
+      param = EVENT_HEADSHOT_BIT - 1;
+    if( client->damage_headshot )
+      param |= EVENT_HEADSHOT_BIT;
+    G_AddEvent( player, EV_PAIN, param );
     client->ps.damageEvent++;
-  }
-
-  if( client->damage_headshot && !( player->flags & FL_GODMODE ) )
-  {
-    vec3_t    up;
-    AngleVectors( client->ps.viewangles, NULL, NULL, up );
-    G_AddEvent( player, EV_GIB_PLAYER, DirToByte( up ) );
-    G_LogPrintf( "Sent a head shot event.\n" );
   }
 
 
