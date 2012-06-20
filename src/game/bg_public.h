@@ -449,6 +449,8 @@ typedef enum
 
 #define EVENT_VALID_MSEC  300
 
+#define EVENT_HEADSHOT_BIT 0x80
+
 const char *BG_EventName( int num );
 
 typedef enum

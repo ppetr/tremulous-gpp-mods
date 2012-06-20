@@ -7,7 +7,7 @@ headShotPS
       shader sync gfx/sprites/blood
 
       displacement 0 0 20 ~2
-      normalDisplacement  20
+      parentVelocityFraction 1.0
 
       velocityType      static
       velocityDir       linear
