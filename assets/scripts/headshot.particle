@@ -11,8 +11,8 @@ headShotPS
 
       velocityType      static
       velocityDir       linear
-      velocityMagnitude 250~75%
-      velocity          0 0 1 ~60
+      velocityMagnitude 150~75%
+      velocity          0 0 1 ~90
 
       accelerationType      static
       accelerationDir       linear
@@ -23,6 +23,8 @@ headShotPS
       alpha  0 1.0 0.0
       rotation 0 ~360 -
       bounce 0.2
+      //bounce cull
+      bounceMark 1~1 10 gfx/marks/blood_mrk
 
       lifeTime 1000~100%
     }
