@@ -896,8 +896,6 @@ static float G_CalcDamageModifier( vec3_t point, gentity_t *targ, gentity_t *att
                                      hitRotation, hitRatio );
 
   // For headshots, make a client event
-  G_LogPrintf( "Body modifier: %f\n", modifier );
-  // For headshots, make a client event
   if( modifier >= 1.2f )
     targ->client->damage_headshot ++;
 
