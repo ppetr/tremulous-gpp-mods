@@ -2,8 +2,8 @@
   "^3Welcome^7"
   {
     "^1N7 Server Changelog^7\n"
-    "In this section you will find a summary of major changes since GPP."
-    "We are creating modifications to make Tremulous even better."
+    "In this section you will find a summary of major changes since GPP. "
+    "We are creating modifications to make Tremulous even better. "
     "We hope you enjoy playing. And please report bugs to Nalf/Reaper!"
   }
   "^1Rules of the server^7"
@@ -13,7 +13,7 @@
     "no insulting other players, "
     "no spamming.\n"
     "You may not call a draw when one of the teams if making progress.\n"
-    "Don't ask for admin privileges, you won't get any. Really."
+    "Don't ask for admin privileges, you won't get any. Really. "
     "But you can ask to become a registered player (level 1) to get a protected nickname."
   }
   "^8Bugfixes^7"
@@ -22,7 +22,7 @@
   }
   "^7Head shots^7"
   {
-    "Head shots are now visualized by blood drops."
+    "Head shots are now visualized by blood drops. "
     "You see immediately if you made a head shot or not.\n"
     "Don't try it on your team mates though, you'll get banned for team bleeding."
   }
@@ -35,7 +35,7 @@
     "More features for basilisk to make it a usefull class.\n"
     "A regular basilisk's attack poisons the enemy for 5s, an advanced basilisk for 8s.\n"
     "Both basilisks are considerably resistant to flamethrower, a regular takes only 1/3 of damage, an advanced only 1/4 of damage.\n"
-    "Basilisk is able to rotate its victim, so it can use the grabbed human as a meat shield\n."
+    "Basilisk is able to rotate its victim, so it can use the grabbed human as a meat shield.\n"
     "Basilisk is the only class that receies evos by staying alive even during sudden death."
   }
   "^7Sudden death^7"
@@ -49,7 +49,7 @@
   }
   "^7Teammates' credits/evos^7"
   {
-    "You can see your teammates' evos/credits in the team overview panel on the left."
+    "You can see your teammates' evos/credits in the team overview panel on the left. "
     "You can also explicitly display it by issuing a new command ^5/listteam^7."
   }
   "^7Poison contagion^7"
@@ -58,8 +58,8 @@
   }
   "^7Bounties for good players^7"
   {
-    "If you kill a player with an above-average amout of credits/evos, you get a higher reward."
-    "On the other hand, killing a player a below-average amout of credits/evos producess a lower reward."
+    "If you kill a player with an above-average amout of credits/evos, you get a higher reward. "
+    "On the other hand, killing a player a below-average amout of credits/evos producess a lower reward. "
     "This partly diminishes the effect of feeding by poor players."
   }
   "^7Kill/death ratio^7"
@@ -68,7 +68,7 @@
   }
   "^7Higher barricades^7"
   {
-    "The bounding box of barricades was made higher."
+    "The bounding box of barricades was made higher. "
     "This means that it is no longer possible to shoot through the top part of the barricades."
   }
   "^7Granger dance^7"
