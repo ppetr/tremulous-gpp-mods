@@ -30,11 +30,6 @@
   {
     "Grangers are ^1very^7 vulnerable to trampling. Keep out of tyrants' way!"
   }
-  "^7Dretch changes^7"
-  {
-    "Dretches are shorter in height so that they don't block and can be stepped on.\n"
-    "Makes them a little bit harder to hit from front/side or when wallwalking."
-  }
   "^7Basilisk changes^7"
   {
     "More features for basilisk to make it a usefull class.\n"
