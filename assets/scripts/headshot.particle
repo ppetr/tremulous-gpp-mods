@@ -25,6 +25,7 @@ headShotPS
       bounce 0.2
       //bounce cull
       bounceMark 1~1 10 gfx/marks/blood_mrk
+      bounceSound ~0.7 sound/player/human_base/blood_splat.wav
 
       lifeTime 1000~100%
     }
