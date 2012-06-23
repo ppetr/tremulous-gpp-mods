@@ -98,6 +98,42 @@ void P_DamageFeedback( gentity_t *player )
 
 
 /*
+===============
+P_WoundsBleed
+
+===============
+*/
+void P_WoundsBleed( gentity_t *player )
+{
+  gclient_t *client;
+  int       maxHealth;
+  int       health;
+
+  if( player->nextBleedTime > level.time )
+    return;
+  
+  client = player->client;
+  health = player->health;
+  maxHealth = client->ps.stats[ STAT_MAX_HEALTH ];
+  if( maxHealth > 100 )
+    maxHealth = 100;
+  maxHealth = maxHealth * 3 / 4;
+  if( health > maxHealth ) {
+    player->nextBleedTime = level.time + 2000;
+    return;
+  }
+
+  G_AddEvent( player, EV_BLEED, ( health > 255 ) ? 255 : health );
+
+  if( health < 20 )
+    health = 20;
+  player->nextBleedTime = level.time + 2000 * health / maxHealth;
+}
+
+
+
+
+/*
 =============
 P_WorldEffects
 
@@ -1921,6 +1957,9 @@ void ClientEndFrame( gentity_t *ent )
 
   // burn from lava, etc
   P_WorldEffects( ent );
+
+  // bleeding wounds
+  P_WoundsBleed( ent );
 
   // apply all the damage taken this frame
   P_DamageFeedback( ent );

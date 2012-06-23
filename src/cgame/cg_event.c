@@ -898,6 +898,22 @@ void CG_EntityEvent( centity_t *cent, vec3_t position )
       // no gibbing
       break;
 
+    case EV_BLEED:
+      {
+        particleSystem_t *ps = NULL;
+        if( ci->team == TEAM_ALIENS )
+          ps = CG_SpawnNewParticleSystem( cgs.media.alienWoundsBleedPS );
+        else if( ci->team == TEAM_HUMANS )
+          ps = CG_SpawnNewParticleSystem( cgs.media.humanWoundsBleedPS );
+
+        if( ( ps != NULL ) && CG_IsParticleSystemValid( &ps ) )
+        {
+          CG_SetAttachmentCent( &ps->attachment, cent );
+          CG_AttachToCent( &ps->attachment );
+        }
+      }
+      break;
+
     case EV_STOPLOOPINGSOUND:
       trap_S_StopLoopingSound( es->number );
       es->loopSound = 0;

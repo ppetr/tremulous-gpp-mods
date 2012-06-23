@@ -524,6 +524,8 @@ typedef enum
 
   EV_GIB_PLAYER,      // gib a previously living player
 
+  EV_BLEED,
+
   EV_BUILD_CONSTRUCT,
   EV_BUILD_DESTROY,
   EV_BUILD_DELAY,     // can't build yet

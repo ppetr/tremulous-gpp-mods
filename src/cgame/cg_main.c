@@ -816,6 +816,8 @@ static void CG_RegisterGraphics( void )
   cgs.media.alienBleedPS              = CG_RegisterParticleSystem( "alienBleedPS" );
   cgs.media.humanBleedPS              = CG_RegisterParticleSystem( "humanBleedPS" );
 
+  cgs.media.alienWoundsBleedPS        = CG_RegisterParticleSystem( "alienWoundBleedPS" );
+  cgs.media.humanWoundsBleedPS        = CG_RegisterParticleSystem( "humanWoundBleedPS" );
   cgs.media.headShotPS                = CG_RegisterParticleSystem( "headShotPS" );
 
   CG_BuildableStatusParse( "ui/assets/human/buildstat.cfg", &cgs.humanBuildStat );
