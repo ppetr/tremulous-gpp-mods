@@ -9,10 +9,10 @@ headShotPS
       displacement 0 0 20 ~2
       parentVelocityFraction 1.0
 
-      velocityType      static
+      velocityType      static_transform
       velocityDir       linear
       velocityMagnitude 150~75%
-      velocity          0 0 1 ~90
+      velocity          -1 0 1 ~60
 
       accelerationType      static
       accelerationDir       linear
