@@ -118,7 +118,7 @@ void P_WoundsBleed( gentity_t *player )
   if( maxHealth > 100 )
     maxHealth = 100;
   maxHealth = maxHealth * 3 / 4;
-  if( health > maxHealth ) {
+  if( ( health > maxHealth ) || ( health < 0 ) ) {
     player->nextBleedTime = level.time + 2000;
     return;
   }
