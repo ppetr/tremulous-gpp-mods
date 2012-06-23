@@ -22,8 +22,8 @@ headShotPS
       radius 0 4.0 10.0
       alpha  0 1.0 0.0
       rotation 0 ~360 -
-      bounce 0.2
-      //bounce cull
+      //bounce 0.2
+      bounce cull
       bounceMark 1~1 10 gfx/marks/blood_mrk
       bounceSound ~0.7 sound/player/human_base/blood_splat.wav
 
