@@ -1297,6 +1297,8 @@ typedef struct
 
   sfxHandle_t humanGibSound;
   qhandle_t   headShotPS;
+  qhandle_t   humanWoundsBleedPS;
+  qhandle_t   alienWoundsBleedPS;
 } cgMedia_t;
 
 typedef struct
