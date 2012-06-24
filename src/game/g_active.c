@@ -401,21 +401,24 @@ void  G_UseMedkit( gentity_t *ent )
   gclient_t *client = ent->client;
   gentity_t *targetEnt = NULL;
   gclient_t *tclient = NULL;
+  qboolean  clientNeedsMedkit;
 
   if( client->ps.stats[ STAT_HEALTH ] <= 0 )
     return;
 
+  clientNeedsMedkit = G_NeedsMedkit( client );
   //look for a teammate that would need healing
   targetEnt = G_MedkitTarget( ent );
   if( ( targetEnt != NULL ) &&
       ( ( tclient = targetEnt->client ) != NULL ) &&
       ( tclient->ps.stats[ STAT_HEALTH ] > 0 ) &&
       ( tclient->ps.stats[ STAT_TEAM ] == TEAM_HUMANS ) &&
-      ( client->ps.stats[ STAT_HEALTH ] >= tclient->ps.stats[ STAT_HEALTH ] ) &&
-      ( G_NeedsMedkit( tclient ) )
+      ( G_NeedsMedkit( tclient ) ) &&
+      ( ( client->ps.stats[ STAT_HEALTH ] >= tclient->ps.stats[ STAT_HEALTH ] ) ||
+        !clientNeedsMedkit )
       )
     ;
-  else if( G_NeedsMedkit( client ) )
+  else if( clientNeedsMedkit )
   {
     targetEnt = ent;
     tclient = client;
