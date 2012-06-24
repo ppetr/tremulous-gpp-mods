@@ -378,6 +378,70 @@ void  G_TouchTriggers( gentity_t *ent )
 }
 
 /*
+============
+G_NeedsMedkit
+
+============
+*/
+qboolean G_NeedsMedkit( gclient_t *client )
+{
+  //not if currently using a medkit or have no need for a medkit now
+  return !( client->ps.stats[ STAT_STATE ] & SS_HEALING_2X ) &&
+    ( client->ps.stats[ STAT_HEALTH ] < client->ps.stats[ STAT_MAX_HEALTH ] ||
+      ( client->ps.stats[ STAT_STATE ] & SS_POISONED ) );
+}
+/*
+============
+G_UseMedkit
+
+============
+*/
+void  G_UseMedkit( gentity_t *ent )
+{
+  gclient_t *client = ent->client;
+  gentity_t *targetEnt = NULL;
+  gclient_t *tclient = NULL;
+
+  if( client->ps.stats[ STAT_HEALTH ] <= 0 )
+    return;
+
+  //look for a teammate that would need healing
+  targetEnt = G_MedkitTarget( ent );
+  if( ( targetEnt != NULL ) &&
+      ( ( tclient = targetEnt->client ) != NULL ) &&
+      ( tclient->ps.stats[ STAT_HEALTH ] > 0 ) &&
+      ( tclient->ps.stats[ STAT_TEAM ] == TEAM_HUMANS ) &&
+      ( client->ps.stats[ STAT_HEALTH ] >= tclient->ps.stats[ STAT_HEALTH ] ) &&
+      ( G_NeedsMedkit( tclient ) )
+      )
+    ;
+  else if( G_NeedsMedkit( client ) )
+  {
+    targetEnt = ent;
+    tclient = client;
+  } else {
+    BG_DeactivateUpgrade( UP_MEDKIT, client->ps.stats );
+    return;
+  }
+
+  //remove anti toxin
+  BG_DeactivateUpgrade( UP_MEDKIT, client->ps.stats );
+  BG_RemoveUpgradeFromInventory( UP_MEDKIT, client->ps.stats );
+
+  tclient->ps.stats[ STAT_STATE ] &= ~SS_POISONED;
+  tclient->poisonImmunityTime = level.time + MEDKIT_POISON_IMMUNITY_TIME;
+
+  tclient->ps.stats[ STAT_STATE ] |= SS_HEALING_2X;
+  tclient->lastMedKitTime = level.time;
+  tclient->medKitHealthToRestore =
+    tclient->ps.stats[ STAT_MAX_HEALTH ] - tclient->ps.stats[ STAT_HEALTH ];
+  tclient->medKitIncrementTime = level.time +
+    ( MEDKIT_STARTUP_TIME / MEDKIT_STARTUP_SPEED );
+
+  G_AddEvent( ent, EV_MEDKIT_USED, 0 );
+}
+
+/*
 =================
 SpectatorThink
 =================
@@ -1363,33 +1427,7 @@ void ClientThink_real( gentity_t *ent )
 
   if( BG_InventoryContainsUpgrade( UP_MEDKIT, client->ps.stats ) &&
       BG_UpgradeIsActive( UP_MEDKIT, client->ps.stats ) )
-  {
-    //if currently using a medkit or have no need for a medkit now
-    if( client->ps.stats[ STAT_STATE ] & SS_HEALING_2X ||
-        ( client->ps.stats[ STAT_HEALTH ] == client->ps.stats[ STAT_MAX_HEALTH ] &&
-          !( client->ps.stats[ STAT_STATE ] & SS_POISONED ) ) )
-    {
-      BG_DeactivateUpgrade( UP_MEDKIT, client->ps.stats );
-    }
-    else if( client->ps.stats[ STAT_HEALTH ] > 0 )
-    {
-      //remove anti toxin
-      BG_DeactivateUpgrade( UP_MEDKIT, client->ps.stats );
-      BG_RemoveUpgradeFromInventory( UP_MEDKIT, client->ps.stats );
-
-      client->ps.stats[ STAT_STATE ] &= ~SS_POISONED;
-      client->poisonImmunityTime = level.time + MEDKIT_POISON_IMMUNITY_TIME;
-
-      client->ps.stats[ STAT_STATE ] |= SS_HEALING_2X;
-      client->lastMedKitTime = level.time;
-      client->medKitHealthToRestore =
-        client->ps.stats[ STAT_MAX_HEALTH ] - client->ps.stats[ STAT_HEALTH ];
-      client->medKitIncrementTime = level.time +
-        ( MEDKIT_STARTUP_TIME / MEDKIT_STARTUP_SPEED );
-
-      G_AddEvent( ent, EV_MEDKIT_USED, 0 );
-    }
-  }
+    G_UseMedkit( ent );
 
   // Replenish alien health
   if( level.surrenderTeam != client->pers.teamSelection &&
