@@ -438,7 +438,7 @@ void  G_UseMedkit( gentity_t *ent )
   tclient->medKitIncrementTime = level.time +
     ( MEDKIT_STARTUP_TIME / MEDKIT_STARTUP_SPEED );
 
-  G_AddEvent( ent, EV_MEDKIT_USED, 0 );
+  G_AddEvent( targetEnt, EV_MEDKIT_USED, ent->s.number );
 }
 
 /*
