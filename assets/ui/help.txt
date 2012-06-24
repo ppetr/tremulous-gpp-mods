@@ -24,7 +24,13 @@
   {
     "Head shots are now visualized by blood drops. "
     "You see immediately if you made a head shot or not.\n"
-    "Don't try it on your team mates though, you'll get banned for team bleeding."
+    "Don't try it on your team mates though, you'll get banned for team bleeding.\n\n"
+    "Both humans and aliens bleed drops of blood when wounded."
+  }
+  "^7Medkit changes^7"
+  {
+    "You can heal your teammates, if they're more wounded than you. "
+    "Face them at a close range and use your medkit."
   }
   "^7Granger changes^7"
   {
