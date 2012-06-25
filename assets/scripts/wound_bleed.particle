@@ -30,9 +30,9 @@ humanWoundBleedPS
       lifeTime 5000~50%
     }
 
-    count 2
+    count 4
     delay 0
-    period 1000 - ~30%
+    period 1000 - ~100%
   }
 }
 
@@ -68,8 +68,8 @@ alienWoundBleedPS
       lifeTime 5000~50%
     }
 
-    count 2
+    count 4
     delay 0
-    period 1000 - ~30%
+    period 1000 - ~100%
   }
 }
