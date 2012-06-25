@@ -509,6 +509,7 @@ typedef enum
   EV_MISSILE_MISS_METAL,
   EV_TESLATRAIL,
   EV_BULLET,        // otherEntity is the shooter
+  EV_DISCHARGE_TRAIL,
 
   EV_LEV1_GRAB,
   EV_LEV4_TRAMPLE_PREPARE,

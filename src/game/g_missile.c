@@ -476,13 +476,61 @@ fire_luciferCannon
 
 =================
 */
+#define LCANNON_DISCHARGE_AMOUNT 0.5f
+#define LCANNON_DISCHARGE_RADIUS 600
 gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
   int damage, int radius, int speed )
 {
   gentity_t *bolt;
+  gentity_t *target = NULL; // discharge target, if any
   float charge;
+  int       dischargeDamage = 0;
 
   VectorNormalize( dir );
+
+  // if a building is nearby, discharge part of the charge to it
+  {
+    // find a nearest building
+    int       entityList[ MAX_GENTITIES ];
+    vec3_t    range = { LCANNON_DISCHARGE_RADIUS,
+                        LCANNON_DISCHARGE_RADIUS,
+                        LCANNON_DISCHARGE_RADIUS };
+    vec3_t    mins, maxs;
+    int       i, num;
+    gentity_t *enemy;
+    float     distance, minDistance = LCANNON_DISCHARGE_RADIUS + 1;
+
+    VectorAdd( start, range, maxs );
+    VectorSubtract( start, range, mins );
+
+    num = trap_EntitiesInBox( mins, maxs, entityList, MAX_GENTITIES );
+
+    for( i = 0; i < num; i++ )
+    {
+      enemy = &g_entities[ entityList[ i ] ];
+      // don't discharge to self; noclippers can be listed, don't chain to them either
+      if( enemy == self || ( enemy->client && enemy->client->noclip ) )
+        continue;
+
+      distance = Distance( start, enemy->s.origin );
+
+      if( ( enemy->s.eType == ET_BUILDABLE ) &&
+          ( BG_Buildable( enemy->s.modelindex )->team == TEAM_HUMANS ) &&
+          ( enemy->health > 0 ) && // only chain to living targets
+          ( distance <= minDistance ) &&
+          ( CanDamage( enemy, start ) ) )
+      {
+        minDistance = distance;
+        target = enemy;
+      }
+    }
+
+    if( target != NULL )
+    {
+      dischargeDamage = (int)( damage * LCANNON_DISCHARGE_AMOUNT );
+      damage -= dischargeDamage;
+    }
+  }
 
   bolt = G_Spawn( );
   bolt->classname = "lcannon";
@@ -527,6 +575,20 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
   SnapVector( bolt->s.pos.trDelta );      // save net bandwidth
 
   VectorCopy( start, bolt->r.currentOrigin );
+
+  if( target != NULL )
+  {
+    vec3_t    dir;
+    gentity_t *tent;
+
+    VectorSubtract( target->r.currentOrigin, start, dir );
+    G_Damage( target, bolt, self, dir, start,
+        dischargeDamage, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, MOD_LCANNON_SPLASH );
+
+    tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
+    tent->s.generic1 = bolt->s.number; // src
+    tent->s.clientNum = target->s.number; // dest
+  }
 
   return bolt;
 }
