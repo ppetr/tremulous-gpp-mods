@@ -34,7 +34,8 @@
   }
   "^7Granger changes^7"
   {
-    "Grangers are ^1very^7 vulnerable to trampling. Keep out of tyrants' way!"
+    "Grangers are ^1very^7 vulnerable to trampling. Keep out of tyrants' way!\n"
+    "^6Experimental^7: Grangers can already wallclimb during stage 1."
   }
   "^7Basilisk changes^7"
   {

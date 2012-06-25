@@ -880,12 +880,12 @@ static const classAttributes_t bg_classList[ ] =
     PCL_ALIEN_BUILDER0,                             //int     classnum;
     "builder",                                      //char    *className;
     "Responsible for building and maintaining all the alien structures. "
-      "Has a weak melee slash attack.",
+      "Has a weak melee slash attack and the ability to crawl on walls.",
     ( 1 << S1 )|( 1 << S2 )|( 1 << S3 ),            //int  stages
     ABUILDER_HEALTH,                                //int     health;
     0.2f,                                           //float   fallDamage;
     ABUILDER_REGEN,                                 //float   regenRate;
-    SCA_TAKESFALLDAMAGE|SCA_FOVWARPS|SCA_ALIENSENSE,//int     abilities;
+    SCA_TAKESFALLDAMAGE|SCA_FOVWARPS|SCA_WALLCLIMBER|SCA_ALIENSENSE,//int     abilities;
     WP_ABUILD,                                      //weapon_t  startWeapon
     95.0f,                                          //float   buildDist;
     110,                                            //int     fov;
