@@ -836,6 +836,29 @@ void CG_EntityEvent( centity_t *cent, vec3_t position )
       }
       break;
 
+    case EV_DISCHARGE_TRAIL:
+      cent->currentState.weapon = WP_LUCIFER_CANNON;
+      {
+        centity_t *source = &cg_entities[ es->generic1 ];
+        centity_t *target = &cg_entities[ es->clientNum ];
+
+        if( !CG_IsTrailSystemValid( &source->muzzleTS ) )
+        {
+          source->muzzleTS = CG_SpawnNewTrailSystem( cgs.media.lCannonDischargeTS );
+
+          if( CG_IsTrailSystemValid( &source->muzzleTS ) )
+          {
+            CG_SetAttachmentCent( &source->muzzleTS->frontAttachment, source );
+            CG_SetAttachmentCent( &source->muzzleTS->backAttachment, target );
+            CG_AttachToCent( &source->muzzleTS->frontAttachment );
+            CG_AttachToCent( &source->muzzleTS->backAttachment );
+
+            source->muzzleTSDeathTime = cg.time + cg_teslaTrailTime.integer; // A new variable for a discharge trail time?
+          }
+        }
+      }
+      break;
+
     case EV_BULLET_HIT_WALL:
       ByteToDir( es->eventParm, dir );
       CG_Bullet( es->pos.trBase, es->otherEntityNum, dir, qfalse, ENTITYNUM_WORLD );
