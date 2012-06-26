@@ -27,10 +27,17 @@
     "Don't try it on your team mates though, you'll get banned for team bleeding.\n\n"
     "Both humans and aliens bleed drops of blood when wounded."
   }
+  "^7Building changes^7"
+  {
+    "Creep and power block each other. "
+    "Humans cannot build on alien creep and aliens cannot build within power range. "
+    "Don't camp, otherwise your enemy will build you in "
+    "and block you from building."
+  }
   "^7Lucifer changes^7"
   {
     "When used near human buildings, the lucifer cannon bolt partly discharges into the nearest building. "
-    "So don't use it in your base!"
+    "Do not use it in your base!"
   }
   "^7Medkit changes^7"
   {
