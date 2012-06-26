@@ -20,7 +20,7 @@ models/weapons/lcannon/discharge
 
     segments      8
     width         5.0 5.0
-    color         { 0.5 0.8 1.0 } -
+    color         { 1.0 0.8 0.5 } -
 
     textureType   repeat back 50.0
 
