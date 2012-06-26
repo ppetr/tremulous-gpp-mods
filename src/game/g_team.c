@@ -301,7 +301,7 @@ Format:
 */
 void TeamplayInfoMessage( gentity_t *ent )
 {
-  char      entry[ 19 ], string[ 1143 ];
+  char      entry[ 24 ], string[ 1143 ];
   int       i, j; 
   int       team, stringlength;
   int       sent = 0;
