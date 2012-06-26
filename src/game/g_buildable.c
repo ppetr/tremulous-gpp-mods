@@ -3414,6 +3414,10 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
         reason = IBE_NOCREEP;
     }
 
+    // Check if the enemy isn't blocking your building
+    if( G_IsPowered( entity_origin ) != BA_NONE )
+      reason = IBE_BLOCKEDBYENEMY;
+
     // Check permission to build here
     if( tr1.surfaceFlags & SURF_NOALIENBUILD || contents & CONTENTS_NOALIENBUILD )
       reason = IBE_PERMISSION;
@@ -3429,6 +3433,10 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
       if( buildable != BA_H_REACTOR && buildable != BA_H_REPEATER )
         reason = IBE_NOPOWERHERE;
     }
+
+    // Check if the enemy isn't blocking your building
+    if( G_IsCreepHere( entity_origin ) )
+      reason = IBE_BLOCKEDBYENEMY;
 
     //this buildable requires a DCC
     if( BG_Buildable( buildable )->dccTest && !G_IsDCCBuilt( ) )
@@ -3807,6 +3815,10 @@ qboolean G_BuildIfValid( gentity_t *ent, buildable_t buildable )
 
     case IBE_LASTSPAWN:
       G_TriggerMenu( ent->client->ps.clientNum, MN_B_LASTSPAWN );
+      return qfalse;
+
+    case IBE_BLOCKEDBYENEMY:
+      G_TriggerMenu( ent->client->ps.clientNum, MN_B_BLOCKEDBYENEMY );
       return qfalse;
 
     default:

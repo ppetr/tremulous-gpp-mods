@@ -778,6 +778,8 @@ typedef enum
   IBE_NOROOM,
   IBE_PERMISSION,
   IBE_LASTSPAWN,
+  
+  IBE_BLOCKEDBYENEMY,
 
   IBE_MAXERRORS
 } itemBuildError_t;

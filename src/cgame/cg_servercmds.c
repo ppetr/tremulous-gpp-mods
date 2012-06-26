@@ -653,6 +653,24 @@ void CG_Menu( int menu, int arg )
       shortMsg  = "You may not deconstruct the last spawn";
       break;
 
+    case MN_B_BLOCKEDBYENEMY:
+      switch( cg.snap->ps.stats[ STAT_TEAM ] )
+      {
+        case TEAM_ALIENS:
+          longMsg   = "You cannot build within the range of a human reactor "
+                      "or a repeater. In order to build here your team has "
+                      "to destroy the nearby human structure first.";
+          shortMsg  = "A nearby human reactor or a repeater is disrupting creep here.";
+          break;
+        case TEAM_HUMANS:
+          longMsg   = "You cannot build on alien creep, within the range of "
+                      "an egg. In order to build here your team has "
+                      "to destroy the nearby alien egg(s) first.";
+          shortMsg  = "Alien creep is disrupting power here.";
+          break;
+      }
+      break;
+
     case MN_B_SUDDENDEATH:
       longMsg   = "Neither team has prevailed after a certain time and the "
                   "game has entered Sudden Death. During Sudden Death "
