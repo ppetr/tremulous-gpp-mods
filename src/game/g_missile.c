@@ -580,6 +580,7 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
   {
     vec3_t    dir;
     gentity_t *tent;
+    char      *msg;
 
     VectorSubtract( target->r.currentOrigin, start, dir );
     G_Damage( target, bolt, self, dir, start,
@@ -588,6 +589,17 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
     tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
     tent->s.generic1 = bolt->s.number; // src
     tent->s.clientNum = target->s.number; // dest
+
+    if( self->client ) 
+    {
+      msg = va( "print \""
+          S_COLOR_RED "Warning for "
+          S_COLOR_WHITE "%s"
+          S_COLOR_YELLOW ": Do not use lucifer cannon near buildings."
+                         " It destroys them.\n\"",
+          self->client->pers.netname ); 
+      G_TeamCommand( self->client->pers.teamSelection, msg );
+    }
   }
 
   return bolt;
