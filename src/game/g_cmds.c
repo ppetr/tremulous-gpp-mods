@@ -1440,6 +1440,26 @@ void Cmd_CallVote_f( gentity_t *ent )
                    "Begin sudden death in %d seconds",
                    g_suddenDeathVoteDelay.integer );
     }
+    else if( !Q_stricmp( vote, "poll" ) )
+    {
+      if( !G_admin_permission( ent, ADMF_POLL ) )
+      {
+        trap_SendServerCommand( ent-g_entities,
+          va( "print \"%s: you don't have enough privileges to call polls\n\"", cmd ) );
+        return;
+      }
+      if( !reason[ 0 ] )
+      {
+        trap_SendServerCommand( ent-g_entities,
+          va( "print \"%s: You must provide a poll question\n\"", cmd ) );
+        return;
+      }
+
+      strcpy( level.voteString[ team ], "" );
+      Com_sprintf( level.voteDisplayString[ team ],
+        sizeof( level.voteDisplayString[ team ] ),
+        "(poll) '%s'", ConcatArgs( 2 ) );
+    }
     else
     {
       trap_SendServerCommand( ent-g_entities, "print \"Invalid vote string\n\"" );
