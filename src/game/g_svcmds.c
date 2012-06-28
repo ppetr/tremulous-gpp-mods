@@ -536,6 +536,42 @@ static void Svcmd_SuddenDeath_f( void )
       offset, offset == 1 ? "" : "s" ) );
 }
 
+static void Svcmd_Armageddon_f( void )
+{
+  int       e;
+  gentity_t *ent;
+  float     threshold = g_armageddonPercent.value / 100.0f;
+
+  for( e = 0, ent = g_entities; e < level.num_entities; e++, ent++ )
+  {
+    if( !ent->inuse )
+      continue;
+    if( ent->s.eType != ET_BUILDABLE )
+      continue;
+
+    switch( ent->s.modelindex )
+    {
+      case BA_A_ACIDTUBE:
+      case BA_A_HIVE:
+      case BA_H_MGTURRET:
+      case BA_H_TESLAGEN:
+        break; // continue processing
+      default:
+        continue;
+    }
+
+    if( random() < threshold )
+    {
+      ent->health = -999;
+      ent->enemy = &g_entities[ ENTITYNUM_WORLD ];
+      ent->die( ent, ent->enemy, ent->enemy, 999, MOD_UNKNOWN );
+    }
+  }
+
+  trap_SendServerCommand( -1,
+    va( "cp \"A flare of lethal radiation destroyed some defensive buildings.\"" ) );
+}
+
 static void Svcmd_G_AdvanceMapRotation_f( void )
 {
   G_AdvanceMapRotation( 0 );
@@ -572,7 +608,8 @@ struct svcmd
   { "say_team", qtrue, Svcmd_TeamMessage_f },
   { "status", qfalse, Svcmd_Status_f },
   { "stopMapRotation", qfalse, G_StopMapRotation },
-  { "suddendeath", qfalse, Svcmd_SuddenDeath_f }
+  { "suddendeath", qfalse, Svcmd_SuddenDeath_f },
+  { "armageddon", qfalse, Svcmd_Armageddon_f }
 };
 
 /*

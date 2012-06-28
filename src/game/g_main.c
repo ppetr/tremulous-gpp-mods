@@ -72,6 +72,8 @@ vmCvar_t  g_allowVote;
 vmCvar_t  g_voteLimit;
 vmCvar_t  g_suddenDeathVotePercent;
 vmCvar_t  g_suddenDeathVoteDelay;
+vmCvar_t  g_armageddonVotePercent;
+vmCvar_t  g_armageddonPercent;
 vmCvar_t  g_teamForceBalance;
 vmCvar_t  g_smoothClients;
 vmCvar_t  pmove_fixed;
@@ -203,6 +205,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_voteLimit, "g_voteLimit", "5", CVAR_ARCHIVE, 0, qfalse },
   { &g_suddenDeathVotePercent, "g_suddenDeathVotePercent", "74", CVAR_ARCHIVE, 0, qfalse },
   { &g_suddenDeathVoteDelay, "g_suddenDeathVoteDelay", "180", CVAR_ARCHIVE, 0, qfalse },
+  { &g_armageddonVotePercent, "g_armageddonVotePercent", "74", CVAR_ARCHIVE, 0, qfalse },
+  { &g_armageddonPercent, "g_armageddonPercent", "33", CVAR_ARCHIVE, 0, qfalse },
   { &g_minNameChangePeriod, "g_minNameChangePeriod", "5", 0, 0, qfalse},
   { &g_maxNameChanges, "g_maxNameChanges", "5", 0, 0, qfalse},
 
