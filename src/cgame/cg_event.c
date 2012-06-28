@@ -409,8 +409,13 @@ Also called by playerstate transition
 */
 void CG_HeadShotEvent( centity_t *cent, int health )
 {
-  particleSystem_t *ps = CG_SpawnNewParticleSystem( cgs.media.headShotPS );
+  particleSystem_t *ps;
 
+  if( !cg_bleedSelfHeadShots.integer &&
+      cent->currentState.number == cg.snap->ps.clientNum )
+    return;
+
+  ps = CG_SpawnNewParticleSystem( cgs.media.headShotPS );
   if( CG_IsParticleSystemValid( &ps ) )
   {
     CG_SetAttachmentCent( &ps->attachment, cent );
@@ -899,6 +904,8 @@ void CG_EntityEvent( centity_t *cent, vec3_t position )
       break;
 
     case EV_BLEED:
+      if( cg_bleedSelfWounds.integer ||
+          cent->currentState.number != cg.snap->ps.clientNum )
       {
         particleSystem_t *ps = NULL;
         if( ci->team == TEAM_ALIENS )
