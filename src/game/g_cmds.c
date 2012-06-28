@@ -1417,19 +1417,26 @@ void Cmd_CallVote_f( gentity_t *ent )
     }
     else if( !Q_stricmp( vote, "armageddon" ) )
     {
+      int percent;
+
       if(!g_armageddonVotePercent.integer)
       {
         trap_SendServerCommand( ent-g_entities,
               "print \"Armageddon votes have been disabled\n\"" );
         return;
       }
+
+      percent = atoi( arg );
+      if( percent <= 0 )
+        percent = g_armageddonPercent.integer;
+
       level.voteThreshold[ team ] = g_armageddonVotePercent.integer;
       Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
-        "armageddon" );
+        "armageddon %d", percent );
       Com_sprintf( level.voteDisplayString[ team ],
                    sizeof( level.voteDisplayString[ team ] ),
-                   "Armageddon (randomly %d%% of defensive buildings is destroyed)",
-                   g_armageddonPercent.integer );
+                   "Armageddon (%d%% of defensive buildings is destroyed randomly)",
+                   percent );
     }
     else
     {

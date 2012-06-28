@@ -540,7 +540,14 @@ static void Svcmd_Armageddon_f( void )
 {
   int       e;
   gentity_t *ent;
-  float     threshold = g_armageddonPercent.value / 100.0f;
+  char      arg[ 5 ];
+  float     threshold;
+
+  trap_Argv( 1, arg, sizeof( arg ) );
+  threshold = atof( arg ) / 100.0f;
+
+  if( threshold <= 0.0f )
+    return;
 
   for( e = 0, ent = g_entities; e < level.num_entities; e++, ent++ )
   {
