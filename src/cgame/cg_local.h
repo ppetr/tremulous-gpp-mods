@@ -1510,6 +1510,8 @@ extern  vmCvar_t    cg_disableBuildDialogs;
 extern  vmCvar_t    cg_disableCommandDialogs;
 extern  vmCvar_t    cg_disableScannerPlane;
 extern  vmCvar_t    cg_tutorial;
+extern  vmCvar_t    cg_bleedSelfWounds;
+extern  vmCvar_t    cg_bleedSelfHeadShots;
 
 extern  vmCvar_t    cg_painBlendUpRate;
 extern  vmCvar_t    cg_painBlendDownRate;
