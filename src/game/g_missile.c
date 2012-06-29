@@ -595,8 +595,8 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
     G_Damage( target, bolt, self, dir, start,
         buildingDamage, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, MOD_LCANNON_SPLASH );
     tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
-    tent->s.generic1 = self->s.number; // src
-    tent->s.clientNum = target->s.number; // dest
+    tent->s.generic1 = target->s.number; // src
+    tent->s.clientNum = self->s.number; // dest
 
     if( self->client ) 
     {
