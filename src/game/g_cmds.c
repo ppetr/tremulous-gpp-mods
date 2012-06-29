@@ -1460,11 +1460,34 @@ void Cmd_CallVote_f( gentity_t *ent )
         sizeof( level.voteDisplayString[ team ] ),
         "(poll) '%s'", ConcatArgs( 2 ) );
     }
+    else if( !Q_stricmp( vote, "armageddon" ) )
+    {
+      int percent;
+
+      if(!g_armageddonVotePercent.integer)
+      {
+        trap_SendServerCommand( ent-g_entities,
+              "print \"Armageddon votes have been disabled\n\"" );
+        return;
+      }
+
+      percent = atoi( arg );
+      if( percent <= 0 )
+        percent = g_armageddonPercent.integer;
+
+      level.voteThreshold[ team ] = g_armageddonVotePercent.integer;
+      Com_sprintf( level.voteString[ team ], sizeof( level.voteString[ team ] ),
+        "armageddon %d", percent );
+      Com_sprintf( level.voteDisplayString[ team ],
+                   sizeof( level.voteDisplayString[ team ] ),
+                   "Armageddon (%d%% of defensive buildings is destroyed randomly)",
+                   percent );
+    }
     else
     {
       trap_SendServerCommand( ent-g_entities, "print \"Invalid vote string\n\"" );
       trap_SendServerCommand( ent-g_entities, "print \"Valid vote commands are: "
-        "map, nextmap, map_restart, draw, sudden_death, kick, mute and unmute\n" );
+        "map, nextmap, map_restart, draw, sudden_death, armageddon, kick, mute and unmute\n" );
       return;
     }
   }

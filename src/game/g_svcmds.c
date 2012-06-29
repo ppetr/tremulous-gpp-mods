@@ -536,6 +536,49 @@ static void Svcmd_SuddenDeath_f( void )
       offset, offset == 1 ? "" : "s" ) );
 }
 
+static void Svcmd_Armageddon_f( void )
+{
+  int       e;
+  gentity_t *ent;
+  char      arg[ 5 ];
+  float     threshold;
+
+  trap_Argv( 1, arg, sizeof( arg ) );
+  threshold = atof( arg ) / 100.0f;
+
+  if( threshold <= 0.0f )
+    return;
+
+  for( e = 0, ent = g_entities; e < level.num_entities; e++, ent++ )
+  {
+    if( !ent->inuse )
+      continue;
+    if( ent->s.eType != ET_BUILDABLE )
+      continue;
+
+    switch( ent->s.modelindex )
+    {
+      case BA_A_ACIDTUBE:
+      case BA_A_HIVE:
+      case BA_H_MGTURRET:
+      case BA_H_TESLAGEN:
+        break; // continue processing
+      default:
+        continue;
+    }
+
+    if( random() < threshold )
+    {
+      ent->health = -999;
+      ent->enemy = &g_entities[ ENTITYNUM_WORLD ];
+      ent->die( ent, ent->enemy, ent->enemy, 999, MOD_UNKNOWN );
+    }
+  }
+
+  trap_SendServerCommand( -1,
+    va( "cp \"A flare of lethal radiation destroyed some defensive buildings.\"" ) );
+}
+
 static void Svcmd_G_AdvanceMapRotation_f( void )
 {
   G_AdvanceMapRotation( 0 );
@@ -551,6 +594,7 @@ struct svcmd
   { "admitDefeat", qfalse, Svcmd_AdmitDefeat_f },
   { "advanceMapRotation", qfalse, Svcmd_G_AdvanceMapRotation_f },
   { "alienWin", qfalse, Svcmd_TeamWin_f },
+  { "armageddon", qfalse, Svcmd_Armageddon_f },
   { "chat", qtrue, Svcmd_MessageWrapper },
   { "cp", qtrue, Svcmd_CenterPrint_f },
   { "dumpuser", qfalse, Svcmd_DumpUser_f },

@@ -1129,6 +1129,8 @@ extern  vmCvar_t  g_suddenDeathVotePercent;
 extern  vmCvar_t  g_suddenDeathVoteDelay;
 extern  vmCvar_t  g_drawVotePercent;
 extern  vmCvar_t  g_mapChangeAllowedUntil;
+extern  vmCvar_t  g_armageddonVotePercent;
+extern  vmCvar_t  g_armageddonPercent;
 extern  vmCvar_t  g_teamForceBalance;
 extern  vmCvar_t  g_smoothClients;
 extern  vmCvar_t  pmove_fixed;
