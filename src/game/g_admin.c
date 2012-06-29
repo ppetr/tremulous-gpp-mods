@@ -206,6 +206,11 @@ g_admin_cmd_t g_admin_cmds[ ] =
     {"unmute", G_admin_mute, qfalse, "mute",
       "unmute a muted player",
       "[^3name|slot#^7]"
+    },
+
+    {"warn", G_admin_warn, qfalse, "warn",
+      "warn a player that (s)he's being doing something wrong",
+      "[^3name|slot#^7] (^5reason^7)"
     }
   };
 
@@ -1584,6 +1589,40 @@ qboolean G_admin_kick( gentity_t *ent )
     MAX( 1, G_admin_parse_time( g_adminTempBan.string ) ),
     ( *reason ) ? reason : "kicked by admin" );
   admin_writeconfig();
+
+  return qtrue;
+}
+
+qboolean G_admin_warn( gentity_t *ent )
+{
+  int pid;
+  char name[ MAX_NAME_LENGTH ], *message, err[ MAX_STRING_CHARS ];
+  gentity_t *vic;
+
+  if( trap_Argc() < 3 )
+  {
+    ADMP( "^3kick: ^7usage: warn [name] [message]\n" );
+    return qfalse;
+  }
+  trap_Argv( 1, name, sizeof( name ) );
+  message = ConcatArgs( 2 );
+  if( ( pid = G_ClientNumberFromString( name, err, sizeof( err ) ) ) == -1 )
+  {
+    ADMP( va( "^3warn: ^7%s", err ) );
+    return qfalse;
+  }
+  vic = &g_entities[ pid ];
+  if( !admin_higher( ent, vic ) )
+  {
+    ADMP( "^3warn: ^7sorry, but your intended victim has a higher admin"
+        " level than you\n" );
+    return qfalse;
+  }
+
+  trap_SendServerCommand( pid,
+    va( "print \"" 
+        S_COLOR_MAGENTA "Administrator warning: " 
+        S_COLOR_YELLOW "%s\n\"", message ) );
 
   return qtrue;
 }
