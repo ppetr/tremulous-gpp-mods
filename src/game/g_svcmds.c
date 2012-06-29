@@ -594,6 +594,7 @@ struct svcmd
   { "admitDefeat", qfalse, Svcmd_AdmitDefeat_f },
   { "advanceMapRotation", qfalse, Svcmd_G_AdvanceMapRotation_f },
   { "alienWin", qfalse, Svcmd_TeamWin_f },
+  { "armageddon", qfalse, Svcmd_Armageddon_f },
   { "chat", qtrue, Svcmd_MessageWrapper },
   { "cp", qtrue, Svcmd_CenterPrint_f },
   { "dumpuser", qfalse, Svcmd_DumpUser_f },
@@ -615,8 +616,7 @@ struct svcmd
   { "say_team", qtrue, Svcmd_TeamMessage_f },
   { "status", qfalse, Svcmd_Status_f },
   { "stopMapRotation", qfalse, G_StopMapRotation },
-  { "suddendeath", qfalse, Svcmd_SuddenDeath_f },
-  { "armageddon", qfalse, Svcmd_Armageddon_f }
+  { "suddendeath", qfalse, Svcmd_SuddenDeath_f }
 };
 
 /*
