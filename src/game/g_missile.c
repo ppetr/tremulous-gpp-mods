@@ -476,15 +476,16 @@ fire_luciferCannon
 
 =================
 */
-#define LCANNON_DISCHARGE_AMOUNT 0.5f
-#define LCANNON_DISCHARGE_RADIUS 600
+#define LCANNON_DISCHARGE_BUILDINGS     0.33f
+#define LCANNON_DISCHARGE_ATTACKER      0.33f
+#define LCANNON_DISCHARGE_RADIUS        600
 gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
   int damage, int radius, int speed )
 {
   gentity_t *bolt;
   gentity_t *target = NULL; // discharge target, if any
   float charge;
-  int       dischargeDamage = 0;
+  int       buildingDamage = 0, selfDamage = 0;
 
   VectorNormalize( dir );
 
@@ -527,8 +528,9 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
 
     if( target != NULL )
     {
-      dischargeDamage = (int)( damage * LCANNON_DISCHARGE_AMOUNT );
-      damage -= dischargeDamage;
+      buildingDamage = (int)( damage * LCANNON_DISCHARGE_BUILDINGS );
+      selfDamage = (int)( damage * LCANNON_DISCHARGE_ATTACKER );
+      damage -= buildingDamage + selfDamage;
     }
   }
 
@@ -583,22 +585,25 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
     char      *msg;
 
     VectorSubtract( target->r.currentOrigin, start, dir );
-    G_Damage( target, bolt, self, dir, start,
-        dischargeDamage, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, MOD_LCANNON_SPLASH );
 
+    G_Damage( self, bolt, self, dir, start,
+        selfDamage, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, MOD_LCANNON_SPLASH );
     tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
     tent->s.generic1 = bolt->s.number; // src
-    tent->s.clientNum = target->s.number; // dest
+    tent->s.clientNum = self->s.number; // dest
+
+    G_Damage( target, bolt, self, dir, start,
+        buildingDamage, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, MOD_LCANNON_SPLASH );
+    tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
+    tent->s.generic1 = target->s.number; // src
+    tent->s.clientNum = self->s.number; // dest
 
     if( self->client ) 
     {
       msg = va( "print \""
-          S_COLOR_RED "Warning for "
-          S_COLOR_WHITE "%s"
-          S_COLOR_YELLOW ": Do not use lucifer cannon near buildings."
-                         " It destroys them.\n\"",
-          self->client->pers.netname ); 
-      G_TeamCommand( self->client->pers.teamSelection, msg );
+                S_COLOR_YELLOW "Do not use lucifer cannon near buildings. "
+                "It destroys them! Your teammates might kick you.\n\"" );
+      trap_SendServerCommand( self - g_entities, msg );
     }
   }
 
