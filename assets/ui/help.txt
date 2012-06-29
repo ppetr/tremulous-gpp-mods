@@ -10,6 +10,7 @@
   {
     "^1This service is provided free of charge without any guarantee. "
     "The server administrators reserve the right to decide what behavior is appropriate and who is allowed to use the service.^7\n"
+    "^3Respect other players.^7\n"
     "No killing your team-mates (unless (s)he asks you to), "
     "no destroying your own team's buildings (unless moving etc.), "
     "no insulting other players, "
@@ -17,6 +18,13 @@
     "You may not call a draw when one of the teams if making progress.\n"
     "Don't ask for admin privileges, you won't get any. Really. "
     "But you can ask to become a registered player (level 1) to get a protected nickname."
+  }
+  "^7Armageddon^7"
+  {
+    "If the server is dying due to too many buildings, you can call an armageddon vote. "
+    "If the vote passes, a given percent of turrets / teslas / acid tubes / hives is destroyed.\n"
+    "Example: ^3/callvote armageddon 50^7\n"
+    "If this vote passes, 50% of all defensive buildings both human and alien is immediately destroyed."
   }
   "^8Bugfixes^7"
   {
@@ -39,6 +47,7 @@
   "^7Lucifer changes^7"
   {
     "When used near human buildings, the lucifer cannon bolt partly discharges into the nearest building. "
+    "It damages both you and the building. "
     "Do not use it in your base!"
   }
   "^7Medkit changes^7"
