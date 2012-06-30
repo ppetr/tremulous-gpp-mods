@@ -16,8 +16,11 @@
     "no insulting other players, "
     "no spamming.\n"
     "You may not call a draw when one of the teams if making progress.\n"
-    "Don't ask for admin privileges, you won't get any. Really. "
-    "But you can ask to become a registered player (level 1) to get a protected nickname."
+    "Don't ask for admin privileges, you won't get any. Really."
+  }
+  "^7Register^7"
+  {
+    "You can register your nickname by issuing ^3/register^7 command on the console."
   }
   "^7Armageddon^7"
   {
