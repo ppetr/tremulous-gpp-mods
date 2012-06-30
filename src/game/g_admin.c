@@ -160,6 +160,11 @@ g_admin_cmd_t g_admin_cmds[ ] =
       ""
     },
 
+    {"register", G_admin_register, qfalse, "register",
+      "Registers your name to protect it from being used by others or updates your admin name to your current name.",
+      ""
+    },
+
     {"rename", G_admin_rename, qfalse, "rename",
       "rename a player",
       "[^3name|slot#^7] [^3new name^7]"
@@ -1439,6 +1444,23 @@ qboolean G_admin_setlevel( gentity_t *ent )
   }
   return qtrue;
 }
+
+qboolean G_admin_register( gentity_t *ent ){
+  int level;
+
+  level = G_admin_level(ent);
+
+  if( level == 0 )
+   level = 1;
+
+  trap_SendConsoleCommand( EXEC_APPEND,va( "setlevel %d %d;", ent - g_entities, level) );
+  //ClientUserinfoChanged( ent - g_entities );
+
+  AP( va( "print \"^3register: ^7%s^7 is now a protected nickname.\n\"", ent->client->pers.netname) );
+
+  return qtrue;
+}
+
 
 static void admin_create_ban( gentity_t *ent,
   char *netname,
