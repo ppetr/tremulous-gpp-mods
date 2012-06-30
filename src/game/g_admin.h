@@ -156,7 +156,7 @@ void G_admin_authlog( gentity_t *ent );
 // admin command functions
 qboolean G_admin_time( gentity_t *ent );
 qboolean G_admin_setlevel( gentity_t *ent );
-qboolean G_admin_register( gentity_t *ent, int skiparg );
+qboolean G_admin_register( gentity_t *ent );
 qboolean G_admin_kick( gentity_t *ent );
 qboolean G_admin_adjustban( gentity_t *ent );
 qboolean G_admin_ban( gentity_t *ent );
