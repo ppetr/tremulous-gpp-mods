@@ -1597,6 +1597,7 @@ qboolean G_admin_warn( gentity_t *ent )
 {
   int pid;
   char name[ MAX_NAME_LENGTH ], *message, err[ MAX_STRING_CHARS ];
+  int color;
   gentity_t *vic;
 
   if( trap_Argc() < 3 )
@@ -1619,10 +1620,18 @@ qboolean G_admin_warn( gentity_t *ent )
     return qfalse;
   }
 
+  color = COLOR_YELLOW;
+
   trap_SendServerCommand( pid,
     va( "print \"" 
         S_COLOR_MAGENTA "Administrator warning: " 
-        S_COLOR_YELLOW "%s\n\"", message ) );
+        "^%c%s\n\"",
+        color, message ) );
+
+  G_LogPrintf( "Warning: %d \"%s" S_COLOR_WHITE "\" \"%s\": ^%c%s\n",
+    ( ent ) ? ent - g_entities : -1,
+    ( ent ) ? ent->client->pers.netname : "console",
+    name, color, message );
 
   return qtrue;
 }
