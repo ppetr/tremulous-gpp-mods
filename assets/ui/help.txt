@@ -37,8 +37,9 @@
   {
     "Head shots are now visualized by blood drops. "
     "You see immediately if you made a head shot or not.\n"
-    "Don't try it on your team mates though, you'll get banned for team bleeding.\n\n"
-    "Both humans and aliens bleed drops of blood when wounded."
+    "If head shots disturb you, you can turn them off for yourself by ^3/set cg_bleedSelfHeadShots 0^7.\n\n"
+    "Both humans and aliens bleed drops of blood when wounded.\n"
+    "If this disturbs you, you can turn it off for yourself by ^3/set cg_bleedSelfWounds 0^7."
   }
   "^7Building changes^7"
   {
