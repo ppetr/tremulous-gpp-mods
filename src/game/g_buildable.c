@@ -178,10 +178,11 @@ qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
   if( closestPower == NULL )
     return qfalse;
 
+  /*
   // Only power as much BP as the reactor can hold
   if( self->s.modelindex != BA_NONE )
   {
-    int buildPoints = G_HumanBuildPoints( );
+    int buildPoints = G_HumanBuildPoints( ) - level.humanBuildPointQueue;
 
     // Scan the powered buildables
     for( j = MAX_CLIENTS, ent2 = g_entities + j; j < level.num_entities; j++, ent2++ )
@@ -218,9 +219,12 @@ qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
     self->parentNode = closestPower;
     return qtrue;
   }
-
+  
   // Not enough power
   return qfalse;
+  */
+  self->parentNode = closestPower;
+  return qtrue;
 }
 
 /*
