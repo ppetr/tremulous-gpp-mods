@@ -1346,6 +1346,15 @@ model="models/buildables/tesla/tesla.md3"
 
 //=============================================================================
 
+/*QUAKED team_human_refinery (0 .2 1) (-45 -45 -45) (45 45 75)
+The human repeater.
+
+-------- MODEL FOR RADIANT ONLY - DO NOT SET THIS AS A KEY --------
+model="models/buildables/repeater/repeater.md3"
+*/
+
+//=============================================================================
+
 
 
 /*QUAKED team_alien_spawn (1 .2 0) (-15 -15 -15) (15 15 15)

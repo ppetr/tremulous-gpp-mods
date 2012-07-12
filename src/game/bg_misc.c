@@ -281,6 +281,40 @@ static const buildableAttributes_t bg_buildableList[ ] =
     HIVE_VALUE,            //int       value;
   },
   {
+    BA_A_GATHERER,        //int       buildNum;
+    "gatherer",            //char      *buildName;
+    "Gatherer",            //char      *humanName;
+    "Gathers additional energy to provide more creep for "
+    "building.",
+    "team_alien_gatherer" ,//char      *entityName;
+    TR_GRAVITY,            //trType_t  traj;
+    0.0,                   //float     bounce;
+    GATHERER_BP,           //int       buildPoints;
+    ( 1 << S1 )|( 1 << S2 )|( 1 << S3 ), //int  stages
+    GATHERER_HEALTH,       //int       health;
+    GATHERER_REGEN,        //int       regenRate;
+    GATHERER_SPLASHDAMAGE, //int       splashDamage;
+    GATHERER_SPLASHRADIUS, //int       splashRadius;
+    MOD_ASPAWN,            //int       meansOfDeath;
+    TEAM_ALIENS,           //int       team;
+    ( 1 << WP_ABUILD )|( 1 << WP_ABUILD2 ),    //weapon_t  buildWeapon;
+    BANIM_IDLE1,           //int       idleAnim;
+    100,                   //int       nextthink;
+    GATHERER_BT,           //int       buildTime;
+    qfalse,                //qboolean  usable;
+    0,                     //int       turretRange;
+    0,                     //int       turretFireSpeed;
+    WP_NONE,               //weapon_t  turretProjType;
+    0.95f,                 //float     minNormal;
+    qfalse,                //qboolean  invertNormal;
+    qtrue,                 //qboolean  creepTest;
+    GATHERER_CREEPSIZE,    //int       creepSize;
+    qfalse,                //qboolean  dccTest;
+    qfalse,                //qboolean  transparentTest;
+    qfalse,                //qboolean  uniqueTest;
+    GATHERER_VALUE,        //int       value;
+  },
+  {
     BA_H_SPAWN,            //int       buildNum;
     "telenode",            //char      *buildName;
     "Telenode",            //char      *humanName;
@@ -560,6 +594,40 @@ static const buildableAttributes_t bg_buildableList[ ] =
     qfalse,                //qboolean  transparentTest;
     qfalse,                //qboolean  uniqueTest;
     REPEATER_VALUE,        //int       value;
+  },
+  {
+    BA_H_REFINERY,         //int       buildNum;
+    "refinery",            //char      *buildName;
+    "Refinery",            //char      *humanName;
+    "A neutrino refinery that collects additional power "
+    "to power more buildings.",
+    "team_human_refinery", //char      *entityName;
+    TR_GRAVITY,            //trType_t  traj;
+    0.0,                   //float     bounce;
+    REFINERY_BP,           //int       buildPoints;
+    ( 1 << S1 )|( 1 << S2 )|( 1 << S3 ), //int  stages
+    REFINERY_HEALTH,       //int       health;
+    0,                     //int       regenRate;
+    REFINERY_SPLASHDAMAGE, //int       splashDamage;
+    REFINERY_SPLASHRADIUS, //int       splashRadius;
+    MOD_HSPAWN,            //int       meansOfDeath;
+    TEAM_HUMANS,            //int       team;
+    ( 1 << WP_HBUILD ),    //weapon_t  buildWeapon;
+    BANIM_IDLE1,           //int       idleAnim;
+    100,                   //int       nextthink;
+    REFINERY_BT,           //int       buildTime;
+    qtrue,                 //qboolean  usable;
+    0,                     //int       turretRange;
+    0,                     //int       turretFireSpeed;
+    WP_NONE,               //weapon_t  turretProjType;
+    0.95f,                 //float     minNormal;
+    qfalse,                //qboolean  invertNormal;
+    qfalse,                //qboolean  creepTest;
+    0,                     //int       creepSize;
+    qfalse,                //qboolean  dccTest;
+    qfalse,                //qboolean  transparentTest;
+    qfalse,                //qboolean  uniqueTest;
+    REFINERY_VALUE,        //int       value;
   }
 };
 

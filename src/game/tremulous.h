@@ -328,6 +328,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OVERMIND_ATTACK_REPEAT      1000
 #define OVERMIND_VALUE              ABVM(30)
 
+#define GATHERER_BP                 4
+#define GATHERER_BT                 20000
+#define GATHERER_HEALTH             ABHM(300)
+#define GATHERER_REGEN              6
+#define GATHERER_SPLASHDAMAGE       50
+#define GATHERER_SPLASHRADIUS       300
+#define GATHERER_CREEPSIZE          120
+#define GATHERER_VALUE              ABVM(20)
+#define GATHERER_RADIUS             600
+
 /*
  * ALIEN misc
  *
@@ -614,6 +624,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define REPEATER_SPLASHRADIUS       100
 #define REPEATER_VALUE              HBVM(REPEATER_BP)
 
+#define REFINERY_BP                 4
+#define REFINERY_BT                 22000
+#define REFINERY_HEALTH             HBHM(210)
+#define REFINERY_SPLASHDAMAGE       50
+#define REFINERY_SPLASHRADIUS       200
+#define REFINERY_VALUE              HBVM(20)
+#define REFINERY_RADIUS             600
+
 /*
  * HUMAN misc
  */
@@ -669,9 +687,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DEFAULT_ALIEN_MAX_STAGE     "2"
 #define DEFAULT_HUMAN_BUILDPOINTS   "100"
 #define DEFAULT_HUMAN_QUEUE_TIME    "8000"
-#define DEFAULT_HUMAN_REPEATER_BUILDPOINTS "20"
-#define DEFAULT_HUMAN_REPEATER_QUEUE_TIME "2000"
-#define DEFAULT_HUMAN_REPEATER_MAX_ZONES "500"
 #define DEFAULT_HUMAN_STAGE2_THRESH "6000"
 #define DEFAULT_HUMAN_STAGE3_THRESH "12000"
 #define DEFAULT_HUMAN_MAX_STAGE     "2"

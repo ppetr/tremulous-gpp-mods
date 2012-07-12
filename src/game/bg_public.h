@@ -413,6 +413,7 @@ typedef enum
   BA_A_TRAPPER,
   BA_A_BOOSTER,
   BA_A_HIVE,
+  BA_A_GATHERER,
 
   BA_H_SPAWN,
 
@@ -425,6 +426,8 @@ typedef enum
 
   BA_H_REACTOR,
   BA_H_REPEATER,
+
+  BA_H_REFINERY,
 
   BA_NUM_BUILDABLES
 } buildable_t;
@@ -603,6 +606,7 @@ typedef enum
   MN_B_REVOKED,
   MN_B_SURRENDER,
   MN_B_BLOCKEDBYENEMY,
+  MN_B_GTHRBLOCKED,
 
   //alien build
   MN_A_ONEOVERMIND,
