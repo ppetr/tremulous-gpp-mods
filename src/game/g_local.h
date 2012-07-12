@@ -242,8 +242,6 @@ struct gentity_s
 
   qboolean          pointAgainstWorld;              // don't use the bbox for map collisions
 
-  int               buildPointZone;                 // index for zone
-  int               usesBuildPointZone;             // does it use a zone?
 };
 
 typedef enum
@@ -471,16 +469,6 @@ void      G_PrintSpawnQueue( spawnQueue_t *sq );
 #define MAX_DAMAGE_REGION_TEXT    8192
 #define MAX_DAMAGE_REGIONS 16
 
-// build point zone
-typedef struct
-{
-  int active;
-
-  int totalBuildPoints;
-  int queuedBuildPoints;
-  int nextQueueTime;
-} buildPointZone_t;
-
 // store locational damage regions
 typedef struct damageRegion_s
 {
@@ -621,13 +609,13 @@ typedef struct
   int               numLiveHumanClients;
 
   int               alienBuildPoints;
+  int               alienExtraBuildPoints;
   int               alienBuildPointQueue;
   int               alienNextQueueTime;
   int               humanBuildPoints;
+  int               humanExtraBuildPoints;
   int               humanBuildPointQueue;
   int               humanNextQueueTime;
-
-  buildPointZone_t  *buildPointZones;
 
   gentity_t         *markedBuildables[ MAX_GENTITIES ];
   int               numBuildablesForRemoval;
@@ -772,6 +760,7 @@ typedef enum
   IBE_LASTSPAWN,
   
   IBE_BLOCKEDBYENEMY,
+  IBE_GTHRBLOCKED,
 
   IBE_MAXERRORS
 } itemBuildError_t;
@@ -1008,6 +997,8 @@ void G_ExecuteVote( team_t team );
 void G_CheckVote( team_t team );
 void LogExit( const char *string );
 int  G_TimeTilSuddenDeath( void );
+int  G_HumanBuildPoints( void );
+int  G_AlienBuildPoints( void );
 
 //
 // g_client.c
@@ -1120,11 +1111,10 @@ extern  vmCvar_t  pmove_msec;
 
 extern  vmCvar_t  g_alienBuildPoints;
 extern  vmCvar_t  g_alienBuildQueueTime;
+extern  vmCvar_t  g_alienGathererBuildPoints;
 extern  vmCvar_t  g_humanBuildPoints;
 extern  vmCvar_t  g_humanBuildQueueTime;
-extern  vmCvar_t  g_humanRepeaterBuildPoints;
-extern  vmCvar_t  g_humanRepeaterBuildQueueTime;
-extern  vmCvar_t  g_humanRepeaterMaxZones;
+extern  vmCvar_t  g_humanRefineryBuildPoints;
 extern  vmCvar_t  g_humanStage;
 extern  vmCvar_t  g_humanCredits;
 extern  vmCvar_t  g_humanMaxStage;
@@ -1137,6 +1127,7 @@ extern  vmCvar_t  g_alienStage2Threshold;
 extern  vmCvar_t  g_alienStage3Threshold;
 extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
+extern  vmCvar_t  g_maxExtraBuildPoints;
 
 extern  vmCvar_t  g_unlagged;
 

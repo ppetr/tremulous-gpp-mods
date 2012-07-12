@@ -619,6 +619,24 @@ void CG_Menu( int menu, int arg )
       }
       break;
 
+    case MN_B_GTHRBLOCKED:
+      switch( cg.snap->ps.stats[ STAT_TEAM ] )
+      {
+        case TEAM_ALIENS:
+          longMsg   = "Gatherers cannot be near each other, there must be "
+                      "enough distance between them. You need to build "
+                      "a gatherer at a place that is far enough from others.";
+          shortMsg  = "A gatherer is already built in this area.";
+          break;
+        case TEAM_HUMANS:
+          longMsg   = "Refineries cannot be near each other, there must be "
+                      "enough distance between them. You need to build "
+                      "a refinery at a place that is far enough from others.";
+          shortMsg  = "A refinery is already built in this area.";
+          break;
+      }
+      break;
+
     case MN_B_SUDDENDEATH:
       longMsg   = "Neither team has prevailed after a certain time and the "
                   "game has entered Sudden Death. During Sudden Death "

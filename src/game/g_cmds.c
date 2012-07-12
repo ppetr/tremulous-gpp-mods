@@ -2530,6 +2530,10 @@ void Cmd_Build_f( gentity_t *ent )
         err = MN_B_BLOCKEDBYENEMY;
         break;
 
+      case IBE_GTHRBLOCKED:
+        err = MN_B_GTHRBLOCKED;
+        break;
+
       default:
         err = -1; // stop uninitialised warning
         break;
