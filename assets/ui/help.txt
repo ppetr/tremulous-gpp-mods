@@ -22,14 +22,14 @@
   "^3New building^7"
   {
     "Both teams can increase their build points by building so called "
-    "human ^3refineries^7 and alien ^3gatherers^7. Each of these "
+    "human ^3refineries^7 and alien ^3creep colonies^7. Each of these "
     "buildings gives more build points to the team. The teams "
     "compete for the build points, so by "
-    "building more refineries/gatherers, a team will steal build points from "
+    "building more refineries/creep colonies, a team will steal build points from "
     "the other team.\n"
-    "Gatherers and refineries must be build at some minimum distance from each "
+    "Creep colonies and refineries must be build at some minimum distance from each "
     "other. So a team camps, it will not be able to "
-    "build more refineries/gatherers.\n"
+    "build more refineries/creep colonies.\n"
     "Repeater zones have been removed. Repeaters now work only as power "
     "distributors."
   }
