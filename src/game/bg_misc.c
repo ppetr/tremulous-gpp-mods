@@ -299,7 +299,7 @@ static const buildableAttributes_t bg_buildableList[ ] =
     TEAM_ALIENS,           //int       team;
     ( 1 << WP_ABUILD )|( 1 << WP_ABUILD2 ),    //weapon_t  buildWeapon;
     BANIM_IDLE1,           //int       idleAnim;
-    100,                   //int       nextthink;
+    500,                  //int       nextthink;
     GATHERER_BT,           //int       buildTime;
     qfalse,                //qboolean  usable;
     0,                     //int       turretRange;
@@ -614,7 +614,7 @@ static const buildableAttributes_t bg_buildableList[ ] =
     TEAM_HUMANS,            //int       team;
     ( 1 << WP_HBUILD ),    //weapon_t  buildWeapon;
     BANIM_IDLE1,           //int       idleAnim;
-    100,                   //int       nextthink;
+    500,                  //int       nextthink;
     REFINERY_BT,           //int       buildTime;
     qtrue,                 //qboolean  usable;
     0,                     //int       turretRange;
