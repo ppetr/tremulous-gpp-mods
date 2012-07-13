@@ -294,19 +294,21 @@ Check if a location is being gathered by a refinery/gatherer.
 qboolean G_IsGathered( team_t team, vec3_t origin )
 {
   int       i;
-  buildable_t model;
+  buildable_t model1, model2;
   gentity_t *ent;
   vec3_t    temp_v;
   int       distance = 0, minDistance;
 
   if( team == TEAM_ALIENS )
   {
-    model = BA_A_GATHERER;
+    model1 = BA_A_GATHERER;
+    model2 = BA_A_OVERMIND;
     minDistance = GATHERER_RADIUS;
   }
   else if( team == TEAM_HUMANS )
   {
-    model = BA_H_REFINERY;
+    model1 = BA_H_REFINERY;
+    model2 = BA_H_REACTOR;
     minDistance = REFINERY_RADIUS;
   }
   else
@@ -318,7 +320,8 @@ qboolean G_IsGathered( team_t team, vec3_t origin )
     if( ent->s.eType != ET_BUILDABLE )
       continue;
 
-    if( ent->s.modelindex == model &&
+    if( ( ent->s.modelindex == model1 ||
+          ent->s.modelindex == model2 ) &&
         ent->health > 0 )
     {
       VectorSubtract( origin, ent->s.origin, temp_v );
