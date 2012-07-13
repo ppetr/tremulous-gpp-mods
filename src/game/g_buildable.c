@@ -288,10 +288,11 @@ buildable_t G_IsPowered( vec3_t origin )
 ================
 G_IsGathered
 
-Check if a location is being gathered by a refinery/gatherer.
+Check if a location is being gathered by own team's
+refinery/gatherer/reactor/overmind.
 ================
 */
-qboolean G_IsGathered( team_t team, vec3_t origin )
+qboolean G_IsGathered( team_t team, vec3_t origin, qboolean omRcOnly )
 {
   int       i;
   buildable_t model1, model2;
@@ -320,14 +321,14 @@ qboolean G_IsGathered( team_t team, vec3_t origin )
     if( ent->s.eType != ET_BUILDABLE )
       continue;
 
-    if( ( ent->s.modelindex == model1 ||
+    if( ( ( !omRcOnly && ent->s.modelindex == model1 ) ||
           ent->s.modelindex == model2 ) &&
         ent->health > 0 )
     {
       VectorSubtract( origin, ent->s.origin, temp_v );
       distance = VectorLength( temp_v );
 
-      if( distance <= minDistance )
+      if( distance < minDistance )
         return qtrue;
     }
   }
@@ -2859,6 +2860,7 @@ static int G_CompareBuildablesForRemoval( const void *a, const void *b )
     BA_A_TRAPPER,
     BA_A_HIVE,
     BA_A_BOOSTER,
+    BA_A_GATHERER,
     BA_A_SPAWN,
     BA_A_OVERMIND,
 
@@ -2868,6 +2870,7 @@ static int G_CompareBuildablesForRemoval( const void *a, const void *b )
     BA_H_MEDISTAT,
     BA_H_ARMOURY,
     BA_H_SPAWN,
+    BA_H_REFINERY,
     BA_H_REPEATER,
     BA_H_REACTOR
   };
@@ -3042,6 +3045,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
                                                  vec3_t          origin )
 {
   int               i;
+  int               distance;
   int               numBuildables = 0;
   int               numRequired = 0;
   int               pointsYielded = 0;
@@ -3053,6 +3057,8 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
   int               collisionCount = 0;
   qboolean          repeaterInRange = qfalse;
   int               repeaterInRangeCount = 0;
+  qboolean          gathererInRange = qfalse; // applies to refineries as well
+  int               gathererInRangeCount = 0;
   itemBuildError_t  bpError;
   buildable_t       spawn;
   buildable_t       core;
@@ -3132,10 +3138,12 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
       collisionCount++;
     }
 
+    distance = Distance( ent->s.origin, origin );
+
     // Check if this is a repeater and it's in range
     if( buildable == BA_H_REPEATER &&
         buildable == ent->s.modelindex &&
-        Distance( ent->s.origin, origin ) < REPEATER_BASESIZE )
+        distance < REPEATER_BASESIZE )
     {
       repeaterInRange = qtrue;
       repeaterInRangeCount++;
@@ -3143,13 +3151,24 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
     else
       repeaterInRange = qfalse;
 
+    // Check if this is a gatherer/refinery and it's in range
+    if( ( ( buildable == BA_H_REFINERY && distance < REFINERY_RADIUS ) ||
+          ( buildable == BA_A_GATHERER && distance < GATHERER_RADIUS ) ) &&
+        buildable == ent->s.modelindex )
+    {
+      gathererInRange = qtrue;
+      gathererInRangeCount++;
+    }
+    else
+      gathererInRange = qfalse;
+
     // Don't allow marked buildables to be replaced in another zone,
     // unless the marked buildable isn't in a zone (and thus unpowered)
-    if( team == TEAM_HUMANS &&
-        buildable != BA_H_REACTOR &&
-        buildable != BA_H_REPEATER &&
-        ent->parentNode != G_PowerEntityForPoint( origin ) )
-      continue;
+    //if( team == TEAM_HUMANS &&
+    //    buildable != BA_H_REACTOR &&
+    //    buildable != BA_H_REPEATER &&
+    //    ent->parentNode != G_PowerEntityForPoint( origin ) )
+    //  continue;
 
     if( !ent->inuse )
       continue;
@@ -3182,7 +3201,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
 
       // Buildables that are marked here will always end up at the front of the
       // removal list, so just incrementing numBuildablesForRemoval is sufficient
-      if( collision || repeaterInRange )
+      if( collision || repeaterInRange || gathererInRange )
       {
         // Collided with something, so we definitely have to remove it or
         // it's a repeater that intersects the new repeater's power area,
@@ -3193,6 +3212,9 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
 
         if( repeaterInRange )
           repeaterInRangeCount--;
+
+        if( gathererInRange )
+            gathererInRangeCount--;
 
         if( ent->powered )
           pointsYielded += BG_Buildable( ent->s.modelindex )->buildPoints;
@@ -3222,6 +3244,10 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
   // There are one or more repeaters we can't remove
   if( repeaterInRangeCount > 0 )
     return IBE_RPTPOWERHERE;
+
+  // There are one or more gatherers/refineries we can't remove
+  if( gathererInRangeCount > 0 )
+    return IBE_GTHRBLOCKED;
 
   // Sort the list
   cmpBuildable = buildable;
@@ -3391,7 +3417,7 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     // Check that there isn't another refinery/gatherer nearby
     if( buildable == BA_A_GATHERER )
     {
-      if( G_IsGathered( TEAM_ALIENS, entity_origin ) )
+      if( G_IsGathered( TEAM_ALIENS, entity_origin, g_markDeconstruct.integer ) )
         reason = IBE_GTHRBLOCKED;
     }
 
@@ -3435,7 +3461,7 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     // Check that there isn't another refinery/gatherer nearby
     if( buildable == BA_H_REFINERY )
     {
-      if( G_IsGathered( TEAM_HUMANS, entity_origin ) )
+      if( G_IsGathered( TEAM_HUMANS, entity_origin, g_markDeconstruct.integer ) )
         reason = IBE_GTHRBLOCKED;
     }
 
