@@ -9,7 +9,8 @@
   "^1Rules of the server^7"
   {
     "^1This service is provided free of charge without any guarantee. "
-    "The server administrators reserve the right to decide what behavior is appropriate and who is allowed to use the service.^7\n"
+    "The server administrators reserve the right to decide what behavior is "
+    "appropriate and who is allowed to use the service.^7\n"
     "^3Respect other players.^7\n"
     "No killing your team-mates (unless (s)he asks you to), "
     "no destroying your own team's buildings (unless moving etc.), "
@@ -17,6 +18,20 @@
     "no spamming.\n"
     "You may not call a draw when one of the teams if making progress.\n"
     "Don't ask for admin privileges, you won't get any. Really."
+  }
+  "^3New building^7"
+  {
+    "Both teams can increase their build points by building so called "
+    "human ^3refineries^7 and alien ^3gatherers^7. Each of these "
+    "buildings gives more build points to the team. The teams "
+    "compete for the build points, so by "
+    "building more refineries/gatherers, a team will steal build points from "
+    "the other team.\n"
+    "Gatherers and refineries must be build at some minimum distance from each "
+    "other. So a team camps, it will not be able to "
+    "build more refineries/gatherers.\n"
+    "Repeater zones have been removed. Repeaters now work only as power "
+    "distributors."
   }
   "^7Register^7"
   {
