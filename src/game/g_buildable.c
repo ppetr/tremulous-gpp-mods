@@ -122,8 +122,8 @@ attempt to find power for self, return qtrue if successful
 */
 qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
 {
-  int       i, j;
-  gentity_t *ent, *ent2;
+  int       i /* , j */;
+  gentity_t *ent /*, *ent2 */;
   gentity_t *closestPower = NULL;
   int       distance = 0;
   int       minDistance = REPEATER_BASESIZE + 1;
@@ -289,31 +289,32 @@ buildable_t G_IsPowered( vec3_t origin )
 G_IsGathered
 
 Check if a location is being gathered by own team's
-refinery/gatherer/reactor/overmind.
+refinery/gatherer.
 ================
 */
-qboolean G_IsGathered( team_t team, vec3_t origin, qboolean omRcOnly )
+gentity_t *G_IsGathered( team_t team, vec3_t origin, qboolean omRcOnly, gentity_t *exclude )
 {
   int       i;
-  buildable_t model1, model2;
+  buildable_t model1, model2 = BA_NONE, entModel;
   gentity_t *ent;
+  gentity_t *closest = NULL;
   vec3_t    temp_v;
   int       distance = 0, minDistance;
 
   if( team == TEAM_ALIENS )
   {
     model1 = BA_A_GATHERER;
-    model2 = BA_A_OVERMIND;
+    //model2 = BA_A_OVERMIND;
     minDistance = GATHERER_RADIUS;
   }
   else if( team == TEAM_HUMANS )
   {
     model1 = BA_H_REFINERY;
-    model2 = BA_H_REACTOR;
+    //model2 = BA_H_REACTOR;
     minDistance = REFINERY_RADIUS;
   }
   else
-    return qfalse;
+    return NULL;
 
   // Iterate through entities
   for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
@@ -321,18 +322,25 @@ qboolean G_IsGathered( team_t team, vec3_t origin, qboolean omRcOnly )
     if( ent->s.eType != ET_BUILDABLE )
       continue;
 
-    if( ( ( !omRcOnly && ent->s.modelindex == model1 ) ||
-          ent->s.modelindex == model2 ) &&
-        ent->health > 0 )
+    entModel = ent->s.modelindex;
+
+    if( ( ( !omRcOnly && entModel == model1 ) ||
+          entModel == model2 ) &&
+        ( entModel != BA_NONE ) &&
+        ( ent->health > 0 ) &&
+        ( ent != exclude ) )
     {
       VectorSubtract( origin, ent->s.origin, temp_v );
       distance = VectorLength( temp_v );
 
       if( distance < minDistance )
-        return qtrue;
+      {
+        closest = ent;
+        minDistance = distance;
+      }
     }
   }
-  return qfalse;
+  return closest;
 }
 
 
@@ -1524,6 +1532,43 @@ void ATrapper_Think( gentity_t *self )
 
 //==================================================================================
 
+qboolean CheckGatherer( gentity_t *self )
+{
+  // suicide if there is another refinery/gatherer of the same team nearby
+  if( self->spawned && self->powered )
+  {
+    // suicide if there is another refinery nearby
+    gentity_t *other = G_IsGathered( self->buildableTeam, self->s.origin, qfalse, self );
+    if( other != NULL && other->buildTime >= self->buildTime )
+    {
+      if( other->builtBy >= 0 )
+        G_Damage( self, NULL, g_entities + other->builtBy, NULL, NULL, self->health, 0, MOD_SUICIDE );
+      else
+        G_Damage( self, NULL, NULL, NULL, NULL, self->health, 0, MOD_SUICIDE );
+      return qtrue;
+    }
+  }
+  return qfalse;
+}
+
+/*
+================
+AGatherer_Think
+
+think function for Alien Gatherer
+================
+*/
+void AGatherer_Think( gentity_t *self )
+{
+  AGeneric_Think( self );
+
+  CheckGatherer( self );
+}
+
+
+
+
+//==================================================================================
 
 
 
@@ -1766,7 +1811,6 @@ Think for human power repeater
 */
 void HRepeater_Think( gentity_t *self )
 {
-  int               i;
   gentity_t         *powerEnt;
 
   self->powered = G_FindPower( self, qfalse );
@@ -2492,7 +2536,11 @@ void HRefinery_Think( gentity_t *self )
 
   self->powered = G_FindPower( self, qfalse );
 
-  G_SuicideIfNoPower( self );
+  if( G_SuicideIfNoPower( self ) )
+    return;
+  G_IdlePowerState( self );
+
+  CheckGatherer( self );
 }
 
 
@@ -3415,7 +3463,7 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     // Check that there isn't another refinery/gatherer nearby
     if( buildable == BA_A_GATHERER )
     {
-      if( G_IsGathered( TEAM_ALIENS, entity_origin, g_markDeconstruct.integer ) )
+      if( G_IsGathered( TEAM_ALIENS, entity_origin, g_markDeconstruct.integer, NULL ) != NULL )
         reason = IBE_GTHRBLOCKED;
     }
 
@@ -3459,7 +3507,7 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     // Check that there isn't another refinery/gatherer nearby
     if( buildable == BA_H_REFINERY )
     {
-      if( G_IsGathered( TEAM_HUMANS, entity_origin, g_markDeconstruct.integer ) )
+      if( G_IsGathered( TEAM_HUMANS, entity_origin, g_markDeconstruct.integer, NULL ) != NULL )
         reason = IBE_GTHRBLOCKED;
     }
 
@@ -3624,7 +3672,7 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable,
 
     case BA_A_GATHERER:
       built->die = AGeneric_Die;
-      built->think = AGeneric_Think;
+      built->think = AGatherer_Think;
       built->pain = AGeneric_Pain;
       break;
 
