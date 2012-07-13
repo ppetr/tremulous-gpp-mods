@@ -281,11 +281,11 @@ static const buildableAttributes_t bg_buildableList[ ] =
     HIVE_VALUE,            //int       value;
   },
   {
-    BA_A_GATHERER,        //int       buildNum;
+    BA_A_GATHERER,         //int       buildNum;
     "gatherer",            //char      *buildName;
-    "Gatherer",            //char      *humanName;
+    "Creep colony",        //char      *humanName;
     "Gathers additional energy to provide more creep for "
-    "building.",
+    "buildings, thereby providing additional build points.",
     "team_alien_gatherer" ,//char      *entityName;
     TR_GRAVITY,            //trType_t  traj;
     0.0,                   //float     bounce;

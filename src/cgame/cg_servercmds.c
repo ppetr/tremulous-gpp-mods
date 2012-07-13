@@ -675,18 +675,18 @@ void CG_Menu( int menu, int arg )
       switch( cg.snap->ps.stats[ STAT_TEAM ] )
       {
         case TEAM_ALIENS:
-          longMsg   = "Gatherers cannot be near each other, " // or near the Overmind, "
+          longMsg   = "Creep colonies cannot be near each other, " // or near the Overmind, "
                       "there must be enough distance between them. You need to build "
-                      "a gatherer at a place that is far enough from others.";
+                      "a creep colony at a place that is far enough from others.";
                       // " and form the Overmind.";
-          shortMsg  = "A gatherer is already built in this area.";
+          shortMsg  = "A creep colony has already been built in this area.";
           break;
         case TEAM_HUMANS:
           longMsg   = "Refineries cannot be near each other, " // or near the Reactor, "
                       "there must be enough distance between them. You need to build "
                       "a refinery at a place that is far enough from others.";
                       // " and from the Reactor.";
-          shortMsg  = "A refinery is already built in this area.";
+          shortMsg  = "A refinery has already been built in this area.";
           break;
       }
       break;
