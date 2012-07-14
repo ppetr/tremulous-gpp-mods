@@ -24,14 +24,19 @@
     "Both teams can increase their build points by building so called "
     "human ^3refineries^7 and alien ^3creep colonies^7. Each of these "
     "buildings gives more build points to the team. The teams "
-    "compete for the build points, so by "
+    "compete for build points, so by "
     "building more refineries/creep colonies, a team will steal build points from "
     "the other team.\n"
-    "Creep colonies and refineries must be build at some minimum distance from each "
-    "other. So a team camps, it will not be able to "
-    "build more refineries/creep colonies.\n"
+    "Creep colonies and refineries must be built at a given minimum distance from each "
+    "other. So a team that camps will not be able to "
+    "build more than a few refineries/creep colonies.\n"
     "Repeater zones have been removed. Repeaters now work only as power "
-    "distributors."
+    "distributors.\n"
+    "Creep and power now block each other. "
+    "Humans cannot build on alien creep and aliens cannot build within power range.\n"
+    "\n"
+    "^5If your enemy camps, build them in and build a lot of creep colonies/refineries. "
+    "This will starve them of build points.^7"
   }
   "^7Register^7"
   {
@@ -58,8 +63,6 @@
   }
   "^7Building changes^7"
   {
-    "Creep and power block each other. "
-    "Humans cannot build on alien creep and aliens cannot build within power range. "
     "Don't camp, otherwise your enemy will build you in "
     "and block you from building."
   }
