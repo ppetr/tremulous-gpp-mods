@@ -403,12 +403,6 @@ int G_GetMarkedBuildPoints( const vec3_t pos, team_t team )
     if( ent->s.eType != ET_BUILDABLE )
       continue;
 
-    if( team == TEAM_HUMANS &&
-        ent->s.modelindex != BA_H_REACTOR &&
-        ent->s.modelindex != BA_H_REPEATER &&
-        ent->parentNode != G_PowerEntityForPoint( pos ) )
-      continue;
-
     if( !ent->inuse )
       continue;
 
@@ -3128,11 +3122,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
   }
   else if( team == TEAM_HUMANS )
   {
-    if( buildable == BA_H_REACTOR || buildable == BA_H_REPEATER )
-      remainingBP   = level.humanBuildPoints;
-    else
-      remainingBP   = G_GetBuildPoints( origin, team );
-
+    remainingBP   = G_GetBuildPoints( origin, team );
     remainingSpawns = level.numHumanSpawns;
     bpError         = IBE_NOHUMANBP;
     spawn           = BA_H_SPAWN;
