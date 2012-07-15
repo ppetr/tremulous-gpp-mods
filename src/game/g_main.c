@@ -82,9 +82,13 @@ vmCvar_t  g_maxNameChanges;
 vmCvar_t  g_alienBuildPoints;
 vmCvar_t  g_alienBuildQueueTime;
 vmCvar_t  g_alienGathererBuildPoints;
+vmCvar_t  g_alienGathererBuildPointsRate;
+vmCvar_t  g_alienGathererMaxAge;
 vmCvar_t  g_humanBuildPoints;
 vmCvar_t  g_humanBuildQueueTime;
 vmCvar_t  g_humanRefineryBuildPoints;
+vmCvar_t  g_humanRefineryBuildPointsRate;
+vmCvar_t  g_humanRefineryMaxAge;
 vmCvar_t  g_humanStage;
 vmCvar_t  g_humanCredits;
 vmCvar_t  g_humanMaxStage;
@@ -97,7 +101,8 @@ vmCvar_t  g_alienStage2Threshold;
 vmCvar_t  g_alienStage3Threshold;
 vmCvar_t  g_teamImbalanceWarnings;
 vmCvar_t  g_freeFundPeriod;
-vmCvar_t  g_maxExtraBuildPoints;
+vmCvar_t  g_maxVariableBuildPoints;
+vmCvar_t  g_maxFixedBuildPoints;
 
 vmCvar_t  g_unlagged;
 
@@ -212,10 +217,14 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_alienBuildPoints, "g_alienBuildPoints", DEFAULT_ALIEN_BUILDPOINTS, 0, 0, qfalse  },
   { &g_alienBuildQueueTime, "g_alienBuildQueueTime", DEFAULT_ALIEN_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
-  { &g_alienGathererBuildPoints, "g_alienGathererBuildPoints", "50", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_alienGathererBuildPoints, "g_alienGathererBuildPoints", "20", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_alienGathererBuildPointsRate, "g_alienGathererBuildPointsRate", "30", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_alienGathererMaxAge, "g_alienGathererMaxAge", "10", CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanBuildPoints, "g_humanBuildPoints", DEFAULT_HUMAN_BUILDPOINTS, 0, 0, qfalse  },
   { &g_humanBuildQueueTime, "g_humanBuildQueueTime", DEFAULT_HUMAN_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
-  { &g_humanRefineryBuildPoints, "g_humanRefineryBuildPoints", "50", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_humanRefineryBuildPoints, "g_humanRefineryBuildPoints", "20", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_humanRefineryBuildPointsRate, "g_humanRefineryBuildPointsRate", "30", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_humanRefineryMaxAge, "g_humanRefineryMaxAge", "10", CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanStage, "g_humanStage", "0", 0, 0, qfalse  },
   { &g_humanCredits, "g_humanCredits", "0", 0, 0, qfalse  },
   { &g_humanMaxStage, "g_humanMaxStage", DEFAULT_HUMAN_MAX_STAGE, 0, 0, qfalse, cv_humanMaxStage },
@@ -228,7 +237,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_alienStage3Threshold, "g_alienStage3Threshold", DEFAULT_ALIEN_STAGE3_THRESH, 0, 0, qfalse  },
   { &g_teamImbalanceWarnings, "g_teamImbalanceWarnings", "30", CVAR_ARCHIVE, 0, qfalse  },
   { &g_freeFundPeriod, "g_freeFundPeriod", DEFAULT_FREEKILL_PERIOD, CVAR_ARCHIVE, 0, qtrue },
-  { &g_maxExtraBuildPoints, "g_maxExtraBuildPoints", "500", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_maxVariableBuildPoints, "g_maxVariableBuildPoints", "500", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_maxFixedBuildPoints, "g_maxFixedBuildPoints", "100", CVAR_ARCHIVE, 0, qfalse  },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 
@@ -1100,6 +1110,35 @@ int G_TimeTilSuddenDeath( void )
 }
 
 
+
+/*
+============
+LimitSum
+============
+*/
+void LimitSum( int limit, int *r1, int *r2 )
+{
+  int sum;
+  float factor;
+
+  if( *r1 < 0 )
+    *r1 = 0;
+  if( *r2 < 0 )
+    *r2 = 0;
+  if( limit < 0 )
+    return;
+  sum = *r1 + *r2;
+  if( sum > 0 )
+  {
+    factor = limit / sum;
+    if( factor < 1.0f )
+    {
+      *r1 = (int)( *r1 * factor );
+      *r2 = (int)( *r2 * factor );
+    }
+  }
+}
+
 #define PLAYER_COUNT_MOD 5.0f
 
 /*
@@ -1113,6 +1152,8 @@ void G_CalculateBuildPoints( void )
 {
   int               i;
   int               a_gatherers, h_refineries;
+  int               a_gatherers_age, h_refineries_age;
+  int               age, maxGathererAge, maxRefineryAge;
 
   // BP queue updates
   while( level.alienBuildPointQueue > 0 &&
@@ -1165,6 +1206,10 @@ void G_CalculateBuildPoints( void )
   // Iterate through entities
   a_gatherers = 0;
   h_refineries = 0;
+  a_gatherers_age = 0;
+  h_refineries_age = 0;
+  maxGathererAge = (int)( g_alienGathererMaxAge.value * 60000.0f );
+  maxRefineryAge = (int)( g_humanRefineryMaxAge.value * 60000.0f );
   for( i = MAX_CLIENTS; i < level.num_entities; i++ )
   {
     gentity_t         *ent = &g_entities[ i ];
@@ -1195,28 +1240,38 @@ void G_CalculateBuildPoints( void )
     if( ent->powered && ent->spawned )
     {
       if( buildable == BA_A_GATHERER )
+      {
         a_gatherers++;
+        age = level.time - ent->buildTime;
+        a_gatherers_age += MIN( age, maxGathererAge );
+      }
       else if( buildable == BA_H_REFINERY )
+      {
         h_refineries++;
+        age = level.time - ent->buildTime;
+        h_refineries_age += MIN( age, maxRefineryAge );
+      }
     }
   }
 
   // Distribute build points from refineries/gatherers
   {
-    int hbps = h_refineries * g_humanRefineryBuildPoints.integer;
-    int abps = a_gatherers * g_alienGathererBuildPoints.integer;
-    if( abps + hbps > 0 )
-    {
-      float factor = g_maxExtraBuildPoints.value / ( hbps + abps );
-      if( factor > 1.0f )
-        factor = 1.0f;
+    level.alienExtraBuildPoints =
+      a_gatherers_age * g_alienGathererBuildPointsRate.value / 60000.0f;
+    level.humanExtraBuildPoints =
+      h_refineries_age * g_humanRefineryBuildPointsRate.value / 60000.0f;
+    LimitSum( g_maxVariableBuildPoints.integer,
+        &level.alienExtraBuildPoints, &level.humanExtraBuildPoints );
 
-      level.humanExtraBuildPoints = (int)( hbps * factor );
-      level.alienExtraBuildPoints = (int)( abps * factor );
+    a_gatherers *= g_alienGathererBuildPoints.integer;
+    h_refineries *= g_humanRefineryBuildPoints.integer;
+    LimitSum( g_maxFixedBuildPoints.integer, &a_gatherers, &h_refineries );
 
-      level.humanBuildPoints += level.humanExtraBuildPoints;
-      level.alienBuildPoints += level.alienExtraBuildPoints;
-    }
+    level.alienExtraBuildPoints += a_gatherers;
+    level.humanExtraBuildPoints += h_refineries;
+
+    level.humanBuildPoints += level.humanExtraBuildPoints;
+    level.alienBuildPoints += level.alienExtraBuildPoints;
   }
 
   if( level.humanBuildPoints < 0 )

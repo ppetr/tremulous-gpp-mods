@@ -1112,9 +1112,13 @@ extern  vmCvar_t  pmove_msec;
 extern  vmCvar_t  g_alienBuildPoints;
 extern  vmCvar_t  g_alienBuildQueueTime;
 extern  vmCvar_t  g_alienGathererBuildPoints;
+extern  vmCvar_t  g_alienGathererBuildPointsRate;
+extern  vmCvar_t  g_alienGathererMaxAge;
 extern  vmCvar_t  g_humanBuildPoints;
 extern  vmCvar_t  g_humanBuildQueueTime;
 extern  vmCvar_t  g_humanRefineryBuildPoints;
+extern  vmCvar_t  g_humanRefineryBuildPointsRate;
+extern  vmCvar_t  g_humanRefineryMaxAge;
 extern  vmCvar_t  g_humanStage;
 extern  vmCvar_t  g_humanCredits;
 extern  vmCvar_t  g_humanMaxStage;
@@ -1127,7 +1131,8 @@ extern  vmCvar_t  g_alienStage2Threshold;
 extern  vmCvar_t  g_alienStage3Threshold;
 extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
-extern  vmCvar_t  g_maxExtraBuildPoints;
+extern  vmCvar_t  g_maxVariableBuildPoints;
+extern  vmCvar_t  g_maxFixedBuildPoints;
 
 extern  vmCvar_t  g_unlagged;
 
