@@ -122,13 +122,6 @@ attempt to find power for self, return qtrue if successful
 */
 qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
 {
-  int       i /* , j */;
-  gentity_t *ent /*, *ent2 */;
-  gentity_t *closestPower = NULL;
-  int       distance = 0;
-  int       minDistance = REPEATER_BASESIZE + 1;
-  vec3_t    temp_v;
-
   if( self->buildableTeam != TEAM_HUMANS )
     return qfalse;
 
@@ -148,35 +141,48 @@ qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
     return self->parentNode != NULL;
   }
 
-  // Iterate through entities
-  for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
+  //if self does not have a parentNode or it's parentNode is invalid find a new one
+  if( self->client || self->parentNode == NULL || !self->parentNode->inuse ||
+      self->parentNode->health <= 0 )
   {
-    if( ent->s.eType != ET_BUILDABLE )
-      continue;
+    int       i /* , j */;
+    gentity_t *ent /*, *ent2 */;
+    gentity_t *closestPower = NULL;
+    int       distance = 0;
+    int       minDistance = REPEATER_BASESIZE + 1;
+    vec3_t    temp_v;
 
-    // If entity is a power item calculate the distance to it
-    if( ( ent->s.modelindex == BA_H_REACTOR || ent->s.modelindex == BA_H_REPEATER ) &&
-        ( searchUnspawned || ent->spawned ) && ent->powered && ent->health > 0 )
+    // Iterate through entities
+    for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
     {
-      VectorSubtract( self->s.origin, ent->s.origin, temp_v );
-      distance = VectorLength( temp_v );
+      if( ent->s.eType != ET_BUILDABLE )
+        continue;
 
-      // Always prefer a reactor if there is one in range
-      if( ent->s.modelindex == BA_H_REACTOR && distance <= REACTOR_BASESIZE )
+      // If entity is a power item calculate the distance to it
+      if( ( ent->s.modelindex == BA_H_REACTOR || ent->s.modelindex == BA_H_REPEATER ) &&
+          ( searchUnspawned || ent->spawned ) && ent->powered && ent->health > 0 )
       {
-        closestPower = ent;
-        break;
-      }
-      else if( distance < minDistance )
-      {
-        closestPower = ent;
-        minDistance = distance;
+        VectorSubtract( self->s.origin, ent->s.origin, temp_v );
+        distance = VectorLength( temp_v );
+
+        // Always prefer a reactor if there is one in range
+        if( ent->s.modelindex == BA_H_REACTOR && distance <= REACTOR_BASESIZE )
+        {
+          closestPower = ent;
+          break;
+        }
+        else if( distance < minDistance )
+        {
+          closestPower = ent;
+          minDistance = distance;
+        }
       }
     }
-  }
 
-  if( closestPower == NULL )
-    return qfalse;
+    if( !self->client )
+      self->parentNode = closestPower;
+    return ( closestPower != NULL ) ? qtrue : qfalse;
+  }
 
   /*
   // Only power as much BP as the reactor can hold
@@ -223,7 +229,10 @@ qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
   // Not enough power
   return qfalse;
   */
-  self->parentNode = closestPower;
+
+  if( self->client )
+    return qfalse;
+  //if we haven't returned by now then we must already have a valid parent
   return qtrue;
 }
 
@@ -239,6 +248,7 @@ gentity_t *G_PowerEntityForPoint( const vec3_t origin )
 {
   gentity_t dummy;
 
+  dummy.client = NULL;
   dummy.parentNode = NULL;
   dummy.buildableTeam = TEAM_HUMANS;
   dummy.s.modelindex = BA_NONE;
@@ -592,7 +602,7 @@ qboolean G_FindCreep( gentity_t *self )
   gentity_t *ent;
   gentity_t *closestSpawn = NULL;
   int       distance = 0;
-  int       minDistance = 10000;
+  int       minDistance = CREEP_BASESIZE + 1;
   vec3_t    temp_v;
 
   //don't check for creep if flying through the air
@@ -622,14 +632,9 @@ qboolean G_FindCreep( gentity_t *self )
       }
     }
 
-    if( minDistance <= CREEP_BASESIZE )
-    {
-      if( !self->client )
-        self->parentNode = closestSpawn;
-      return qtrue;
-    }
-    else
-      return qfalse;
+    if( !self->client )
+      self->parentNode = closestSpawn;
+    return ( closestSpawn != NULL ) ? qtrue : qfalse;
   }
 
   if( self->client )
