@@ -1116,7 +1116,7 @@ int G_TimeTilSuddenDeath( void )
 LimitSum
 ============
 */
-void LimitSum( int limit, int *r1, int *r2 )
+void LimitSum( float limit, int *r1, int *r2 )
 {
   int sum;
   float factor;
@@ -1260,12 +1260,12 @@ void G_CalculateBuildPoints( void )
       a_gatherers_age * g_alienGathererBuildPointsRate.value / 60000.0f;
     level.humanExtraBuildPoints =
       h_refineries_age * g_humanRefineryBuildPointsRate.value / 60000.0f;
-    LimitSum( g_maxVariableBuildPoints.integer,
+    LimitSum( g_maxVariableBuildPoints.value,
         &level.alienExtraBuildPoints, &level.humanExtraBuildPoints );
 
     a_gatherers *= g_alienGathererBuildPoints.integer;
     h_refineries *= g_humanRefineryBuildPoints.integer;
-    LimitSum( g_maxFixedBuildPoints.integer, &a_gatherers, &h_refineries );
+    LimitSum( g_maxFixedBuildPoints.value, &a_gatherers, &h_refineries );
 
     level.alienExtraBuildPoints += a_gatherers;
     level.humanExtraBuildPoints += h_refineries;
