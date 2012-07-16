@@ -143,7 +143,7 @@ qboolean G_FindPower( gentity_t *self, qboolean searchUnspawned )
 
   //if self does not have a parentNode or it's parentNode is invalid find a new one
   if( self->client || self->parentNode == NULL || !self->parentNode->inuse ||
-      self->parentNode->health <= 0 )
+      self->parentNode->health <= 0 || !self->parent->powered )
   {
     int       i /* , j */;
     gentity_t *ent /*, *ent2 */;
