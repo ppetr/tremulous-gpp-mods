@@ -1152,10 +1152,9 @@ int G_TimeTilSuddenDeath( void )
 LimitSum
 ============
 */
-void LimitSum( float limit, int *r1, int *r2 )
+void LimitSum( float limit, float *r1, float *r2 )
 {
-  int sum;
-  float factor;
+  float sum, factor;
 
   if( *r1 < 0 )
     *r1 = 0;
@@ -1169,8 +1168,8 @@ void LimitSum( float limit, int *r1, int *r2 )
     factor = limit / sum;
     if( factor < 1.0f )
     {
-      *r1 = (int)( *r1 * factor );
-      *r2 = (int)( *r2 * factor );
+      *r1 *= factor;
+      *r2 *= factor;
     }
   }
 }
@@ -1292,19 +1291,18 @@ void G_CalculateBuildPoints( void )
 
   // Distribute build points from refineries/gatherers
   {
-    level.alienExtraBuildPoints =
-      a_gatherers_age * g_alienGathererBuildPointsRate.value / 60000.0f;
-    level.humanExtraBuildPoints =
-      h_refineries_age * g_humanRefineryBuildPointsRate.value / 60000.0f;
-    LimitSum( g_maxVariableBuildPoints.value,
-        &level.alienExtraBuildPoints, &level.humanExtraBuildPoints );
+    float aFixed, hFixed, aVar, hVar;
 
-    a_gatherers *= g_alienGathererBuildPoints.integer;
-    h_refineries *= g_humanRefineryBuildPoints.integer;
-    LimitSum( g_maxFixedBuildPoints.value, &a_gatherers, &h_refineries );
+    aVar = a_gatherers_age * g_alienGathererBuildPointsRate.value / 60000.0f;
+    hVar = h_refineries_age * g_humanRefineryBuildPointsRate.value / 60000.0f;
+    LimitSum( g_maxVariableBuildPoints.value, &aVar, &hVar );
 
-    level.alienExtraBuildPoints += a_gatherers;
-    level.humanExtraBuildPoints += h_refineries;
+    aFixed = a_gatherers * g_alienGathererBuildPoints.value;
+    hFixed = h_refineries * g_humanRefineryBuildPoints.value;
+    LimitSum( g_maxFixedBuildPoints.value, &aFixed, &hFixed );
+
+    level.alienExtraBuildPoints = aVar + aFixed;
+    level.humanExtraBuildPoints = hVar + hFixed;
 
     level.humanBuildPoints += level.humanExtraBuildPoints;
     level.alienBuildPoints += level.alienExtraBuildPoints;
