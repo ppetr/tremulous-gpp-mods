@@ -118,6 +118,10 @@ vmCvar_t  g_boosterPoisonTime;
 vmCvar_t  g_basiPoisonTime;
 vmCvar_t  g_basiUpgPoisonTime;
 
+vmCvar_t  g_lcannonDischargeBuildings;
+vmCvar_t  g_lcannonDischargeAttacker;
+vmCvar_t  g_lcannonDischargeRadius;
+
 vmCvar_t  g_unlagged;
 
 vmCvar_t  g_basiFlameMod;
@@ -271,6 +275,10 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_boosterPoisonTime, "g_boosterPoisonTime", "15", CVAR_ARCHIVE, 0, qfalse },
   { &g_basiPoisonTime, "g_basiPoisonTime", "5", CVAR_ARCHIVE, 0, qfalse },
   { &g_basiUpgPoisonTime, "g_basiUpgPoisonTime", "8", CVAR_ARCHIVE, 0, qfalse },
+
+  { &g_lcannonDischargeBuildings, "g_lcannonDischargeBuildings", "0.30", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeAttacker, "g_lcannonDischargeAttacker", "0.40", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeRadius, "g_lcannonDischargeRadius", "400", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 

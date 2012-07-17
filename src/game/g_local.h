@@ -1161,6 +1161,10 @@ extern  vmCvar_t  g_boosterPoisonTime;
 extern  vmCvar_t  g_basiPoisonTime;
 extern  vmCvar_t  g_basiUpgPoisonTime;
 
+extern  vmCvar_t  g_lcannonDischargeBuildings;
+extern  vmCvar_t  g_lcannonDischargeAttacker;
+extern  vmCvar_t  g_lcannonDischargeRadius;
+
 extern  vmCvar_t  g_unlagged;
 
 extern  vmCvar_t  g_basiFlameMod;
