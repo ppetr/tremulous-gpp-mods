@@ -476,9 +476,6 @@ fire_luciferCannon
 
 =================
 */
-#define LCANNON_DISCHARGE_BUILDINGS     0.33f
-#define LCANNON_DISCHARGE_ATTACKER      0.33f
-#define LCANNON_DISCHARGE_RADIUS        600
 gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
   int damage, int radius, int speed )
 {
@@ -489,18 +486,20 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
 
   VectorNormalize( dir );
 
-  // if a building is nearby, discharge part of the charge to it
+  // if it's not a secondary shot and a building is nearby,
+  // discharge part of the charge to it and to the attacker
+  if( ( g_lcannonDischargeRadius.integer > 0 ) &&
+      ( damage > LCANNON_SECONDARY_DAMAGE ) )
   {
     // find a nearest building
     int       entityList[ MAX_GENTITIES ];
-    vec3_t    range = { LCANNON_DISCHARGE_RADIUS,
-                        LCANNON_DISCHARGE_RADIUS,
-                        LCANNON_DISCHARGE_RADIUS };
+    vec3_t    range;
     vec3_t    mins, maxs;
     int       i, num;
     gentity_t *enemy;
-    float     distance, minDistance = LCANNON_DISCHARGE_RADIUS + 1;
+    float     distance, minDistance = g_lcannonDischargeRadius.integer + 1;
 
+    range[0] = range[1] = range[2] = g_lcannonDischargeRadius.integer;
     VectorAdd( start, range, maxs );
     VectorSubtract( start, range, mins );
 
@@ -528,9 +527,11 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
 
     if( target != NULL )
     {
-      buildingDamage = (int)( damage * LCANNON_DISCHARGE_BUILDINGS );
-      selfDamage = (int)( damage * LCANNON_DISCHARGE_ATTACKER );
+      buildingDamage = (int)( damage * g_lcannonDischargeBuildings.value );
+      selfDamage = (int)( damage * g_lcannonDischargeAttacker.value );
       damage -= buildingDamage + selfDamage;
+      if( damage <= 0 )
+          damage = 1; // at least a symbolic damage
     }
   }
 
@@ -590,13 +591,14 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
         selfDamage, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, MOD_LCANNON_SPLASH );
     tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
     tent->s.generic1 = bolt->s.number; // src
-    tent->s.clientNum = self->s.number; // dest
+    //tent->s.clientNum = self->s.number; // dest
+    tent->s.clientNum = target->s.number; // dest
 
     G_Damage( target, bolt, self, dir, start,
         buildingDamage, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, MOD_LCANNON_SPLASH );
-    tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
-    tent->s.generic1 = target->s.number; // src
-    tent->s.clientNum = self->s.number; // dest
+    //tent = G_TempEntity( start, EV_DISCHARGE_TRAIL );
+    //tent->s.generic1 = target->s.number; // src
+    //tent->s.clientNum = self->s.number; // dest
 
     if( self->client ) 
     {
