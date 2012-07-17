@@ -328,15 +328,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OVERMIND_ATTACK_REPEAT      1000
 #define OVERMIND_VALUE              ABVM(30)
 
-#define GATHERER_BP                 4
-#define GATHERER_BT                 20000
-#define GATHERER_HEALTH             ABHM(300)
-#define GATHERER_REGEN              6
-#define GATHERER_SPLASHDAMAGE       50
-#define GATHERER_SPLASHRADIUS       300
-#define GATHERER_CREEPSIZE          120
-#define GATHERER_VALUE              ABVM(20)
-#define GATHERER_RADIUS             600
+#define CREEPCOLONY_BP              4
+#define CREEPCOLONY_BT              20000
+#define CREEPCOLONY_HEALTH          ABHM(300)
+#define CREEPCOLONY_REGEN           6
+#define CREEPCOLONY_SPLASHDAMAGE    50
+#define CREEPCOLONY_SPLASHRADIUS    300
+#define CREEPCOLONY_CREEPSIZE       120
+#define CREEPCOLONY_VALUE           ABVM(20)
+#define CREEPCOLONY_RADIUS          600
 
 /*
  * ALIEN misc

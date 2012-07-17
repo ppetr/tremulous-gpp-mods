@@ -299,7 +299,7 @@ buildable_t G_IsPowered( vec3_t origin )
 G_IsGathered
 
 Check if a location is being gathered by own team's
-refinery/gatherer.
+refinery/creep colony.
 ================
 */
 gentity_t *G_IsGathered( team_t team, vec3_t origin, qboolean omRcOnly, gentity_t *exclude )
@@ -313,9 +313,9 @@ gentity_t *G_IsGathered( team_t team, vec3_t origin, qboolean omRcOnly, gentity_
 
   if( team == TEAM_ALIENS )
   {
-    model1 = BA_A_GATHERER;
+    model1 = BA_A_CREEPCOLONY;
     //model2 = BA_A_OVERMIND;
-    minDistance = GATHERER_RADIUS;
+    minDistance = CREEPCOLONY_RADIUS;
   }
   else if( team == TEAM_HUMANS )
   {
@@ -1535,7 +1535,7 @@ void ATrapper_Think( gentity_t *self )
 
 qboolean CheckGatherer( gentity_t *self )
 {
-  // suicide if there is another refinery/gatherer of the same team nearby
+  // suicide if there is another refinery/creep colony of the same team nearby
   if( self->spawned && self->powered )
   {
     // suicide if there is another refinery nearby
@@ -1554,12 +1554,12 @@ qboolean CheckGatherer( gentity_t *self )
 
 /*
 ================
-AGatherer_Think
+ACreepColony_Think
 
-think function for Alien Gatherer
+think function for Alien Creep Colony
 ================
 */
-void AGatherer_Think( gentity_t *self )
+void ACreepColony_Think( gentity_t *self )
 {
   AGeneric_Think( self );
 
@@ -2907,7 +2907,7 @@ static int G_CompareBuildablesForRemoval( const void *a, const void *b )
     BA_A_TRAPPER,
     BA_A_HIVE,
     BA_A_BOOSTER,
-    BA_A_GATHERER,
+    BA_A_CREEPCOLONY,
     BA_A_SPAWN,
     BA_A_OVERMIND,
 
@@ -3104,7 +3104,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
   int               collisionCount = 0;
   qboolean          repeaterInRange = qfalse;
   int               repeaterInRangeCount = 0;
-  qboolean          gathererInRange = qfalse; // applies to refineries as well
+  qboolean          gathererInRange = qfalse; // refineries and creep colonies
   int               gathererInRangeCount = 0;
   itemBuildError_t  bpError;
   buildable_t       spawn;
@@ -3194,9 +3194,9 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
     else
       repeaterInRange = qfalse;
 
-    // Check if this is a gatherer/refinery and it's in range
+    // Check if this is a creep colony/refinery and it's in range
     if( ( ( buildable == BA_H_REFINERY && distance < REFINERY_RADIUS ) ||
-          ( buildable == BA_A_GATHERER && distance < GATHERER_RADIUS ) ) &&
+          ( buildable == BA_A_CREEPCOLONY && distance < CREEPCOLONY_RADIUS ) ) &&
         buildable == ent->s.modelindex )
     {
       gathererInRange = qtrue;
@@ -3288,7 +3288,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
   if( repeaterInRangeCount > 0 )
     return IBE_RPTPOWERHERE;
 
-  // There are one or more gatherers/refineries we can't remove
+  // There are one or more creep colonies/refineries we can't remove
   if( gathererInRangeCount > 0 )
     return IBE_GTHRBLOCKED;
 
@@ -3457,8 +3457,8 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     if( G_IsPowered( entity_origin ) != BA_NONE )
       reason = IBE_BLOCKEDBYENEMY;
 
-    // Check that there isn't another refinery/gatherer nearby
-    if( buildable == BA_A_GATHERER )
+    // Check that there isn't another refinery/colony nearby
+    if( buildable == BA_A_CREEPCOLONY )
     {
       if( G_IsGathered( TEAM_ALIENS, entity_origin, g_markDeconstruct.integer, NULL ) != NULL )
         reason = IBE_GTHRBLOCKED;
@@ -3501,7 +3501,7 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
         reason = IBE_RPTPOWERHERE;
     }
 
-    // Check that there isn't another refinery/gatherer nearby
+    // Check that there isn't another refinery/colony nearby
     if( buildable == BA_H_REFINERY )
     {
       if( G_IsGathered( TEAM_HUMANS, entity_origin, g_markDeconstruct.integer, NULL ) != NULL )
@@ -3667,9 +3667,9 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable,
       built->pain = AGeneric_Pain;
       break;
 
-    case BA_A_GATHERER:
+    case BA_A_CREEPCOLONY:
       built->die = AGeneric_Die;
-      built->think = AGatherer_Think;
+      built->think = ACreepColony_Think;
       built->pain = AGeneric_Pain;
       break;
 
