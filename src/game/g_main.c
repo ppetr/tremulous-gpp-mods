@@ -81,9 +81,9 @@ vmCvar_t  g_maxNameChanges;
 
 vmCvar_t  g_alienBuildPoints;
 vmCvar_t  g_alienBuildQueueTime;
-vmCvar_t  g_alienGathererBuildPoints;
-vmCvar_t  g_alienGathererBuildPointsRate;
-vmCvar_t  g_alienGathererMaxAge;
+vmCvar_t  g_alienColonyBuildPoints;
+vmCvar_t  g_alienColonyBuildPointsRate;
+vmCvar_t  g_alienColonyMaxAge;
 vmCvar_t  g_humanBuildPoints;
 vmCvar_t  g_humanBuildQueueTime;
 vmCvar_t  g_humanRefineryBuildPoints;
@@ -217,9 +217,9 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_alienBuildPoints, "g_alienBuildPoints", DEFAULT_ALIEN_BUILDPOINTS, 0, 0, qfalse  },
   { &g_alienBuildQueueTime, "g_alienBuildQueueTime", DEFAULT_ALIEN_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
-  { &g_alienGathererBuildPoints, "g_alienGathererBuildPoints", "20", CVAR_ARCHIVE, 0, qfalse  },
-  { &g_alienGathererBuildPointsRate, "g_alienGathererBuildPointsRate", "30", CVAR_ARCHIVE, 0, qfalse  },
-  { &g_alienGathererMaxAge, "g_alienGathererMaxAge", "10", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_alienColonyBuildPoints, "g_alienColonyBuildPoints", "20", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_alienColonyBuildPointsRate, "g_alienColonyBuildPointsRate", "30", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_alienColonyMaxAge, "g_alienColonyMaxAge", "10", CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanBuildPoints, "g_humanBuildPoints", DEFAULT_HUMAN_BUILDPOINTS, 0, 0, qfalse  },
   { &g_humanBuildQueueTime, "g_humanBuildQueueTime", DEFAULT_HUMAN_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanRefineryBuildPoints, "g_humanRefineryBuildPoints", "20", CVAR_ARCHIVE, 0, qfalse  },
@@ -1150,9 +1150,9 @@ Recalculate the quantity of building points available to the teams
 void G_CalculateBuildPoints( void )
 {
   int               i;
-  int               a_gatherers, h_refineries;
-  int               a_gatherers_age, h_refineries_age;
-  int               age, maxGathererAge, maxRefineryAge;
+  int               a_colonies, h_refineries;
+  int               a_colonies_age, h_refineries_age;
+  int               age, maxColonyAge, maxRefineryAge;
 
   // BP queue updates
   while( level.alienBuildPointQueue > 0 &&
@@ -1203,11 +1203,11 @@ void G_CalculateBuildPoints( void )
   level.alienBuildPoints = g_alienBuildPoints.integer - level.alienBuildPointQueue;
 
   // Iterate through entities
-  a_gatherers = 0;
+  a_colonies = 0;
   h_refineries = 0;
-  a_gatherers_age = 0;
+  a_colonies_age = 0;
   h_refineries_age = 0;
-  maxGathererAge = (int)( g_alienGathererMaxAge.value * 60000.0f );
+  maxColonyAge = (int)( g_alienColonyMaxAge.value * 60000.0f );
   maxRefineryAge = (int)( g_humanRefineryMaxAge.value * 60000.0f );
   for( i = MAX_CLIENTS; i < level.num_entities; i++ )
   {
@@ -1238,11 +1238,11 @@ void G_CalculateBuildPoints( void )
 
     if( ent->powered && ent->spawned )
     {
-      if( buildable == BA_A_GATHERER )
+      if( buildable == BA_A_CREEPCOLONY )
       {
-        a_gatherers++;
+        a_colonies++;
         age = level.time - ent->buildTime;
-        a_gatherers_age += MIN( age, maxGathererAge );
+        a_colonies_age += MIN( age, maxColonyAge );
       }
       else if( buildable == BA_H_REFINERY )
       {
@@ -1253,15 +1253,15 @@ void G_CalculateBuildPoints( void )
     }
   }
 
-  // Distribute build points from refineries/gatherers
+  // Distribute build points from refineries/creep colonies
   {
     float aFixed, hFixed, aVar, hVar;
 
-    aVar = a_gatherers_age * g_alienGathererBuildPointsRate.value / 60000.0f;
+    aVar = a_colonies_age * g_alienColonyBuildPointsRate.value / 60000.0f;
     hVar = h_refineries_age * g_humanRefineryBuildPointsRate.value / 60000.0f;
     LimitSum( g_maxVariableBuildPoints.value, &aVar, &hVar );
 
-    aFixed = a_gatherers * g_alienGathererBuildPoints.value;
+    aFixed = a_colonies * g_alienColonyBuildPoints.value;
     hFixed = h_refineries * g_humanRefineryBuildPoints.value;
     LimitSum( g_maxFixedBuildPoints.value, &aFixed, &hFixed );
 
@@ -1297,7 +1297,7 @@ int  G_HumanBuildPoints( void )
 G_AlienBuildPoints
 
 Return the total alien build points, including extra build points coming from
-gatherers.
+creep colonies.
 ============
 */
 int  G_AlienBuildPoints( void )

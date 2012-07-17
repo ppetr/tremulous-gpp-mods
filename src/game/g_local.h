@@ -1111,9 +1111,9 @@ extern  vmCvar_t  pmove_msec;
 
 extern  vmCvar_t  g_alienBuildPoints;
 extern  vmCvar_t  g_alienBuildQueueTime;
-extern  vmCvar_t  g_alienGathererBuildPoints;
-extern  vmCvar_t  g_alienGathererBuildPointsRate;
-extern  vmCvar_t  g_alienGathererMaxAge;
+extern  vmCvar_t  g_alienColonyBuildPoints;
+extern  vmCvar_t  g_alienColonyBuildPointsRate;
+extern  vmCvar_t  g_alienColonyMaxAge;
 extern  vmCvar_t  g_humanBuildPoints;
 extern  vmCvar_t  g_humanBuildQueueTime;
 extern  vmCvar_t  g_humanRefineryBuildPoints;

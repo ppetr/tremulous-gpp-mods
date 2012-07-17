@@ -413,7 +413,7 @@ typedef enum
   BA_A_TRAPPER,
   BA_A_BOOSTER,
   BA_A_HIVE,
-  BA_A_GATHERER,
+  BA_A_CREEPCOLONY,
 
   BA_H_SPAWN,
 
