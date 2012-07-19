@@ -1193,6 +1193,8 @@ extern  vmCvar_t  g_floodMinTime;
 
 extern  vmCvar_t  g_shove;
 
+extern  vmCvar_t  g_creepPowerExclusion;
+
 extern  vmCvar_t  g_mapConfigs;
 
 extern  vmCvar_t  g_layouts;
