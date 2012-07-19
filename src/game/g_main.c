@@ -124,6 +124,8 @@ vmCvar_t  g_voiceChats;
 
 vmCvar_t  g_shove;
 
+vmCvar_t  g_creepPowerExclusion;
+
 vmCvar_t  g_mapConfigs;
 vmCvar_t  g_sayAreaRange;
 
@@ -262,6 +264,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_debugVoices, "g_debugVoices", "0", 0, 0, qfalse  },
   { &g_voiceChats, "g_voiceChats", "1", CVAR_ARCHIVE, 0, qfalse },
   { &g_shove, "g_shove", "0.0", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_creepPowerExclusion, "g_creepPowerExclusion", "1", CVAR_ARCHIVE, 0, qtrue  },
   { &g_mapConfigs, "g_mapConfigs", "", CVAR_ARCHIVE, 0, qfalse  },
   { NULL, "g_mapConfigsLoaded", "0", CVAR_ROM, 0, qfalse  },
 
