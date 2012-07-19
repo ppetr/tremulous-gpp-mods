@@ -3413,7 +3413,7 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     }
 
     // Check if the enemy isn't blocking your building
-    if( G_IsPowered( entity_origin ) != BA_NONE )
+    if( g_creepPowerExclusion.integer && ( G_IsPowered( entity_origin ) != BA_NONE ) )
       reason = IBE_BLOCKEDBYENEMY;
 
     // Check permission to build here
@@ -3433,7 +3433,7 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     }
 
     // Check if the enemy isn't blocking your building
-    if( G_IsCreepHere( entity_origin ) )
+    if( g_creepPowerExclusion.integer && ( G_IsCreepHere( entity_origin ) ) )
       reason = IBE_BLOCKEDBYENEMY;
 
     //this buildable requires a DCC
