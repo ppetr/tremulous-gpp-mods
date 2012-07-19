@@ -4,7 +4,12 @@
     "^1N7 Server Changelog^7\n"
     "In this section you will find a summary of major changes since GPP. "
     "We are creating modifications to make Tremulous even better. "
-    "We hope you enjoy playing. And please report bugs to Nalf/Reaper!"
+    "We hope you enjoy playing. And please report bugs to Nalf/Reaper/Defeated!\n"
+    "\n"
+    "Visit our FaceBook page at http://www.tinyurl.com/n7clan\n"
+    "\n"
+    "^5If you want to contact an administrator or just talk with other players, " 
+    "connect via TeamSpeak 3 to 50.7.246.46:10011."
   }
   "^1Rules of the server^7"
   {
@@ -65,16 +70,12 @@
     "Both humans and aliens bleed drops of blood when wounded.\n"
     "If this disturbs you, you can turn it off for yourself by ^3/set cg_bleedSelfWounds 0^7."
   }
-  "^7Building changes^7"
-  {
-    "Don't camp, otherwise your enemy will build you in "
-    "and block you from building."
-  }
   "^7Lucifer changes^7"
   {
-    "When used near human buildings, the lucifer cannon bolt partly discharges into the nearest building. "
-    "It damages both you and the building. "
-    "Do not use it in your base!"
+    "When used near human buildings, the lucifer cannon bolt (primary fire) partly "
+    "discharges into the nearest building. It damages both you and the building. "
+    "Do not use it in your base!\n"
+    "Secondary fire is safe, it doesn't discharge."
   }
   "^7Medkit changes^7"
   {
@@ -83,7 +84,12 @@
   }
   "^7Granger changes^7"
   {
-    "Grangers are ^1very^7 vulnerable to trampling. Keep out of tyrants' way!"
+    "Grangers are ^1very^7 vulnerable to trampling. Keep out of tyrants' way!\n"
+    "\n"
+    "^1Granger dance:^7 A granger taunting in the air "
+    "(while in a jump, for example) near the Overmind tranfers "
+    "a certain part its healh to the Overmind.\n"
+    "It cannot die this way, if its health is too low, no health is transferred."
   }
   "^7Basilisk changes^7"
   {
@@ -96,7 +102,9 @@
   "^7Sudden death^7"
   {
     "To prevent feeding by grangers when no building is allowed, spawning as grangers is disabled during sudden death.\n"
-    "Overminds and reactors can be rebuilt during sudden death."
+    "Overminds and reactors can be rebuilt during sudden death.\n"
+    "^1Note:^7 For now sudden death has been completely disabledi "
+    "in favor of the new building model."
   }
   "^7Defence computers^7"
   {
@@ -109,7 +117,7 @@
   }
   "^7Poison contagion^7"
   {
-    "Humans transfer contagion on each other by touching each other."
+    "Humans can spread poison on each other by touching."
   }
   "^7Bounties for good players^7"
   {
@@ -125,11 +133,6 @@
   {
     "The bounding box of barricades was made higher. "
     "This means that it is no longer possible to shoot through the top part of the barricades."
-  }
-  "^7Granger dance^7"
-  {
-    "A granger taunting in the air (while in a jump, for example) near an overmind tranfers a certain part its healh to the overmind.\n"
-    "It cannot die this way, if its health is too low, no health is transferred."
   }
   "^7Scare/nade^7"
   {
