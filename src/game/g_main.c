@@ -102,6 +102,7 @@ vmCvar_t  g_alienStage3Threshold;
 vmCvar_t  g_teamImbalanceWarnings;
 vmCvar_t  g_freeFundPeriod;
 vmCvar_t  g_maxVariableBuildPoints;
+vmCvar_t  g_variableBuildPointsPower;
 vmCvar_t  g_maxFixedBuildPoints;
 
 vmCvar_t  g_unlagged;
@@ -240,6 +241,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_teamImbalanceWarnings, "g_teamImbalanceWarnings", "30", CVAR_ARCHIVE, 0, qfalse  },
   { &g_freeFundPeriod, "g_freeFundPeriod", DEFAULT_FREEKILL_PERIOD, CVAR_ARCHIVE, 0, qtrue },
   { &g_maxVariableBuildPoints, "g_maxVariableBuildPoints", "500", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_variableBuildPointsPower, "g_variableBuildPointsPower", "1.6", CVAR_ARCHIVE, 0, qfalse  },
   { &g_maxFixedBuildPoints, "g_maxFixedBuildPoints", "100", CVAR_ARCHIVE, 0, qfalse  },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
@@ -1119,9 +1121,10 @@ int G_TimeTilSuddenDeath( void )
 LimitSum
 ============
 */
-void LimitSum( float limit, float *r1, float *r2 )
+void LimitSum( double limit, double power, float *r1, float *r2 )
 {
-  float sum, factor;
+  double sum, pressure;
+  double r1pow, r2pow;
 
   if( *r1 < 0 )
     *r1 = 0;
@@ -1129,16 +1132,27 @@ void LimitSum( float limit, float *r1, float *r2 )
     *r2 = 0;
   if( limit < 0 )
     return;
-  sum = *r1 + *r2;
+  if( power < 0 )
+    power = 0;
+  sum = (double)*r1 + (double)*r2;
   if( sum > 0 )
   {
-    factor = limit / sum;
-    if( factor < 1.0f )
+    if( sum < limit )
+      limit = sum;
+    // 'limit' is now the total number we're distributing;
+    // we distribute it proportinally according to *r1^power and *r2^power.
+    r1pow = pow( *r1, power );
+    r2pow = pow( *r2, power );
+    sum = r1pow + r2pow;
+    if( sum > 0 )
     {
-      *r1 *= factor;
-      *r2 *= factor;
+      pressure = limit / sum;
+      *r1 = (float)( r1pow * pressure );
+      *r2 = (float)( r2pow * pressure );
+      return;
     }
   }
+  *r1 = ( *r2 = 0 );
 }
 
 #define PLAYER_COUNT_MOD 5.0f
@@ -1262,11 +1276,11 @@ void G_CalculateBuildPoints( void )
 
     aVar = a_colonies_age * g_alienColonyBuildPointsRate.value / 60000.0f;
     hVar = h_refineries_age * g_humanRefineryBuildPointsRate.value / 60000.0f;
-    LimitSum( g_maxVariableBuildPoints.value, &aVar, &hVar );
+    LimitSum( g_maxVariableBuildPoints.value, g_variableBuildPointsPower.value, &aVar, &hVar );
 
     aFixed = a_colonies * g_alienColonyBuildPoints.value;
     hFixed = h_refineries * g_humanRefineryBuildPoints.value;
-    LimitSum( g_maxFixedBuildPoints.value, &aFixed, &hFixed );
+    LimitSum( g_maxFixedBuildPoints.value, 1.0f, &aFixed, &hFixed );
 
     level.alienExtraBuildPoints = aVar + aFixed;
     level.humanExtraBuildPoints = hVar + hFixed;
