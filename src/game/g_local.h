@@ -1153,6 +1153,7 @@ extern  vmCvar_t  g_alienGrangerDanceBonus;
 extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
 extern  vmCvar_t  g_maxVariableBuildPoints;
+extern  vmCvar_t  g_variableBuildPointsPower;
 extern  vmCvar_t  g_maxFixedBuildPoints;
 
 extern  vmCvar_t  g_bounty;

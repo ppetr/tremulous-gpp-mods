@@ -3454,8 +3454,18 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     }
 
     // Check if the enemy isn't blocking your building
-    if( g_creepPowerExclusion.integer && ( G_IsPowered( entity_origin ) != BA_NONE ) )
-      reason = IBE_BLOCKEDBYENEMY;
+    switch( g_creepPowerExclusion.integer )
+    {
+      case 0: break;
+      case 1: // only creep providing buildings are blocked
+        if( buildable != BA_A_OVERMIND && buildable != BA_A_SPAWN )
+          break;
+        // otherwise check the power
+      default:
+        if( G_IsPowered( entity_origin ) != BA_NONE )
+          reason = IBE_BLOCKEDBYENEMY;
+        break;
+    }
 
     // Check that there isn't another refinery/colony nearby
     if( buildable == BA_A_CREEPCOLONY )
@@ -3481,8 +3491,17 @@ itemBuildError_t G_CanBuild( gentity_t *ent, buildable_t buildable, int distance
     }
 
     // Check if the enemy isn't blocking your building
-    if( g_creepPowerExclusion.integer && ( G_IsCreepHere( entity_origin ) ) )
-      reason = IBE_BLOCKEDBYENEMY;
+    switch( g_creepPowerExclusion.integer )
+    {
+      case 0: break;
+      case 1: // only power providing buildings are blocked
+        if( buildable != BA_H_REACTOR && buildable != BA_H_REPEATER )
+          break;
+        // otherwise check the creep
+      default:
+        if( G_IsCreepHere( entity_origin ) )
+          reason = IBE_BLOCKEDBYENEMY;
+    }
 
     //this buildable requires a DCC
     if( BG_Buildable( buildable )->dccTest && !G_IsDCCBuilt( ) )
