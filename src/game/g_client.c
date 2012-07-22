@@ -1311,7 +1311,12 @@ void ClientSpawn( gentity_t *ent, gentity_t *spawn, vec3_t origin, vec3_t angles
   client->sess = savedSess;
   client->ps.ping = savedPing;
   client->lastkilled_client = -1;
+
   client->notrackEndTime = level.time;
+  if( teamLocal == TEAM_ALIENS )
+    client->notrackEndTime += g_teleportSafeTimeA.integer;
+  else if( teamLocal == TEAM_HUMANS )
+    client->notrackEndTime += g_teleportSafeTimeH.integer;
 
   for( i = 0; i < MAX_PERSISTANT; i++ )
     client->ps.persistant[ i ] = persistant[ i ];
