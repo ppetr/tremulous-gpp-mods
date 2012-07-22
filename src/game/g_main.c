@@ -125,6 +125,10 @@ vmCvar_t  g_sayAreaRange;
 vmCvar_t  g_floodMaxDemerits;
 vmCvar_t  g_floodMinTime;
 
+vmCvar_t  g_teleportSafeTimeA;
+vmCvar_t  g_teleportSafeTimeH;
+vmCvar_t  g_teleportSafeTimeRetriggerDelay;
+
 vmCvar_t  g_layouts;
 vmCvar_t  g_layoutAuto;
 
@@ -240,6 +244,10 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_floodMaxDemerits, "g_floodMaxDemerits", "5000", CVAR_ARCHIVE, 0, qfalse  },
   { &g_floodMinTime, "g_floodMinTime", "2000", CVAR_ARCHIVE, 0, qfalse  },
+
+  { &g_teleportSafeTimeA, "g_teleportSafeTimeA", "3000", CVAR_ARCHIVE, 0, qfalse },
+  { &g_teleportSafeTimeH, "g_teleportSafeTimeH", "3000", CVAR_ARCHIVE, 0, qfalse },
+  { &g_teleportSafeTimeRetriggerDelay, "g_teleportSafeTimeRetriggerDelay", "-3000", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_markDeconstruct, "g_markDeconstruct", "3", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 

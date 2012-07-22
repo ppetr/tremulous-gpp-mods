@@ -1311,6 +1311,7 @@ void ClientSpawn( gentity_t *ent, gentity_t *spawn, vec3_t origin, vec3_t angles
   client->sess = savedSess;
   client->ps.ping = savedPing;
   client->lastkilled_client = -1;
+  client->notrackEndTime = level.time;
 
   for( i = 0; i < MAX_PERSISTANT; i++ )
     client->ps.persistant[ i ] = persistant[ i ];
