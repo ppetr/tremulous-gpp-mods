@@ -102,6 +102,19 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles )
 
   if( player->client->sess.spectatorState == SPECTATOR_NOT )
   {
+    if( level.time >= player->client->notrackEndTime +
+                      g_teleportSafeTimeRetriggerDelay.integer )
+    {
+      if( player->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
+      {
+	player->client->notrackEndTime = level.time + g_teleportSafeTimeA.integer;
+      }
+      else
+      {
+	player->client->notrackEndTime = level.time + g_teleportSafeTimeH.integer;
+      }
+    }
+
     // kill anything at the destination
     G_KillBox( player );
 

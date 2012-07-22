@@ -450,6 +450,8 @@ struct gclient_s
   int                 trampleBuildablesHit[ MAX_TRAMPLE_BUILDABLES_TRACKED ];
 
   int                 lastCrushTime;        // Tyrant crush
+
+  int                 notrackEndTime;       // Time when the current no track period ends
 };
 
 
@@ -1191,6 +1193,10 @@ extern  vmCvar_t  g_voiceChats;
 
 extern  vmCvar_t  g_floodMaxDemerits;
 extern  vmCvar_t  g_floodMinTime;
+
+extern  vmCvar_t  g_teleportSafeTimeA;
+extern  vmCvar_t  g_teleportSafeTimeH;
+extern  vmCvar_t  g_teleportSafeTimeRetriggerDelay;
 
 extern  vmCvar_t  g_shove;
 
