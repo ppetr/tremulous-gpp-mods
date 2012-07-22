@@ -285,7 +285,9 @@ static const buildableAttributes_t bg_buildableList[ ] =
     "creepcolony",         //char      *buildName;
     "Creep colony",        //char      *humanName;
     "Provides extra build points in addition to those "
-    "provided by the Overmind.",
+    "provided by the Overmind. It is "
+    "essential that your team has enough of these buildings, "
+    "otherwise it will not be able to build.",
     "team_alien_creepcolony" ,//char      *entityName;
     TR_GRAVITY,            //trType_t  traj;
     0.0,                   //float     bounce;
@@ -600,7 +602,9 @@ static const buildableAttributes_t bg_buildableList[ ] =
     "refinery",            //char      *buildName;
     "Refinery",            //char      *humanName;
     "A neutrino refinery that provides extra build points "
-    "in addition to those provided by the Reactor.",
+    "in addition to those provided by the Reactor. It is "
+    "essential that your team has enough of these buildings, "
+    "otherwise it will not be able to build.",
     "team_human_refinery", //char      *entityName;
     TR_GRAVITY,            //trType_t  traj;
     0.0,                   //float     bounce;
