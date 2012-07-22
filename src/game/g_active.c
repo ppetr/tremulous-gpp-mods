@@ -763,8 +763,10 @@ void ClientTimerActions( gentity_t *ent, int msec )
       if( client->ps.ammo < BG_Weapon( WP_ALEVEL3_UPG )->maxAmmo )
       {
         // when being healed, recharge barbs faster too
-        if( client->ps.stats[ STAT_STATE ] & ( SS_HEALING_2X | SS_HEALING_3X ) )
-          ent->timestamp += 1500;
+        if( client->ps.stats[ STAT_STATE ] & SS_HEALING_2X )
+          ent->timestamp += 1000 * g_alienBarbsRegen2x.value;
+        else if( client->ps.stats[ STAT_STATE ] & SS_HEALING_3X )
+          ent->timestamp += 1000 * g_alienBarbsRegen3x.value;
         else
           ent->timestamp += 1000;
         if( ent->timestamp > LEVEL3_BOUNCEBALL_REGEN )
