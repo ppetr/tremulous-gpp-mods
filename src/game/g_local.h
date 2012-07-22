@@ -1152,6 +1152,8 @@ extern  vmCvar_t  g_alienMaxStage;
 extern  vmCvar_t  g_alienStage2Threshold;
 extern  vmCvar_t  g_alienStage3Threshold;
 extern  vmCvar_t  g_alienGrangerDanceBonus;
+extern  vmCvar_t  g_alienBarbsRegen2x;
+extern  vmCvar_t  g_alienBarbsRegen3x;
 extern  vmCvar_t  g_teamImbalanceWarnings;
 extern  vmCvar_t  g_freeFundPeriod;
 extern  vmCvar_t  g_maxVariableBuildPoints;
