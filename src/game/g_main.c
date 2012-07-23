@@ -125,6 +125,9 @@ vmCvar_t  g_lcannonDischargeBuildings;
 vmCvar_t  g_lcannonDischargeAttacker;
 vmCvar_t  g_lcannonDischargeRadius;
 
+vmCvar_t  g_humanScareNadeRange;
+vmCvar_t  g_humanScareNadeChance;
+
 vmCvar_t  g_unlagged;
 
 vmCvar_t  g_basiFlameMod;
@@ -291,6 +294,9 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_lcannonDischargeBuildings, "g_lcannonDischargeBuildings", "0.30", CVAR_ARCHIVE, 0, qfalse },
   { &g_lcannonDischargeAttacker, "g_lcannonDischargeAttacker", "0.40", CVAR_ARCHIVE, 0, qfalse },
   { &g_lcannonDischargeRadius, "g_lcannonDischargeRadius", "400", CVAR_ARCHIVE, 0, qfalse },
+
+  { &g_humanScareNadeRange, "g_humanScareNadeRange", "500", CVAR_ARCHIVE, 0, qtrue },
+  { &g_humanScareNadeChance, "g_humanScareNadeChance", "0.5", CVAR_ARCHIVE, 0, qtrue },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 

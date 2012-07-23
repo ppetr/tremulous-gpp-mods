@@ -453,8 +453,6 @@ void SP_misc_light_flare( gentity_t *self )
 }
 
 
-#define SCARE_RANGE 500
-#define SCARED_DROP_CHANCE 0.5f
 /*
 ===============
 G_CheckScared
@@ -465,7 +463,7 @@ Check if a taunt scared someone.
 void G_CheckScared( gentity_t *self )
 {
   int       entityList[ MAX_GENTITIES ];
-  vec3_t    range = { SCARE_RANGE, SCARE_RANGE, SCARE_RANGE };
+  vec3_t    range;
   vec3_t    mins, maxs;
   int       i, num;
   gentity_t *humanPlayer;
@@ -485,10 +483,15 @@ void G_CheckScared( gentity_t *self )
     default: return; // nobody is scared by small aliens
   }
 
+  if( g_humanScareNadeRange.integer <= 0 ||
+      g_humanScareNadeChance.value <= 0.0 )
+    return;
+
+  range[0] = range[1] = range[2] = g_humanScareNadeRange.integer;
   VectorAdd( self->client->ps.origin, range, maxs );
   VectorSubtract( self->client->ps.origin, range, mins );
 
-  //G_UnlaggedOn( ent, ent->client->ps.origin, SCARE_RANGE );
+  //G_UnlaggedOn( ent, ent->client->ps.origin, g_humanScareNadeRange.integer );
   num = trap_EntitiesInBox( mins, maxs, entityList, MAX_GENTITIES );
   for( i = 0; i < num; i++ )
   {
@@ -500,7 +503,7 @@ void G_CheckScared( gentity_t *self )
       if( BG_InventoryContainsUpgrade( UP_GRENADE, humanPlayer->client->ps.stats ) 
           && !BG_UpgradeIsActive( UP_GRENADE, humanPlayer->client->ps.stats ))
       {
-        if( random( ) >= SCARED_DROP_CHANCE )
+        if( random( ) >= g_humanScareNadeChance.value )
           continue;
 
         // check if the alien is behind the human

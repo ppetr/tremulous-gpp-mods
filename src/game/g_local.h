@@ -1170,6 +1170,9 @@ extern  vmCvar_t  g_lcannonDischargeBuildings;
 extern  vmCvar_t  g_lcannonDischargeAttacker;
 extern  vmCvar_t  g_lcannonDischargeRadius;
 
+extern  vmCvar_t  g_humanScareNadeRange;
+extern  vmCvar_t  g_humanScareNadeChance;
+
 extern  vmCvar_t  g_unlagged;
 
 extern  vmCvar_t  g_basiFlameMod;
