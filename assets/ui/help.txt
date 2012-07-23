@@ -103,7 +103,7 @@
   {
     "To prevent feeding by grangers when no building is allowed, spawning as grangers is disabled during sudden death.\n"
     "Overminds and reactors can be rebuilt during sudden death.\n"
-    "^1Note:^7 For now sudden death has been completely disabledi "
+    "^1Note:^7 For now sudden death has been completely disabled "
     "in favor of the new building model."
   }
   "^7Defence computers^7"
@@ -119,12 +119,6 @@
   {
     "Humans can spread poison on each other by touching."
   }
-  "^7Bounties for good players^7"
-  {
-    "If you kill a player with an above-average amout of credits/evos, you get a higher reward. "
-    "On the other hand, killing a player a below-average amout of credits/evos producess a lower reward. "
-    "This partly diminishes the effect of feeding by poor players."
-  }
   "^7Kill/death ratio^7"
   {
     "At every death, a kill/death ratio for the current life is displayed."
@@ -133,12 +127,6 @@
   {
     "The bounding box of barricades was made higher. "
     "This means that it is no longer possible to shoot through the top part of the barricades."
-  }
-  "^7Scare/nade^7"
-  {
-    "^6Experimental^7\n"
-    "If a large alien (a dragoon or a tyrant) taunts behind a human carrying a grenade,"
-    "the human has a chance of getting scared and dropping the grenade."
   }
   "^2You can help^7"
   {
