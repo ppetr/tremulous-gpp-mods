@@ -454,7 +454,6 @@ void G_CheckScared( gentity_t *self )
   vec3_t    mins, maxs;
   int       i, num;
   gentity_t *humanPlayer;
-  trace_t   tr;
 
   vec3_t    forward, right, up;
   vec3_t    muzzle;
