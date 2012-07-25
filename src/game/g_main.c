@@ -89,6 +89,7 @@ vmCvar_t  g_alienBuildQueueTime;
 vmCvar_t  g_alienColonyBuildPoints;
 vmCvar_t  g_alienColonyBuildPointsRate;
 vmCvar_t  g_alienColonyMaxAge;
+vmCvar_t  g_alienColonyRadius;
 vmCvar_t  g_humanBuildPoints;
 vmCvar_t  g_humanBuildQueueTime;
 vmCvar_t  g_humanDefenceComputerLimit;
@@ -96,6 +97,7 @@ vmCvar_t  g_humanDefenceComputerRate;
 vmCvar_t  g_humanRefineryBuildPoints;
 vmCvar_t  g_humanRefineryBuildPointsRate;
 vmCvar_t  g_humanRefineryMaxAge;
+vmCvar_t  g_humanRefineryRadius;
 vmCvar_t  g_humanStage;
 vmCvar_t  g_humanCredits;
 vmCvar_t  g_humanMaxStage;
@@ -259,6 +261,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_alienColonyBuildPoints, "g_alienColonyBuildPoints", "20", CVAR_ARCHIVE, 0, qfalse  },
   { &g_alienColonyBuildPointsRate, "g_alienColonyBuildPointsRate", "30", CVAR_ARCHIVE, 0, qfalse  },
   { &g_alienColonyMaxAge, "g_alienColonyMaxAge", "10", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_alienColonyRadius, "g_alienColonyRadius", CREEPCOLONY_RADIUS, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanBuildPoints, "g_humanBuildPoints", DEFAULT_HUMAN_BUILDPOINTS, 0, 0, qfalse  },
   { &g_humanBuildQueueTime, "g_humanBuildQueueTime", DEFAULT_HUMAN_QUEUE_TIME, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanDefenceComputerLimit, "g_humanDefenceComputerLimit", "3", CVAR_ARCHIVE, 0, qfalse  },
@@ -266,6 +269,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_humanRefineryBuildPoints, "g_humanRefineryBuildPoints", "20", CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanRefineryBuildPointsRate, "g_humanRefineryBuildPointsRate", "30", CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanRefineryMaxAge, "g_humanRefineryMaxAge", "10", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_humanRefineryRadius, "g_humanRefineryRadius", REFINERY_RADIUS, CVAR_ARCHIVE, 0, qfalse  },
   { &g_humanStage, "g_humanStage", "0", 0, 0, qfalse  },
   { &g_humanCredits, "g_humanCredits", "0", 0, 0, qfalse  },
   { &g_humanMaxStage, "g_humanMaxStage", DEFAULT_HUMAN_MAX_STAGE, 0, 0, qfalse, cv_humanMaxStage },
