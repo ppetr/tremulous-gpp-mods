@@ -315,13 +315,13 @@ gentity_t *G_IsGathered( team_t team, vec3_t origin, qboolean omRcOnly, gentity_
   {
     model1 = BA_A_CREEPCOLONY;
     //model2 = BA_A_OVERMIND;
-    minDistance = CREEPCOLONY_RADIUS;
+    minDistance = g_alienColonyRadius.integer;
   }
   else if( team == TEAM_HUMANS )
   {
     model1 = BA_H_REFINERY;
     //model2 = BA_H_REACTOR;
-    minDistance = REFINERY_RADIUS;
+    minDistance = g_humanRefineryRadius.integer;
   }
   else
     return NULL;
@@ -3193,8 +3193,8 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
       repeaterInRange = qfalse;
 
     // Check if this is a creep colony/refinery and it's in range
-    if( ( ( buildable == BA_H_REFINERY && distance < REFINERY_RADIUS ) ||
-          ( buildable == BA_A_CREEPCOLONY && distance < CREEPCOLONY_RADIUS ) ) &&
+    if( ( ( buildable == BA_H_REFINERY && distance < g_humanRefineryRadius.integer ) ||
+          ( buildable == BA_A_CREEPCOLONY && distance < g_alienColonyRadius.integer ) ) &&
         buildable == ent->s.modelindex )
     {
       gathererInRange = qtrue;

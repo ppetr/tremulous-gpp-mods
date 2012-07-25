@@ -336,7 +336,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define CREEPCOLONY_SPLASHRADIUS    300
 #define CREEPCOLONY_CREEPSIZE       120
 #define CREEPCOLONY_VALUE           ABVM(20)
-#define CREEPCOLONY_RADIUS          600
+#define CREEPCOLONY_RADIUS          "600"
 
 /*
  * ALIEN misc
@@ -630,7 +630,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define REFINERY_SPLASHDAMAGE       50
 #define REFINERY_SPLASHRADIUS       200
 #define REFINERY_VALUE              HBVM(20)
-#define REFINERY_RADIUS             600
+#define REFINERY_RADIUS             "600"
 
 /*
  * HUMAN misc
