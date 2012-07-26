@@ -24,6 +24,18 @@
     "You may not call a draw when one of the teams if making progress.\n"
     "Don't ask for admin privileges, you won't get any. Really."
   }
+  "^6Help us - donate^7"
+  {
+    "Renting a good server with a fast network connection costs money. "
+    "Developing the mods costs time. Without support from the community "
+    "we won't be able to sustain the server and to work on the mods. "
+    "Even a small contribution like 5 euro will help to pay the bills "
+    "for a few days.\n"
+    "\n"
+    "To donate, visit ^3http://tinyurl.com/DonateTremUBP^7 and follow the instructions.\n"
+    "\n"
+    "^1Top donors:^7 Defeated (10 euro)."
+  }
   "^3New building^7"
   {
     "Both teams can increase their build points by building so called "
