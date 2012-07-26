@@ -1838,6 +1838,7 @@ void Cmd_Class_f( gentity_t *ent )
       }
 
       //check there are no humans nearby
+      //but allow if there is creep
       VectorAdd( ent->client->ps.origin, range, maxs );
       VectorSubtract( ent->client->ps.origin, range, mins );
 
@@ -1850,6 +1851,8 @@ void Cmd_Class_f( gentity_t *ent )
             ( other->s.eType == ET_BUILDABLE && other->buildableTeam == TEAM_HUMANS &&
               other->powered ) )
         {
+          if( G_IsCreepHere( ent->client->ps.origin ) )
+            break; // always allow when on creep
           G_TriggerMenu( clientNum, MN_A_TOOCLOSE );
           return;
         }
