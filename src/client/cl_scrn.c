@@ -558,9 +558,9 @@ void SCR_UpdateScreen( void ) {
 		}
 
 		if ( com_speeds->integer ) {
-			re.EndFrame( &time_frontend, &time_backend );
+			re.EndFrame( &time_frontend, &time_backend, &time_GL );
 		} else {
-			re.EndFrame( NULL, NULL );
+			re.EndFrame( NULL, NULL, NULL );
 		}
 	}
 	

@@ -88,6 +88,14 @@ cvar_t	*r_ext_compiled_vertex_array;
 cvar_t	*r_ext_texture_env_add;
 cvar_t	*r_ext_texture_filter_anisotropic;
 cvar_t	*r_ext_max_anisotropy;
+cvar_t	*r_ext_vertex_buffer_object;
+cvar_t	*r_ext_vertex_array_object;
+cvar_t	*r_ext_vertex_shader;
+cvar_t  *r_ext_framebuffer_object;
+cvar_t	*r_ext_occlusion_query;
+cvar_t	*r_ext_timer_query;
+cvar_t  *r_ext_texture_float;
+cvar_t	*r_ext_texture3D;
 
 cvar_t	*r_ignoreGLErrors;
 cvar_t	*r_logFile;
@@ -95,7 +103,6 @@ cvar_t	*r_logFile;
 cvar_t	*r_stencilbits;
 cvar_t	*r_depthbits;
 cvar_t	*r_colorbits;
-cvar_t	*r_primitives;
 cvar_t	*r_texturebits;
 cvar_t  *r_ext_multisample;
 
@@ -149,6 +156,11 @@ cvar_t	*r_debugLight;
 cvar_t	*r_debugSort;
 cvar_t	*r_printShaders;
 cvar_t	*r_saveFontData;
+
+cvar_t	*r_flush;
+cvar_t	*r_depthPass;
+cvar_t	*r_perPixelLighting;
+cvar_t	*r_entityOcclusion;
 
 cvar_t	*r_marksOnTriangleMeshes;
 
@@ -753,21 +765,21 @@ void GL_SetDefaultState( void )
 
 	qglCullFace(GL_FRONT);
 
-	qglColor4f (1,1,1,1);
+	GL_Color4f( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	// initialize downstream texture unit if we're running
 	// in a multitexture environment
 	if ( qglActiveTextureARB ) {
-		GL_SelectTexture( 1 );
-		GL_TextureMode( r_textureMode->string );
-		GL_TexEnv( GL_MODULATE );
-		qglDisable( GL_TEXTURE_2D );
-		GL_SelectTexture( 0 );
+		int i;
+		
+		for( i = 1; i < glGlobals.maxTextureUnits; i++ ) {
+			GL_TexEnv( i, GL_MODULATE );
+		}
 	}
 
 	qglEnable(GL_TEXTURE_2D);
 	GL_TextureMode( r_textureMode->string );
-	GL_TexEnv( GL_MODULATE );
+	GL_TexEnv( 0, GL_MODULATE );
 
 	qglShadeModel( GL_SMOOTH );
 	qglDepthFunc( GL_LEQUAL );
@@ -833,31 +845,6 @@ void GfxInfo_f( void )
 		ri.Printf( PRINT_ALL, "GAMMA: software w/ %d overbright bits\n", tr.overbrightBits );
 	}
 
-	// rendering primitives
-	{
-		int		primitives;
-
-		// default is to use triangles if compiled vertex arrays are present
-		ri.Printf( PRINT_ALL, "rendering primitives: " );
-		primitives = r_primitives->integer;
-		if ( primitives == 0 ) {
-			if ( qglLockArraysEXT ) {
-				primitives = 2;
-			} else {
-				primitives = 1;
-			}
-		}
-		if ( primitives == -1 ) {
-			ri.Printf( PRINT_ALL, "none\n" );
-		} else if ( primitives == 2 ) {
-			ri.Printf( PRINT_ALL, "single glDrawElements\n" );
-		} else if ( primitives == 1 ) {
-			ri.Printf( PRINT_ALL, "multiple glArrayElement\n" );
-		} else if ( primitives == 3 ) {
-			ri.Printf( PRINT_ALL, "multiple glColor4ubv + glTexCoord2fv + glVertex3fv\n" );
-		}
-	}
-
 	ri.Printf( PRINT_ALL, "texturemode: %s\n", r_textureMode->string );
 	ri.Printf( PRINT_ALL, "picmip: %d\n", r_picmip->integer );
 	ri.Printf( PRINT_ALL, "texture bits: %d\n", r_texturebits->integer );
@@ -900,6 +887,14 @@ void R_Register( void )
 	r_ext_multitexture = ri.Cvar_Get( "r_ext_multitexture", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ext_compiled_vertex_array = ri.Cvar_Get( "r_ext_compiled_vertex_array", "1", CVAR_ARCHIVE | CVAR_LATCH);
 	r_ext_texture_env_add = ri.Cvar_Get( "r_ext_texture_env_add", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_vertex_buffer_object = ri.Cvar_Get( "r_ext_vertex_buffer_object", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_vertex_array_object = ri.Cvar_Get( "r_ext_vertex_array_object", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_vertex_shader = ri.Cvar_Get( "r_ext_vertex_shader", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_framebuffer_object = ri.Cvar_Get( "r_ext_framebuffer_object", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_occlusion_query = ri.Cvar_Get( "r_ext_occlusion_query", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_timer_query = ri.Cvar_Get( "r_ext_timer_query", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_texture_float = ri.Cvar_Get( "r_ext_texture_float", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_ext_texture3D = ri.Cvar_Get( "r_ext_texture3D", "1", CVAR_ARCHIVE | CVAR_LATCH);
 
 	r_picmip = ri.Cvar_Get ("r_picmip", GENERIC_HW_R_PICMIP_DEFAULT,
 			CVAR_ARCHIVE | CVAR_LATCH );
@@ -916,7 +911,7 @@ void R_Register( void )
 	r_stencilbits = ri.Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE | CVAR_LATCH );
 	r_depthbits = ri.Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0", CVAR_ARCHIVE | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_ext_multisample, 0, 4, qtrue );
+	ri.Cvar_CheckRange( r_ext_multisample, 0, 16, qtrue );
 	r_overBrightBits = ri.Cvar_Get ("r_overBrightBits", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE );
@@ -968,8 +963,6 @@ void R_Register( void )
 	r_railWidth = ri.Cvar_Get( "r_railWidth", "16", CVAR_ARCHIVE );
 	r_railCoreWidth = ri.Cvar_Get( "r_railCoreWidth", "6", CVAR_ARCHIVE );
 	r_railSegmentLength = ri.Cvar_Get( "r_railSegmentLength", "32", CVAR_ARCHIVE );
-
-	r_primitives = ri.Cvar_Get( "r_primitives", "0", CVAR_ARCHIVE );
 
 	r_ambientScale = ri.Cvar_Get( "r_ambientScale", "0.6", CVAR_CHEAT );
 	r_directedScale = ri.Cvar_Get( "r_directedScale", "1", CVAR_CHEAT );
@@ -1027,6 +1020,11 @@ void R_Register( void )
 	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va("%d", MAX_POLYS), 0);
 	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va("%d", MAX_POLYVERTS), 0);
 
+	r_flush = ri.Cvar_Get("r_flush","0", 0);
+	r_depthPass = ri.Cvar_Get("r_depthPass","0", CVAR_LATCH | CVAR_ARCHIVE);
+	r_perPixelLighting = ri.Cvar_Get("r_perPixelLighting","0", CVAR_LATCH | CVAR_ARCHIVE);
+	r_entityOcclusion = ri.Cvar_Get("r_entityOcclusion","0", CVAR_LATCH | CVAR_ARCHIVE);
+
 	// make sure all the commands added here are also
 	// removed in R_Shutdown
 	ri.Cmd_AddCommand( "imagelist", R_ImageList_f );
@@ -1050,17 +1048,27 @@ void R_Init( void ) {
 
 	ri.Printf( PRINT_ALL, "----- R_Init -----\n" );
 
+	if( sizeof(vaWord1_t) != 16 )
+		ri.Printf( PRINT_ERROR, "Incorrect vaWord1 size\n" );
+	if( sizeof(vaWord2_t) != 16 )
+		ri.Printf( PRINT_ERROR, "Incorrect vaWord2 size\n" );
+	if( sizeof(vaWord3_t) != 16 )
+		ri.Printf( PRINT_ERROR, "Incorrect vaWord3 size\n" );
+	if( sizeof(vboWord3_t) != 16 )
+		ri.Printf( PRINT_ERROR, "Incorrect vboWord3 size\n" );
+
 	// clear all our internal state
 	Com_Memset( &tr, 0, sizeof( tr ) );
+	tr.worldEntity.e.axis[0][0] = 1.0f;
+	tr.worldEntity.e.axis[1][1] = 1.0f;
+	tr.worldEntity.e.axis[2][2] = 1.0f;
 	Com_Memset( &backEnd, 0, sizeof( backEnd ) );
+	backEnd.entity2D.e.axis[0][0] = 1.0f;
+	backEnd.entity2D.e.axis[1][1] = 1.0f;
+	backEnd.entity2D.e.axis[2][2] = 1.0f;
 	Com_Memset( &tess, 0, sizeof( tess ) );
 
 //	Swap_Init();
-
-	if ( (intptr_t)tess.xyz & 15 ) {
-		Com_Printf( "WARNING: tess.xyz not 16 byte aligned\n" );
-	}
-	Com_Memset( tess.constantColor255, 255, sizeof( tess.constantColor255 ) );
 
 	//
 	// init function tables
@@ -1137,6 +1145,19 @@ void R_Init( void ) {
 	ri.Printf( PRINT_ALL, "----- finished R_Init -----\n" );
 }
 
+static void freeVboInfo(vboInfo_t *info) {
+	if( info ) {
+		freeVboInfo( info->left );
+		freeVboInfo( info->right );
+		if ( info->vao && qglIsVertexArray( info->vao ) )
+			qglDeleteVertexArrays( 1, &info->vao );
+		if ( info->ibo && qglIsBufferARB( info->ibo ) )
+			qglDeleteBuffersARB( 1, &info->ibo );
+		if ( info->vbo && qglIsBufferARB( info->vbo ) )
+			qglDeleteBuffersARB( 1, &info->vbo );
+	}
+}
+
 /*
 ===============
 RE_Shutdown
@@ -1161,6 +1182,61 @@ void RE_Shutdown( qboolean destroyWindow ) {
 		R_SyncRenderThread();
 		R_ShutdownCommandBuffers();
 		R_DeleteTextures();
+
+		if ( qglDeleteQueriesARB && tr.numShaders ) {
+			int shader;
+			
+			for ( shader = 0; shader < tr.numShaders; shader++ ) {
+				if ( tr.shaders[shader]->QueryID ) {
+					qglDeleteQueriesARB( 1, &tr.shaders[shader]->QueryID );
+					tr.shaders[shader]->QueryID = 0;
+				}
+			}
+		}
+
+		GL_VBO( 0, 0 );
+		if ( qglIsBufferARB && tr.numShaders ) {
+			int shader;
+			
+			for ( shader = 0; shader < tr.numShaders; shader++ ) {
+				freeVboInfo( tr.shaders[shader]->VBOs );
+				tr.shaders[shader]->VBOs = NULL;
+			}
+			if ( qglIsBufferARB( backEnd.worldVBO.vbo ) )
+				qglDeleteBuffersARB( 1, &backEnd.worldVBO.vbo );
+		}
+		if ( qglIsBufferARB && tr.numModels ) {
+			int model, lod;
+			
+			for ( model = 0; model < tr.numModels; model++ ) {
+				if ( tr.models[model]->type != MOD_MESH )
+					continue;
+				
+				for ( lod = 0; lod < MD3_MAX_LODS; lod++ ) {
+					freeVboInfo( tr.models[model]->VBOs[lod] );
+					tr.models[model]->VBOs[lod] = NULL;
+				}
+			}
+		}
+		
+		if ( tess.vertexBuffer ) {
+			ri.Free( tess.vertexBuffer );
+			tess.vertexBuffer = NULL;
+		}
+
+		if ( qglCreateProgram ) {
+			int shader, shader2;
+			
+			GL_Program( 0 );
+			for ( shader = 0; shader < tr.numShaders; shader++ ) {
+				if ( tr.shaders[shader]->GLSLprogram != 0 ) {
+					qglDeleteProgram( tr.shaders[shader]->GLSLprogram );
+					for ( shader2 = tr.numShaders - 1; shader2 >= shader; shader2-- )
+						if ( tr.shaders[shader2]->GLSLprogram == tr.shaders[shader]->GLSLprogram )
+							tr.shaders[shader2]->GLSLprogram = 0;
+				}
+			}			
+		}
 	}
 
 	R_DoneFreeType();

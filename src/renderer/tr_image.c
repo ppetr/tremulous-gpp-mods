@@ -115,7 +115,7 @@ void GL_TextureMode( const char *string ) {
 	for ( i = 0 ; i < tr.numImages ; i++ ) {
 		glt = tr.images[ i ];
 		if ( glt->mipmap ) {
-			GL_Bind (glt);
+			GL_BindImages (1, &glt);
 			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
 			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 		}
@@ -486,12 +486,13 @@ Upload32
 */
 extern qboolean charSet;
 static void Upload32( unsigned *data, 
-						  int width, int height, 
-						  qboolean mipmap, 
-						  qboolean picmip, 
-							qboolean lightMap,
-						  int *format, 
-						  int *pUploadWidth, int *pUploadHeight )
+		      int width, int height, 
+		      qboolean mipmap, 
+		      qboolean picmip, 
+		      qboolean lightMap,
+		      int *format, 
+		      int *pUploadWidth, int *pUploadHeight,
+		      qboolean *hasAlpha )
 {
 	int			samples;
 	unsigned	*scaledBuffer = NULL;
@@ -593,6 +594,7 @@ static void Upload32( unsigned *data,
 		// select proper internal format
 		if ( samples == 3 )
 		{
+			*hasAlpha = qfalse;
 			if(r_greyscale->integer)
 			{
 				if(r_texturebits->integer == 16)
@@ -628,6 +630,7 @@ static void Upload32( unsigned *data,
 		}
 		else if ( samples == 4 )
 		{
+			*hasAlpha = qtrue;
 			if(r_greyscale->integer)
 			{
 				if(r_texturebits->integer == 16)
@@ -790,28 +793,19 @@ image_t *R_CreateImage( const char *name, const byte *pic, int width, int height
 		image->TMU = 0;
 	}
 
-	if ( qglActiveTextureARB ) {
-		GL_SelectTexture( image->TMU );
-	}
-
-	GL_Bind(image);
+	GL_BindImages( 1, &image );
 
 	Upload32( (unsigned *)pic, image->width, image->height, 
-								image->mipmap,
-								allowPicmip,
-								isLightmap,
-								&image->internalFormat,
-								&image->uploadWidth,
-								&image->uploadHeight );
+		  image->mipmap,
+		  allowPicmip,
+		  isLightmap,
+		  &image->internalFormat,
+		  &image->uploadWidth,
+		  &image->uploadHeight,
+		  &image->hasAlpha );
 
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapClampMode );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapClampMode );
-
-	qglBindTexture( GL_TEXTURE_2D, 0 );
-
-	if ( image->TMU == 1 ) {
-		GL_SelectTexture( 0 );
-	}
 
 	hash = generateHashValue(name);
 	image->next = hashTable[hash];
@@ -974,6 +968,68 @@ image_t	*R_FindImageFile( const char *name, qboolean mipmap, qboolean allowPicmi
 	return image;
 }
 
+
+image_t *R_CombineImages( int num, image_t **images ) {
+	int	i, cols, width, height, lod, maxLod, xoffs;
+	byte	*pic;
+	image_t	*result;
+	
+	if( num <= 1 )
+		return NULL;
+	
+	/* check that all images are compatible */
+	for( i = 1; i < num; i++ ) {
+		if( images[i]->uploadWidth    != images[0]->uploadWidth ||
+		    images[i]->uploadHeight   != images[0]->uploadHeight ||
+		    images[i]->internalFormat != images[0]->internalFormat )
+			return NULL;
+	}
+	
+	width = images[0]->uploadWidth;
+	height = images[0]->uploadHeight;
+	
+	/* Check that they fit into one texture */
+	for( cols = 1; cols < num; cols *= 2 ) {
+		if( cols * width >= glConfig.maxTextureSize )
+			break;
+	}
+	
+	/* TODO: avoid the GPU->CPU->GPU roundtrip with some render-to-texture
+	 *       magic */
+	pic = ri.Hunk_AllocateTempMemory( cols * width * height * 4 );
+	Com_Memset( pic, 0, cols * width * height * 4 );
+	
+	result = R_CreateImage( "*combined", pic, cols * width,
+				height, images[0]->mipmap,
+				images[0]->allowPicmip, GL_REPEAT );
+	
+	if( !images[0]->mipmap ) {
+		maxLod = 0;
+	} else {
+		for( maxLod = 0; (1<<maxLod) < width &&
+			     (1<<maxLod) < height; maxLod++ );
+	}
+	for( lod = 0; lod <= maxLod; lod++ ) {
+		xoffs = 0;
+		for( i = 0; i < num; i++ ) {
+			GL_BindImages( 1, &images[i] );
+			qglGetTexImage( GL_TEXTURE_2D, lod, GL_RGBA, GL_UNSIGNED_BYTE, pic );
+			GL_BindImages( 1, &result );
+			qglTexSubImage2D( GL_TEXTURE_2D, lod, 
+					  xoffs, 0,
+					  width, height,
+					  GL_RGBA, GL_UNSIGNED_BYTE, pic );
+			GL_CheckErrors();
+			
+			xoffs += width;
+		}
+		width >>= 1; height >>= 1;
+	}
+	
+	ri.Hunk_FreeTempMemory( pic );
+	
+	return result;
+}
 
 /*
 ================
@@ -1296,14 +1352,7 @@ void R_DeleteTextures( void ) {
 	tr.numImages = 0;
 
 	Com_Memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
-	if ( qglActiveTextureARB ) {
-		GL_SelectTexture( 1 );
-		qglBindTexture( GL_TEXTURE_2D, 0 );
-		GL_SelectTexture( 0 );
-		qglBindTexture( GL_TEXTURE_2D, 0 );
-	} else {
-		qglBindTexture( GL_TEXTURE_2D, 0 );
-	}
+	GL_BindImages( 0, NULL );
 }
 
 /*
@@ -1480,12 +1529,12 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 	if ( strcmp( name + strlen( name ) - 5, ".skin" ) ) {
 		skin->numSurfaces = 1;
 		skin->surfaces[0] = ri.Hunk_Alloc( sizeof(skin->surfaces[0]), h_low );
-		skin->surfaces[0]->shader = R_FindShader( name, LIGHTMAP_NONE, qtrue );
+		skin->surfaces[0]->shader = R_FindShader( name, LIGHTMAP_MD3, qtrue );
 		return hSkin;
 	}
 
 	// load and parse the skin file
-    ri.FS_ReadFile( name, &text.v );
+	ri.FS_ReadFile( name, &text.v );
 	if ( !text.c ) {
 		return 0;
 	}
@@ -1515,7 +1564,7 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 
 		surf = skin->surfaces[ skin->numSurfaces ] = ri.Hunk_Alloc( sizeof( *skin->surfaces[0] ), h_low );
 		Q_strncpyz( surf->name, surfName, sizeof( surf->name ) );
-		surf->shader = R_FindShader( token, LIGHTMAP_NONE, qtrue );
+		surf->shader = R_FindShader( token, LIGHTMAP_MD3, qtrue );
 		skin->numSurfaces++;
 	}
 

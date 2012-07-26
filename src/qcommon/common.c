@@ -87,6 +87,7 @@ cvar_t	*com_maxfpsMinimized;
 int		time_game;
 int		time_frontend;		// renderer frontend time
 int		time_backend;		// renderer backend time
+int		time_GL;		// time to render reported by GL_EXT_timer_query
 
 int			com_frameTime;
 int			com_frameMsec;
@@ -2940,8 +2941,8 @@ void Com_Frame( void ) {
 		sv -= time_game;
 		cl -= time_frontend + time_backend;
 
-		Com_Printf ("frame:%i all:%3i sv:%3i ev:%3i cl:%3i gm:%3i rf:%3i bk:%3i\n", 
-					 com_frameNumber, all, sv, ev, cl, time_game, time_frontend, time_backend );
+		Com_Printf ("frame:%i all:%3i sv:%3i ev:%3i cl:%3i gm:%3i rf:%3i bk:%3i gl:%3i\n", 
+			    com_frameNumber, all, sv, ev, cl, time_game, time_frontend, time_backend, time_GL );
 	}	
 
 	//

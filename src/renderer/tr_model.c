@@ -257,9 +257,9 @@ R_LoadMD3
 =================
 */
 static qboolean R_LoadMD3 (model_t *mod, int lod, void *buffer, const char *mod_name ) {
-	int					i, j;
+	int			i, j, k;
 	md3Header_t			*pinmodel;
-    md3Frame_t			*frame;
+	md3Frame_t			*frame;
 	md3Surface_t		*surf;
 	md3Shader_t			*shader;
 	md3Triangle_t		*tri;
@@ -268,6 +268,9 @@ static qboolean R_LoadMD3 (model_t *mod, int lod, void *buffer, const char *mod_
 	md3Tag_t			*tag;
 	int					version;
 	int					size;
+	int			VBOkey = VBOKEY_MD3_KEYS | (mod->index << 8) | (lod << 6);
+	int 		numVerts, numFrames;
+	trRefEntity_t	thisEntity, *oldEntity;
 
 	pinmodel = (md3Header_t *)buffer;
 
@@ -283,70 +286,61 @@ static qboolean R_LoadMD3 (model_t *mod, int lod, void *buffer, const char *mod_
 	mod->dataSize += size;
 	mod->md3[lod] = ri.Hunk_Alloc( size, h_low );
 
-	Com_Memcpy (mod->md3[lod], buffer, LittleLong(pinmodel->ofsEnd) );
+	Com_Memcpy (mod->md3[lod], buffer, size );
 
-    LL(mod->md3[lod]->ident);
-    LL(mod->md3[lod]->version);
-    LL(mod->md3[lod]->numFrames);
-    LL(mod->md3[lod]->numTags);
-    LL(mod->md3[lod]->numSurfaces);
-    LL(mod->md3[lod]->ofsFrames);
-    LL(mod->md3[lod]->ofsTags);
-    LL(mod->md3[lod]->ofsSurfaces);
-    LL(mod->md3[lod]->ofsEnd);
+	LL(mod->md3[lod]->ident);
+	LL(mod->md3[lod]->version);
+	LL(mod->md3[lod]->numFrames);
+	LL(mod->md3[lod]->numTags);
+	LL(mod->md3[lod]->numSurfaces);
+	LL(mod->md3[lod]->ofsFrames);
+	LL(mod->md3[lod]->ofsTags);
+	LL(mod->md3[lod]->ofsSurfaces);
+	LL(mod->md3[lod]->ofsEnd);
 
-	if ( mod->md3[lod]->numFrames < 1 ) {
+	numFrames = mod->md3[lod]->numFrames;
+	if ( numFrames < 1 ) {
 		ri.Printf( PRINT_WARNING, "R_LoadMD3: %s has no frames\n", mod_name );
 		return qfalse;
 	}
     
 	// swap all the frames
-    frame = (md3Frame_t *) ( (byte *)mod->md3[lod] + mod->md3[lod]->ofsFrames );
-    for ( i = 0 ; i < mod->md3[lod]->numFrames ; i++, frame++) {
-    	frame->radius = LittleFloat( frame->radius );
-        for ( j = 0 ; j < 3 ; j++ ) {
-            frame->bounds[0][j] = LittleFloat( frame->bounds[0][j] );
-            frame->bounds[1][j] = LittleFloat( frame->bounds[1][j] );
-	    	frame->localOrigin[j] = LittleFloat( frame->localOrigin[j] );
-        }
+	frame = (md3Frame_t *) ( (byte *)mod->md3[lod] + mod->md3[lod]->ofsFrames );
+	for ( i = 0 ; i < numFrames ; i++, frame++) {
+		frame->radius = LittleFloat( frame->radius );
+		for ( j = 0 ; j < 3 ; j++ ) {
+			frame->bounds[0][j] = LittleFloat( frame->bounds[0][j] );
+			frame->bounds[1][j] = LittleFloat( frame->bounds[1][j] );
+			frame->localOrigin[j] = LittleFloat( frame->localOrigin[j] );
+		}
 	}
 
 	// swap all the tags
-    tag = (md3Tag_t *) ( (byte *)mod->md3[lod] + mod->md3[lod]->ofsTags );
-    for ( i = 0 ; i < mod->md3[lod]->numTags * mod->md3[lod]->numFrames ; i++, tag++) {
-        for ( j = 0 ; j < 3 ; j++ ) {
+	tag = (md3Tag_t *) ( (byte *)mod->md3[lod] + mod->md3[lod]->ofsTags );
+	for ( i = 0 ; i < mod->md3[lod]->numTags * numFrames ; i++, tag++) {
+		for ( j = 0 ; j < 3 ; j++ ) {
 			tag->origin[j] = LittleFloat( tag->origin[j] );
 			tag->axis[0][j] = LittleFloat( tag->axis[0][j] );
 			tag->axis[1][j] = LittleFloat( tag->axis[1][j] );
 			tag->axis[2][j] = LittleFloat( tag->axis[2][j] );
-        }
+		}
 	}
 
 	// swap all the surfaces
 	surf = (md3Surface_t *) ( (byte *)mod->md3[lod] + mod->md3[lod]->ofsSurfaces );
 	for ( i = 0 ; i < mod->md3[lod]->numSurfaces ; i++) {
-
-        LL(surf->ident);
-        LL(surf->flags);
-        LL(surf->numFrames);
-        LL(surf->numShaders);
-        LL(surf->numTriangles);
-        LL(surf->ofsTriangles);
-        LL(surf->numVerts);
-        LL(surf->ofsShaders);
-        LL(surf->ofsSt);
-        LL(surf->ofsXyzNormals);
-        LL(surf->ofsEnd);
+		LL(surf->ident);
+		LL(surf->flags);
+		LL(surf->numFrames);
+		LL(surf->numShaders);
+		LL(surf->numTriangles);
+		LL(surf->ofsTriangles);
+		LL(surf->numVerts);
+		LL(surf->ofsShaders);
+		LL(surf->ofsSt);
+		LL(surf->ofsXyzNormals);
+		LL(surf->ofsEnd);
 		
-		if ( surf->numVerts > SHADER_MAX_VERTEXES ) {
-			ri.Error (ERR_DROP, "R_LoadMD3: %s has more than %i verts on a surface (%i)",
-				mod_name, SHADER_MAX_VERTEXES, surf->numVerts );
-		}
-		if ( surf->numTriangles*3 > SHADER_MAX_INDEXES ) {
-			ri.Error (ERR_DROP, "R_LoadMD3: %s has more than %i triangles on a surface (%i)",
-				mod_name, SHADER_MAX_INDEXES / 3, surf->numTriangles );
-		}
-	
 		// change to surface identifier
 		surf->ident = SF_MD3;
 
@@ -360,19 +354,6 @@ static qboolean R_LoadMD3 (model_t *mod, int lod, void *buffer, const char *mod_
 			surf->name[j-2] = 0;
 		}
 
-        // register the shaders
-        shader = (md3Shader_t *) ( (byte *)surf + surf->ofsShaders );
-        for ( j = 0 ; j < surf->numShaders ; j++, shader++ ) {
-            shader_t	*sh;
-
-            sh = R_FindShader( shader->name, LIGHTMAP_NONE, qtrue );
-			if ( sh->defaultShader ) {
-				shader->shaderIndex = 0;
-			} else {
-				shader->shaderIndex = sh->index;
-			}
-        }
-
 		// swap all the triangles
 		tri = (md3Triangle_t *) ( (byte *)surf + surf->ofsTriangles );
 		for ( j = 0 ; j < surf->numTriangles ; j++, tri++ ) {
@@ -380,26 +361,136 @@ static qboolean R_LoadMD3 (model_t *mod, int lod, void *buffer, const char *mod_
 			LL(tri->indexes[1]);
 			LL(tri->indexes[2]);
 		}
-
+		
 		// swap all the ST
-        st = (md3St_t *) ( (byte *)surf + surf->ofsSt );
-        for ( j = 0 ; j < surf->numVerts ; j++, st++ ) {
-            st->st[0] = LittleFloat( st->st[0] );
-            st->st[1] = LittleFloat( st->st[1] );
-        }
-
+		st = (md3St_t *) ( (byte *)surf + surf->ofsSt );
+		for ( j = 0 ; j < surf->numVerts ; j++, st++ ) {
+			st->st[0] = LittleFloat( st->st[0] );
+			st->st[1] = LittleFloat( st->st[1] );
+		}
+		
 		// swap all the XyzNormals
-        xyz = (md3XyzNormal_t *) ( (byte *)surf + surf->ofsXyzNormals );
-        for ( j = 0 ; j < surf->numVerts * surf->numFrames ; j++, xyz++ ) 
+		xyz = (md3XyzNormal_t *) ( (byte *)surf + surf->ofsXyzNormals );
+		for ( j = 0 ; j < surf->numVerts * surf->numFrames ; j++, xyz++ ) 
 		{
-            xyz->xyz[0] = LittleShort( xyz->xyz[0] );
-            xyz->xyz[1] = LittleShort( xyz->xyz[1] );
-            xyz->xyz[2] = LittleShort( xyz->xyz[2] );
+			xyz->xyz[0] = LittleShort( xyz->xyz[0] );
+			xyz->xyz[1] = LittleShort( xyz->xyz[1] );
+			xyz->xyz[2] = LittleShort( xyz->xyz[2] );
+			
+			xyz->normal = LittleShort( xyz->normal );
+		}
+		surf = (md3Surface_t *)( (byte *)surf + surf->ofsEnd );
+	}
+	
+	// register shaders and create VBOs
+	surf = (md3Surface_t *) ( (byte *)mod->md3[lod] + mod->md3[lod]->ofsSurfaces );
+	for ( i = 0 ; i < mod->md3[lod]->numSurfaces ; i++) {
+		int shadertype = LIGHTMAP_NONE;
 
-            xyz->normal = LittleShort( xyz->normal );
-        }
+		shader = (md3Shader_t *) ( (byte *)surf + surf->ofsShaders );
 
-
+		if( qglCreateShader && qglGenBuffersARB ) {
+			// create VBO for all key frames of this surface
+			numVerts = (surf->numVerts + 3) & -4;
+			
+			surf->flags = VBOkey | i; // remember VBO key of surface
+			RB_CreateShaderVBO( &mod->VBOs[lod], VBOkey | i );
+			
+			oldEntity = backEnd.currentEntity;
+			backEnd.currentEntity = &thisEntity;
+			
+			qglGenBuffersARB( 1, &mod->VBOs[lod]->vbo );
+			qglGenBuffersARB( 1, &mod->VBOs[lod]->ibo );
+			
+			GL_VBO( mod->VBOs[lod]->vbo, mod->VBOs[lod]->ibo );
+			
+			// render first frame
+			thisEntity.e.frame = 0;
+			thisEntity.e.oldframe = 0;
+			thisEntity.e.backlerp = 0.0f;
+			tess.fogNum = 0;
+			
+			RB_ClearVertexBuffer( );
+			(*rb_surfaceTable[SF_MD3])((surfaceType_t *)surf);
+			
+			RB_SetupVertexBuffer( NULL );
+			
+			(*rb_surfaceTable[SF_MD3])((surfaceType_t *)surf);
+			
+			RB_VertexArrayToVBO();
+			
+			qglBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB,
+					  tess.indexInc * tess.numIndexes,
+					  tess.indexPtr.p16,
+					  GL_STATIC_DRAW_ARB );
+			qglBufferDataARB( GL_ARRAY_BUFFER_ARB,
+					  sizeof(vaWord1_t) * numVerts +
+					  sizeof(vaWord2_t) * numVerts * numFrames +
+					  sizeof(vboWord3_t) * numVerts * numFrames,
+					  NULL, GL_STATIC_DRAW_ARB );
+			mod->VBOs[lod]->offs1 = NULL;
+			qglBufferSubDataARB( GL_ARRAY_BUFFER_ARB, 
+					     (intptr_t)(mod->VBOs[lod]->offs1),
+					     sizeof(vaWord1_t) * tess.numVertexes,
+					     tess.vertexPtr1 );
+			mod->VBOs[lod]->offs2 = (vaWord2_t *)(mod->VBOs[lod]->offs1 + numVerts);
+			qglBufferSubDataARB( GL_ARRAY_BUFFER_ARB, 
+					     (intptr_t)(mod->VBOs[lod]->offs2),
+					     sizeof(vaWord2_t) * tess.numVertexes,
+					     tess.vertexPtr2 );
+			mod->VBOs[lod]->offs3 = (vboWord3_t *)(mod->VBOs[lod]->offs2 + numVerts * numFrames);
+			qglBufferSubDataARB( GL_ARRAY_BUFFER_ARB, 
+					     (intptr_t)(mod->VBOs[lod]->offs3),
+					     sizeof(vboWord3_t) * tess.numVertexes,
+					     tess.vertexPtr3 );
+			
+			mod->VBOs[lod]->numIndexes = tess.numIndexes;
+			mod->VBOs[lod]->minIndex = 0;
+			mod->VBOs[lod]->maxIndex = tess.numVertexes - 1;
+			RB_ClearVertexBuffer();
+			
+			// render further frames
+			for( k = 1; k < numFrames; k++ ) {
+				thisEntity.e.frame = k;
+				thisEntity.e.oldframe = k;
+				thisEntity.e.backlerp = 0.0f;
+				
+				(*rb_surfaceTable[SF_MD3])((surfaceType_t *)surf);
+				
+				RB_SetupVertexBuffer( NULL );
+				
+				(*rb_surfaceTable[SF_MD3])((surfaceType_t *)surf);
+				
+				RB_VertexArrayToVBO();
+				
+				qglBufferSubDataARB( GL_ARRAY_BUFFER_ARB,
+						     (intptr_t)(mod->VBOs[lod]->offs2 + numVerts * k),
+						     sizeof(vaWord2_t) * tess.numVertexes,
+						     tess.vertexPtr2 );
+				qglBufferSubDataARB( GL_ARRAY_BUFFER_ARB,
+						     (intptr_t)(mod->VBOs[lod]->offs3 + numVerts * k),
+						     sizeof(vaWord3_t) * tess.numVertexes,
+						     tess.vertexPtr3 );
+					
+				RB_ClearVertexBuffer();
+			}
+			
+			shadertype = LIGHTMAP_MD3;
+			backEnd.currentEntity = oldEntity;
+		}
+		
+		// register the shaders
+		for ( j = 0 ; j < surf->numShaders ; j++, shader++ ) {
+			shader_t	*sh;
+			
+			sh = R_FindShader( shader->name, shadertype, qtrue );
+			if ( sh->defaultShader ) {
+				shader->shaderIndex = 0;
+			} else {
+				shader->shaderIndex = sh->index;
+			}
+		}
+		
 		// find the next surface
 		surf = (md3Surface_t *)( (byte *)surf + surf->ofsEnd );
 	}
@@ -612,19 +703,6 @@ static qboolean R_LoadMDR( model_t *mod, void *buffer, int filesize, const char 
 			surf->numTriangles = LittleLong(cursurf->numTriangles);
 			// numBoneReferences and BoneReferences generally seem to be unused
 			
-			// now do the checks that may fail.
-			if ( surf->numVerts > SHADER_MAX_VERTEXES ) 
-			{
-				ri.Printf(PRINT_WARNING, "R_LoadMDR: %s has more than %i verts on a surface (%i)",
-					  mod_name, SHADER_MAX_VERTEXES, surf->numVerts );
-				return qfalse;
-			}
-			if ( surf->numTriangles*3 > SHADER_MAX_INDEXES ) 
-			{
-				ri.Printf(PRINT_WARNING, "R_LoadMDR: %s has more than %i triangles on a surface (%i)",
-					  mod_name, SHADER_MAX_INDEXES / 3, surf->numTriangles );
-				return qfalse;
-			}
 			// lowercase the surface name so skin compares are faster
 			Q_strlwr( surf->name );
 
@@ -829,15 +907,6 @@ static qboolean R_LoadMD4( model_t *mod, void *buffer, const char *mod_name ) {
 			LL(surf->ofsVerts);
 			LL(surf->ofsEnd);
 			
-			if ( surf->numVerts > SHADER_MAX_VERTEXES ) {
-				ri.Error (ERR_DROP, "R_LoadMD3: %s has more than %i verts on a surface (%i)",
-					mod_name, SHADER_MAX_VERTEXES, surf->numVerts );
-			}
-			if ( surf->numTriangles*3 > SHADER_MAX_INDEXES ) {
-				ri.Error (ERR_DROP, "R_LoadMD3: %s has more than %i triangles on a surface (%i)",
-					mod_name, SHADER_MAX_INDEXES / 3, surf->numTriangles );
-			}
-
 			// change to surface identifier
 			surf->ident = SF_MD4;
 
@@ -916,7 +985,7 @@ void RE_BeginRegistration( glconfig_t *glconfigOut ) {
 
 	R_SyncRenderThread();
 
-	tr.viewCluster = -1;		// force markleafs to regenerate
+	tr.viewParms.viewCluster = -1;		// force markleafs to regenerate
 	R_ClearFlares();
 	RE_ClearScene();
 

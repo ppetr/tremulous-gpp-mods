@@ -82,7 +82,7 @@ typedef struct {
 	void	(*BeginFrame)( stereoFrame_t stereoFrame );
 
 	// if the pointers are not NULL, timing info will be returned
-	void	(*EndFrame)( int *frontEndMsec, int *backEndMsec );
+	void	(*EndFrame)( int *frontEndMsec, int *backEndMsec, int *GLMsec );
 
 
 	int		(*MarkFragments)( int numPoints, const vec3_t *points, const vec3_t projection,

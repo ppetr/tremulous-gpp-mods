@@ -697,6 +697,10 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 					stage->bundle[0].numImageAnimations++;
 				}
 			}
+			if( stage->bundle[0].numImageAnimations > 1 ) {
+				stage->bundle[0].combinedImage = R_CombineImages(stage->bundle[0].numImageAnimations,
+										 stage->bundle[0].image);
+			}
 		}
 		else if ( !Q_stricmp( token, "videoMap" ) )
 		{
@@ -835,7 +839,10 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			}
 			else if ( !Q_stricmp( token, "identityLighting" ) )
 			{
-				stage->rgbGen = CGEN_IDENTITY_LIGHTING;
+				if ( r_overBrightBits->integer == 0 )
+					stage->rgbGen = CGEN_IDENTITY;
+				else
+					stage->rgbGen = CGEN_IDENTITY_LIGHTING;
 			}
 			else if ( !Q_stricmp( token, "entity" ) )
 			{
@@ -1010,6 +1017,43 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		}
 	}
 
+	// I assume DST_ALPHA is always 1, so I just replace it with GL_ONE
+	if ( blendSrcBits == GLS_SRCBLEND_DST_ALPHA )
+		blendSrcBits = GLS_SRCBLEND_ONE;
+	else if ( blendSrcBits == GLS_SRCBLEND_ONE_MINUS_DST_ALPHA )
+		blendSrcBits = GLS_SRCBLEND_ZERO;
+
+	if ( blendDstBits == GLS_DSTBLEND_DST_ALPHA )
+		blendDstBits = GLS_DSTBLEND_ONE;
+	else if ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_DST_ALPHA )
+		blendDstBits = GLS_DSTBLEND_ZERO;
+
+	// If the image has no (real) alpha channel, we can do the same
+	// for SRC_ALPHA
+	if ( !stage->bundle[0].image[0]->hasAlpha &&
+	     stage->alphaGen == AGEN_IDENTITY) {
+		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA )
+			blendSrcBits = GLS_SRCBLEND_ONE;
+		else if ( blendSrcBits == GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA )
+			blendSrcBits = GLS_SRCBLEND_ZERO;
+		
+		if ( blendDstBits == GLS_DSTBLEND_SRC_ALPHA )
+			blendDstBits = GLS_DSTBLEND_ONE;
+		else if ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA )
+			blendDstBits = GLS_DSTBLEND_ZERO;
+
+		// also alphaFunc makes no sense without alpha
+		atestBits = 0;
+	} else {
+		// image has alpha, if we use alpha blending we can optimise
+		// alphafunc NONE to alphafunc GT0
+		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA &&
+		     blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA &&
+		     atestBits == 0 ) {
+			atestBits = GLS_ATEST_GT_0;
+		}
+	}
+
 	//
 	// if cgen isn't explicitly specified, use either identity or identitylighting
 	//
@@ -1023,7 +1067,6 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 		}
 	}
 
-
 	//
 	// implicitly assume that a GL_ONE GL_ZERO blend mask disables blending
 	//
@@ -1035,7 +1078,7 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 	}
 
 	// decide which agens we can skip
-	if ( stage->alphaGen == CGEN_IDENTITY ) {
+	if ( stage->alphaGen == AGEN_IDENTITY ) {
 		if ( stage->rgbGen == CGEN_IDENTITY
 			|| stage->rgbGen == CGEN_LIGHTING_DIFFUSE ) {
 			stage->alphaGen = AGEN_SKIP;
@@ -1403,6 +1446,7 @@ static qboolean ParseShader( char **text )
 {
 	char *token;
 	int s;
+	qboolean	polygonOffset = qfalse;
 
 	s = 0;
 
@@ -1518,7 +1562,7 @@ static qboolean ParseShader( char **text )
 		// polygonOffset
 		else if ( !Q_stricmp( token, "polygonOffset" ) )
 		{
-			shader.polygonOffset = qtrue;
+			polygonOffset = qtrue;
 			continue;
 		}
 		// entityMergable, allowing sprite surfaces from multiple entities
@@ -1611,6 +1655,13 @@ static qboolean ParseShader( char **text )
 		return qfalse;
 	}
 
+	if ( polygonOffset ) {
+		int i;
+		for( i = 0; i < s; i++ ) {
+			stages[i].stateBits |= GLS_POLYGON_OFFSET;
+		}
+	}
+
 	shader.explicitlyDefined = qtrue;
 
 	return qtrue;
@@ -1634,6 +1685,11 @@ otherwise set to the generic stage function
 */
 static void ComputeStageIteratorFunc( void )
 {
+	int stage;
+	int units = glConfig.numTextureUnits;
+
+	if (!units) units = 1;
+	
 	shader.optimalStageIteratorFunc = RB_StageIteratorGeneric;
 
 	//
@@ -1644,6 +1700,137 @@ static void ComputeStageIteratorFunc( void )
 		shader.optimalStageIteratorFunc = RB_StageIteratorSky;
 		goto done;
 	}
+
+	if ( qglGenBuffersARB &&
+	     !r_greyscale->integer &&
+	     shader.lightmapIndex != LIGHTMAP_2D ) {
+		shader.useVBO = qtrue;
+	}
+	
+	// check all deformation stages
+	for ( stage = 0; stage < shader.numDeforms; stage ++ ) {
+		switch ( shader.deforms[stage].deformation ) {
+		case DEFORM_NONE:
+			break;
+		case DEFORM_WAVE:
+		case DEFORM_NORMALS:
+		case DEFORM_BULGE:
+			shader.useVBO = qfalse;
+			break;
+		case DEFORM_MOVE:
+		case DEFORM_PROJECTION_SHADOW:
+		case DEFORM_AUTOSPRITE:
+		case DEFORM_AUTOSPRITE2:
+		case DEFORM_TEXT0:
+		case DEFORM_TEXT1:
+		case DEFORM_TEXT2:
+		case DEFORM_TEXT3:
+		case DEFORM_TEXT4:
+		case DEFORM_TEXT5:
+		case DEFORM_TEXT6:
+		case DEFORM_TEXT7:
+			shader.useVBO = qfalse;
+			break;
+		}
+	}
+	
+	// check all shader stages
+	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
+	{
+		shaderStage_t *pStage = &stages[stage];
+		int           bundle;
+		
+		if ( !pStage->active )
+		{
+			break;
+		}
+		
+		switch ( pStage->rgbGen ) {
+		case CGEN_IDENTITY_LIGHTING:
+		case CGEN_IDENTITY:
+		case CGEN_ENTITY:
+		case CGEN_ONE_MINUS_ENTITY:
+		case CGEN_CONST:
+		case CGEN_WAVEFORM:
+			// constant color, VBO possible
+			break;
+		case CGEN_EXACT_VERTEX:
+		case CGEN_VERTEX:
+			// vertex colors, VBO possible
+			break;
+		case CGEN_LIGHTING_DIFFUSE:
+			// normals needed, no VBO possible
+			shader.useVBO = qfalse;
+			break;
+		case CGEN_ONE_MINUS_VERTEX:
+			// vertex colors needed, no VBO
+			shader.useVBO = qfalse;
+			break;
+		case CGEN_BAD:
+		case CGEN_FOG:
+			// no vertex colors needed, no VBO
+			shader.useVBO = qfalse;
+			break;
+		}
+
+		switch ( pStage->alphaGen ) {
+		case AGEN_SKIP:
+			break;
+		case AGEN_IDENTITY:
+		case AGEN_ENTITY:
+		case AGEN_ONE_MINUS_ENTITY:
+		case AGEN_CONST:
+		case AGEN_WAVEFORM:
+			if ( pStage->rgbGen == CGEN_VERTEX ||
+			     pStage->rgbGen == CGEN_EXACT_VERTEX ) {
+				// cannot combine const alpha with vertex color
+				shader.useVBO = qfalse;
+			}
+			break;
+		case AGEN_VERTEX:
+			if ( pStage->rgbGen != CGEN_VERTEX &&
+			     pStage->rgbGen != CGEN_EXACT_VERTEX ) {
+				// cannot combine vertex alpha with const color
+				shader.useVBO = qfalse;
+			}
+			break;
+		case AGEN_ONE_MINUS_VERTEX:
+			shader.useVBO = qfalse;
+			break;
+		case AGEN_LIGHTING_SPECULAR:
+		case AGEN_PORTAL:
+			shader.useVBO = qfalse;
+			break;
+		}
+		
+		for ( bundle = 0; bundle < units; bundle++ ) {
+			if ( bundle > 0 && !pStage->bundle[bundle].multitextureEnv )
+				break;
+			
+			switch ( pStage->bundle[bundle].tcGen ) {
+			case TCGEN_BAD:
+				break;
+			case TCGEN_IDENTITY:
+			case TCGEN_VECTOR:
+			case TCGEN_FOG:
+				shader.useVBO = qfalse;
+				break;
+			case TCGEN_LIGHTMAP:
+				break;
+			case TCGEN_TEXTURE:
+				break;
+			case TCGEN_ENVIRONMENT_MAPPED:
+				shader.useVBO = qfalse;
+				break;
+			}
+			if ( pStage->bundle[bundle].numTexMods > 0 )
+				shader.useVBO = qfalse;
+		}
+	}
+
+	// no VBOs for 0-stage shaders (fog)
+	if ( stage == 0 )
+		shader.useVBO = qfalse;
 
 	if ( r_ignoreFastPath->integer )
 	{
@@ -1661,15 +1848,12 @@ static void ComputeStageIteratorFunc( void )
 			{
 				if ( stages[0].bundle[0].tcGen == TCGEN_TEXTURE )
 				{
-					if ( !shader.polygonOffset )
+					if ( !stages[0].bundle[1].multitextureEnv )
 					{
-						if ( !shader.multitextureEnv )
+						if ( !shader.numDeforms )
 						{
-							if ( !shader.numDeforms )
-							{
-								shader.optimalStageIteratorFunc = RB_StageIteratorVertexLitTexture;
-								goto done;
-							}
+							shader.optimalStageIteratorFunc = RB_StageIteratorVertexLitTexture;
+							goto done;
 						}
 					}
 				}
@@ -1687,15 +1871,12 @@ static void ComputeStageIteratorFunc( void )
 			if ( stages[0].bundle[0].tcGen == TCGEN_TEXTURE && 
 				stages[0].bundle[1].tcGen == TCGEN_LIGHTMAP )
 			{
-				if ( !shader.polygonOffset )
+				if ( !shader.numDeforms )
 				{
-					if ( !shader.numDeforms )
+					if ( stages[0].bundle[1].multitextureEnv )
 					{
-						if ( shader.multitextureEnv )
-						{
-							shader.optimalStageIteratorFunc = RB_StageIteratorLightmappedMultitexture;
-							goto done;
-						}
+						shader.optimalStageIteratorFunc = RB_StageIteratorLightmappedMultitexture;
+						goto done;
 					}
 				}
 			}
@@ -1749,225 +1930,243 @@ static collapse_t	collapse[] = {
 ================
 CollapseMultitexture
 
-Attempt to combine two stages into a single multitexture stage
+Attempt to combine several stages into a single multitexture stage
 FIXME: I think modulated add + modulated add collapses incorrectly
 =================
 */
-static qboolean CollapseMultitexture( void ) {
+static int CollapseMultitexture( void ) {
+	int stage, bundle;
 	int abits, bbits;
 	int i;
 	textureBundle_t tmpBundle;
 
-	if ( !qglActiveTextureARB ) {
-		return qfalse;
-	}
+	stage = 0;
+	bundle = 0;
 
-	// make sure both stages are active
-	if ( !stages[0].active || !stages[1].active ) {
-		return qfalse;
-	}
-
-	// on voodoo2, don't combine different tmus
-	if ( glConfig.driverType == GLDRV_VOODOO ) {
-		if ( stages[0].bundle[0].image[0]->TMU ==
-			 stages[1].bundle[0].image[0]->TMU ) {
-			return qfalse;
+	while( stage < MAX_SHADER_STAGES && stages[stage].active ) {
+		if ( bundle + 1 >= glConfig.numTextureUnits ) {
+			// can't add next stage, no more texture units
+			stage++;
+			bundle = 0;
+			continue;
 		}
-	}
-
-	abits = stages[0].stateBits;
-	bbits = stages[1].stateBits;
-
-	// make sure that both stages have identical state other than blend modes
-	if ( ( abits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) !=
-		( bbits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) ) {
-		return qfalse;
-	}
-
-	abits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
-	bbits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
-
-	// search for a valid multitexture blend function
-	for ( i = 0; collapse[i].blendA != -1 ; i++ ) {
-		if ( abits == collapse[i].blendA
-			&& bbits == collapse[i].blendB ) {
-			break;
+		
+		// make sure both stages are active
+		if ( !stages[stage + 1].active ) {
+			// can't add next stage, it doesn't exist
+			stage++;
+			bundle = 0;
+			continue;
 		}
-	}
 
-	// nothing found
-	if ( collapse[i].blendA == -1 ) {
-		return qfalse;
-	}
-
-	// GL_ADD is a separate extension
-	if ( collapse[i].multitextureEnv == GL_ADD && !glConfig.textureEnvAddAvailable ) {
-		return qfalse;
-	}
-
-	// make sure waveforms have identical parameters
-	if ( ( stages[0].rgbGen != stages[1].rgbGen ) ||
-		( stages[0].alphaGen != stages[1].alphaGen ) )  {
-		return qfalse;
-	}
-
-	// an add collapse can only have identity colors
-	if ( collapse[i].multitextureEnv == GL_ADD && stages[0].rgbGen != CGEN_IDENTITY ) {
-		return qfalse;
-	}
-
-	if ( stages[0].rgbGen == CGEN_WAVEFORM )
-	{
-		if ( memcmp( &stages[0].rgbWave,
-					 &stages[1].rgbWave,
-					 sizeof( stages[0].rgbWave ) ) )
-		{
-			return qfalse;
-		}
-	}
-	if ( stages[0].alphaGen == CGEN_WAVEFORM )
-	{
-		if ( memcmp( &stages[0].alphaWave,
-					 &stages[1].alphaWave,
-					 sizeof( stages[0].alphaWave ) ) )
-		{
-			return qfalse;
-		}
-	}
-
-
-	// make sure that lightmaps are in bundle 1 for 3dfx
-	if ( stages[0].bundle[0].isLightmap )
-	{
-		tmpBundle = stages[0].bundle[0];
-		stages[0].bundle[0] = stages[1].bundle[0];
-		stages[0].bundle[1] = tmpBundle;
-	}
-	else
-	{
-		stages[0].bundle[1] = stages[1].bundle[0];
-	}
-
-	// set the new blend state bits
-	shader.multitextureEnv = collapse[i].multitextureEnv;
-	stages[0].stateBits &= ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
-	stages[0].stateBits |= collapse[i].multitextureBlend;
-
-	//
-	// move down subsequent shaders
-	//
-	memmove( &stages[1], &stages[2], sizeof( stages[0] ) * ( MAX_SHADER_STAGES - 2 ) );
-	Com_Memset( &stages[MAX_SHADER_STAGES-1], 0, sizeof( stages[0] ) );
-
-	return qtrue;
-}
-
-/*
-=============
-
-FixRenderCommandList
-https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=493
-Arnout: this is a nasty issue. Shaders can be registered after drawsurfaces are generated
-but before the frame is rendered. This will, for the duration of one frame, cause drawsurfaces
-to be rendered with bad shaders. To fix this, need to go through all render commands and fix
-sortedIndex.
-==============
-*/
-static void FixRenderCommandList( int newShader ) {
-	renderCommandList_t	*cmdList = &backEndData[tr.smpFrame]->commands;
-
-	if( cmdList ) {
-		const void *curCmd = cmdList->cmds;
-
-		while ( 1 ) {
-			switch ( *(const int *)curCmd ) {
-			case RC_SET_COLOR:
-				{
-				const setColorCommand_t *sc_cmd = (const setColorCommand_t *)curCmd;
-				curCmd = (const void *)(sc_cmd + 1);
-				break;
-				}
-			case RC_STRETCH_PIC:
-				{
-				const stretchPicCommand_t *sp_cmd = (const stretchPicCommand_t *)curCmd;
-				curCmd = (const void *)(sp_cmd + 1);
-				break;
-				}
-			case RC_DRAW_SURFS:
-				{
-				int i;
-				drawSurf_t	*drawSurf;
-				shader_t	*shader;
-				int			fogNum;
-				int			entityNum;
-				int			dlightMap;
-				int			sortedIndex;
-				const drawSurfsCommand_t *ds_cmd =  (const drawSurfsCommand_t *)curCmd;
-
-				for( i = 0, drawSurf = ds_cmd->drawSurfs; i < ds_cmd->numDrawSurfs; i++, drawSurf++ ) {
-					R_DecomposeSort( drawSurf->sort, &entityNum, &shader, &fogNum, &dlightMap );
-                    sortedIndex = (( drawSurf->sort >> QSORT_SHADERNUM_SHIFT ) & (MAX_SHADERS-1));
-					if( sortedIndex >= newShader ) {
-						sortedIndex++;
-						drawSurf->sort = (sortedIndex << QSORT_SHADERNUM_SHIFT) | entityNum | ( fogNum << QSORT_FOGNUM_SHIFT ) | (int)dlightMap;
-					}
-				}
-				curCmd = (const void *)(ds_cmd + 1);
-				break;
-				}
-			case RC_DRAW_BUFFER:
-				{
-				const drawBufferCommand_t *db_cmd = (const drawBufferCommand_t *)curCmd;
-				curCmd = (const void *)(db_cmd + 1);
-				break;
-				}
-			case RC_SWAP_BUFFERS:
-				{
-				const swapBuffersCommand_t *sb_cmd = (const swapBuffersCommand_t *)curCmd;
-				curCmd = (const void *)(sb_cmd + 1);
-				break;
-				}
-			case RC_END_OF_LIST:
-			default:
-				return;
+		// on voodoo2, don't combine different tmus
+		if ( glConfig.driverType == GLDRV_VOODOO ) {
+			if ( stages[stage].bundle[0].image[0]->TMU ==
+			     stages[stage + 1].bundle[0].image[0]->TMU ) {
+				stage++;
+				bundle = 0;
+				continue;
 			}
 		}
+
+		abits = stages[stage].stateBits;
+		bbits = stages[stage + 1].stateBits;
+		/*
+		// can't combine if the second stage has an alpha test
+		if ( bbits & GLS_ATEST_BITS ) {
+			stage++;
+			bundle = 0;
+			continue;
+		}
+
+		// can combine alphafunc only if depthwrite is enabled and
+		// the second stage has depthfunc equal
+		if ( abits & GLS_ATEST_BITS ) {
+			if (!((abits & GLS_DEPTHMASK_TRUE) &&
+			      (bbits & GLS_DEPTHFUNC_EQUAL)) ) {
+				stage++;
+				bundle = 0;
+				continue;
+			}
+		} else {
+			if ( (abits & GLS_DEPTHFUNC_EQUAL) !=
+			     (bbits & GLS_DEPTHFUNC_EQUAL) ) {
+				stage++;
+				bundle = 0;
+				continue;
+			}
+		}
+		*/
+		// make sure that both stages have identical state other than blend modes
+		if ( ( abits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) !=
+		     ( bbits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) ) {
+			stage++;
+			bundle = 0;
+			continue;
+		}
+		
+		abits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
+		bbits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
+		
+		// search for a valid multitexture blend function
+		for ( i = 0; collapse[i].blendA != -1 ; i++ ) {
+			if ( abits == collapse[i].blendA
+			     && bbits == collapse[i].blendB ) {
+				break;
+			}
+		}
+		
+		// nothing found
+		if ( collapse[i].blendA == -1 ) {
+			stage++;
+			bundle = 0;
+			continue;
+		}
+		
+		// GL_ADD is a separate extension
+		if ( collapse[i].multitextureEnv == GL_ADD && !glConfig.textureEnvAddAvailable ) {
+			stage++;
+			bundle = 0;
+			continue;
+		}
+		
+		// make sure waveforms have identical parameters
+		if ( ( stages[stage].rgbGen != stages[stage + 1].rgbGen ) ||
+		     ( stages[stage].alphaGen != stages[stage + 1].alphaGen ) )  {
+			stage++;
+			bundle = 0;
+			continue;
+		}
+		
+		// an add collapse can only have identity colors
+		if ( collapse[i].multitextureEnv == GL_ADD && stages[stage].rgbGen != CGEN_IDENTITY ) {
+			stage++;
+			bundle = 0;
+			continue;
+		}
+		
+		if ( stages[stage].rgbGen == CGEN_WAVEFORM )
+		{
+			if ( memcmp( &stages[stage].rgbWave,
+				     &stages[stage + 1].rgbWave,
+				     sizeof( stages[stage].rgbWave ) ) )
+			{
+				stage++;
+				bundle = 0;
+				continue;
+			}
+		}
+		if ( stages[stage].alphaGen == CGEN_WAVEFORM )
+		{
+			if ( memcmp( &stages[stage].alphaWave,
+				     &stages[stage + 1].alphaWave,
+				     sizeof( stages[stage].alphaWave ) ) )
+			{
+				stage++;
+				bundle = 0;
+				continue;
+			}
+		}
+		
+		
+		// make sure that lightmaps are in bundle 1 for 3dfx
+		if ( bundle == 0 && stages[stage].bundle[0].isLightmap )
+		{
+			tmpBundle = stages[stage].bundle[0];
+			stages[stage].bundle[0] = stages[stage + 1].bundle[0];
+			stages[stage].bundle[1] = tmpBundle;
+		}
+		else
+		{
+			stages[stage].bundle[bundle + 1] = stages[stage + 1].bundle[0];
+		}
+		
+		// set the new blend state bits
+		stages[stage].bundle[bundle + 1].multitextureEnv = collapse[i].multitextureEnv;
+		stages[stage].stateBits &= ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
+		stages[stage].stateBits |= collapse[i].multitextureBlend;
+
+		bundle++;
+
+		//
+		// move down subsequent shaders
+		//
+		memmove( &stages[stage + 1], &stages[stage + 2], sizeof( stages[0] ) * ( MAX_SHADER_STAGES - stage - 2 ) );
+		Com_Memset( &stages[MAX_SHADER_STAGES-1], 0, sizeof( stages[0] ) );
 	}
+
+	return stage;
 }
 
 /*
 ==============
-SortNewShader
+R_SortShaders
 
-Positions the most recently created shader in the tr.sortedShaders[]
-array so that the shader->sort key is sorted reletive to the other
-shaders.
+Positions all shaders in the tr.sortedShaders[]
+array so that the shader->sort key and the occluded area
+is sorted relative to the other shaders.
+
+Uses swapSort, which is a stable, in-place variant of mergeSort
+which is O(n log n) worst case.
 
 Sets shader->sortedIndex
 ==============
 */
-static void SortNewShader( void ) {
-	int		i;
-	float	sort;
-	shader_t	*newShader;
-
-	newShader = tr.shaders[ tr.numShaders - 1 ];
-	sort = newShader->sort;
-
-	for ( i = tr.numShaders - 2 ; i >= 0 ; i-- ) {
-		if ( tr.sortedShaders[ i ]->sort <= sort ) {
-			break;
+static ID_INLINE int cmpShader( int left, int right )
+{
+	if( tr.sortedShaders[left]->sort == tr.sortedShaders[right]->sort )
+		return tr.sortedShaders[right]->QueryResult - tr.sortedShaders[left]->QueryResult;
+	return tr.sortedShaders[left]->sort - tr.sortedShaders[right]->sort;
+}
+static ID_INLINE int split( int from, int middle, int to )
+{
+	int low = -1;
+	int high = MIN( middle - from, to - middle);
+	
+	while( high - low > 1 ) {
+		int size = (low + high) / 2;
+		
+		if( cmpShader( middle - 1 - size, middle + size ) > 0 ) {
+			low = size;
+		} else {
+			high = size;
 		}
-		tr.sortedShaders[i+1] = tr.sortedShaders[i];
-		tr.sortedShaders[i+1]->sortedIndex++;
 	}
-
-	// Arnout: fix rendercommandlist
-	// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=493
-	FixRenderCommandList( i+1 );
-
-	newShader->sortedIndex = i+1;
-	tr.sortedShaders[i+1] = newShader;
+	return high;
+}
+static void merge( int from, int middle, int to )
+{
+	int size = split( from, middle, to );
+	if( size > 0 ) {
+		int i;
+		shader_t *tmp;
+		
+		for( i = 0; i < size; i++ ) {
+			tmp = tr.sortedShaders[middle-size+i];
+			tr.sortedShaders[middle-size+i] = tr.sortedShaders[middle+i];
+			tr.sortedShaders[middle-size+i]->sortedIndex = middle-size+i;
+			tr.sortedShaders[middle+i] = tmp;
+			tr.sortedShaders[middle+i]->sortedIndex = middle+i;
+		}
+		if( middle - size > from ) {
+			merge( from, middle - size, middle);
+		}
+		if( to > middle + size ) {
+			merge( middle, middle + size, to );
+		}
+	}
+}
+static void mergeSort( int from, int to )
+{
+	if( to - from > 1 ) {
+		int middle = (to + from) / 2;
+		mergeSort( from, middle );
+		mergeSort( middle, to );
+		merge( from, middle, to );
+	}
+}
+void R_SortShaders( void ) {
+	mergeSort( 0, tr.numShaders );
 }
 
 
@@ -2017,14 +2216,1248 @@ static shader_t *GeneratePermanentShader( void ) {
 			Com_Memcpy( newShader->stages[i]->bundle[b].texMods, stages[i].bundle[b].texMods, size );
 		}
 	}
+	if( shader.optimalStageIteratorFunc == RB_StageIteratorGLSL ) {
+		newShader->stages[0]->stateBits &= ~GLS_ATEST_BITS;
+	}
 
-	SortNewShader();
+	R_SortShaders();
+
+	// prepare occlusion queries for shaders that write to depth buffer
+	if ( qglGenQueriesARB && !newShader->isDepth &&
+	     newShader->stages[0] &&
+	     (newShader->stages[0]->stateBits & GLS_DEPTHMASK_TRUE) &&
+	     !(newShader->stages[0]->stateBits & GLS_COLORMASK_FALSE) ) {
+		qglGenQueriesARB( 1, &newShader->QueryID );
+	}
 
 	hash = generateHashValue(newShader->name, FILE_HASH_SIZE);
 	newShader->next = hashTable[hash];
 	hashTable[hash] = newShader;
 
 	return newShader;
+}
+
+/*
+=================
+CollapseGLSL
+
+Try to compile a GLSL vertex and fragment shader that
+computes the same effect as a multipass fixed function shader.
+=================
+*/
+static unsigned short GLSLversion = 0x0000;
+static char GLSLTexNames[MAX_SHADER_STAGES][6];
+static int CollapseGLSL( void ) {
+	enum VSFeatures {
+		vsfShaderTime = 0x00000001,
+		vsfNormal     = 0x00000004,
+		vsfCameraPos  = 0x00000008,
+		vsfEntLight   = 0x00000080,
+		vsfLightDir   = 0x00000100,
+		vsfGenSin     = 0x00001000,
+		vsfGenSquare  = 0x00002000,
+		vsfGenTri     = 0x00004000,
+		vsfGenSaw     = 0x00008000,
+		vsfGenInvSaw  = 0x00010000,
+		vsfGenNoise   = 0x00020000
+	} vsFeatures = 0;
+	enum FSFeatures {
+		fsfShaderTime = 0x00000001,
+		fsfReflView   = 0x00000004,
+		fsfLightDir   = 0x00000100,
+		fsfNormal     = 0x00000200,
+		fsfDiffuse    = 0x00000400,
+		fsfSpecular   = 0x00000800,
+		fsfGenSin     = 0x00001000,
+		fsfGenSquare  = 0x00002000,
+		fsfGenTri     = 0x00004000,
+		fsfGenSaw     = 0x00008000,
+		fsfGenInvSaw  = 0x00010000,
+		fsfGenNoise   = 0x00020000,
+		fsfGenRotate  = 0x00040000,
+		fsfCameraPos  = 0x00080000
+	} fsFeatures = 0;
+
+	const char *VS[1000];
+	const char *FS[1000];
+	byte        constantColor[MAX_SHADER_STAGES][4];
+	char        shaderConsts[100][20];
+	int         VSidx = 0;
+	int         FSidx = 0;
+	int         constidx = 0;
+	int         i, j;
+	int         lightmapStage = -1;
+	alphaGen_t  aGen;
+	enum {
+		REPLACE,
+		BLEND,
+		FILTER
+	} blendMode;
+
+	// helper macros to build the Vertex and Fragment Shaders
+#define VSText(text) VS[VSidx++] = text
+#define VSConst(format, value) VS[VSidx++] = shaderConsts[constidx]; Com_sprintf( shaderConsts[constidx++], sizeof(shaderConsts[0]), format, value)
+
+#define FSText(text) FS[FSidx++] = text
+#define FSConst(format, value) FS[FSidx++] = shaderConsts[constidx]; Com_sprintf( shaderConsts[constidx++], sizeof(shaderConsts[0]), format, value)
+#define FSGenFunc(wave) FSText("(");					\
+			FSConst("%f", wave.base);			\
+			FSText(" + ");					\
+			FSConst("%f", wave.amplitude);			\
+			switch( wave.func ) {				\
+			case GF_NONE:					\
+				return qfalse;				\
+			case GF_SIN:					\
+				FSText(" * genFuncSin(");		\
+				break;					\
+			case GF_SQUARE:					\
+				FSText(" * genFuncSquare(");		\
+				break;					\
+			case GF_TRIANGLE:				\
+				FSText(" * genFuncTriangle(");		\
+				break;					\
+			case GF_SAWTOOTH:				\
+				FSText(" * genFuncSawtooth(");		\
+				break;					\
+			case GF_INVERSE_SAWTOOTH:			\
+				FSText(" * genFuncInverseSawtooth(");	\
+				break;					\
+			case GF_NOISE:					\
+				FSText(" * genFuncNoise(");		\
+				break;					\
+			}						\
+			FSConst("%f", wave.phase);			\
+			FSText(" + ");					\
+			FSConst("%f", wave.frequency);			\
+			FSText("* vShadertime))");
+
+	if( !(qglCreateShader && stages[0].active) || shader.isSky ) {
+		// single stage can be rendered without GLSL
+		return qfalse;
+	}
+
+	if( !GLSLversion ) {
+		const char *GLSLString = (const char *)glGetString( GL_SHADING_LANGUAGE_VERSION_ARB );
+		int major, minor;
+
+		sscanf( GLSLString, "%d.%d", &major, &minor );
+		GLSLversion = (unsigned short)(major << 8 | minor);
+		
+		for( i = 0; i < MAX_SHADER_STAGES; i++ ) {
+			Com_sprintf( GLSLTexNames[i], sizeof(GLSLTexNames[i]),
+				     "tex%02d", i );
+		}
+	}
+	
+	// *** compute required features ***
+	if( (stages[0].stateBits & GLS_SRCBLEND_BITS) == GLS_SRCBLEND_ONE_MINUS_DST_COLOR ||
+	    (stages[0].stateBits & GLS_DSTBLEND_BITS) == GLS_DSTBLEND_ONE_MINUS_SRC_COLOR ) {
+		return qfalse;
+	} else if( (stages[0].stateBits & GLS_SRCBLEND_BITS) == GLS_SRCBLEND_DST_COLOR ) {
+		blendMode = FILTER;
+	} else if( (stages[0].stateBits & GLS_DSTBLEND_BITS) == 0 ||
+		   (stages[0].stateBits & GLS_DSTBLEND_BITS) == GLS_DSTBLEND_ZERO ) {
+		blendMode = REPLACE;
+	} else {
+		blendMode = BLEND;
+	}
+
+	// deforms
+	for( i = 0; i < shader.numDeforms; i++ ) {
+		switch( shader.deforms[i].deformation ) {
+		case DEFORM_NONE:
+			break;
+		case DEFORM_WAVE:
+			vsFeatures |= vsfNormal;
+			// fall through
+		case DEFORM_MOVE:
+			switch( shader.deforms[i].deformationWave.func ) {
+			case GF_NONE:
+				return qfalse;
+			case GF_SIN:
+				vsFeatures |= vsfShaderTime | vsfGenSin;
+				break;
+			case GF_SQUARE:
+				vsFeatures |= vsfShaderTime | vsfGenSquare;
+				break;
+			case GF_TRIANGLE:
+				vsFeatures |= vsfShaderTime | vsfGenTri;
+				break;
+			case GF_SAWTOOTH:
+				vsFeatures |= vsfShaderTime | vsfGenSaw;
+				break;
+			case GF_INVERSE_SAWTOOTH:
+				vsFeatures |= vsfShaderTime | vsfGenInvSaw;
+				break;
+			case GF_NOISE:
+				vsFeatures |= vsfShaderTime | vsfGenNoise;
+				break;
+			}
+			break;
+		case DEFORM_NORMALS:
+			vsFeatures |= vsfShaderTime;
+			break;
+		case DEFORM_BULGE:
+			vsFeatures |= vsfNormal | vsfShaderTime;
+			break;
+		default:
+			return qfalse;
+		}
+	}
+	// textures
+	for( i = 0; i < MAX_SHADER_STAGES; i++ ) {
+		shaderStage_t *pStage = &stages[i];
+		
+		if( !pStage->active ) {
+			break;
+		}
+
+		if( pStage->bundle[0].isLightmap ) {
+			lightmapStage = i;
+		}
+
+		if( (pStage->stateBits & GLS_SRCBLEND_BITS) == GLS_SRCBLEND_DST_COLOR &&
+		    (blendMode == BLEND) ) {
+			//return qfalse;
+		} else if( blendMode == FILTER &&
+			   (pStage->stateBits & GLS_SRCBLEND_BITS) != GLS_SRCBLEND_DST_COLOR ) {
+			return qfalse;
+		}
+		
+		// this is called before CollapseMultitexture,
+		// so each stages has at most one bundle
+		switch( pStage->bundle[0].tcGen ) {
+		case TCGEN_IDENTITY:
+			break;
+		case TCGEN_LIGHTMAP:
+			break;
+		case TCGEN_TEXTURE:
+			break;
+		case TCGEN_ENVIRONMENT_MAPPED:
+			vsFeatures |= vsfNormal | vsfCameraPos;
+			fsFeatures |= fsfNormal | fsfReflView | fsfCameraPos;
+			break;
+		case TCGEN_FOG:
+			return qfalse;
+		case TCGEN_VECTOR:
+			break;
+		default:
+			return qfalse;
+		}
+		
+		for( j = 0; j < pStage->bundle[0].numTexMods; j++ ) {
+			texModInfo_t *pTexMod = &(pStage->bundle[0].texMods[j]);
+			
+			switch( pTexMod->type ) {
+			case TMOD_NONE:
+				break;
+			case TMOD_TRANSFORM:
+				break;
+			case TMOD_TURBULENT:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime;
+				break;
+			case TMOD_SCROLL:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime;
+				break;
+			case TMOD_SCALE:
+				break;
+			case TMOD_STRETCH:
+				switch( pTexMod->wave.func ) {
+				case GF_NONE:
+					return qfalse;
+				case GF_SIN:
+					vsFeatures |= vsfShaderTime;
+					fsFeatures |= fsfShaderTime | fsfGenSin;
+					break;
+				case GF_SQUARE:
+					vsFeatures |= vsfShaderTime;
+					fsFeatures |= fsfShaderTime | fsfGenSquare;
+					break;
+				case GF_TRIANGLE:
+					vsFeatures |= vsfShaderTime;
+					fsFeatures |= fsfShaderTime | fsfGenTri;
+					break;
+				case GF_SAWTOOTH:
+					vsFeatures |= vsfShaderTime;
+					fsFeatures |= fsfShaderTime | fsfGenSaw;
+					break;
+				case GF_INVERSE_SAWTOOTH:
+					vsFeatures |= vsfShaderTime;
+					fsFeatures |= fsfShaderTime | fsfGenInvSaw;
+					break;
+				case GF_NOISE:
+					vsFeatures |= vsfShaderTime;
+					fsFeatures |= fsfShaderTime | fsfGenNoise;
+					break;
+				}
+				break;
+			case TMOD_ROTATE:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenRotate;
+				break;
+			case TMOD_ENTITY_TRANSLATE:
+				return qfalse;
+			default:
+				return qfalse;
+			}
+		}
+		if( pStage->bundle[0].combinedImage ) {
+			vsFeatures |= vsfShaderTime;
+			fsFeatures |= fsfShaderTime;
+		}
+
+		switch( pStage->rgbGen ) {
+		case CGEN_IDENTITY_LIGHTING:
+			constantColor[i][0] =
+			constantColor[i][1] =
+			constantColor[i][2] = tr.identityLightByte;
+			aGen = AGEN_IDENTITY;
+			break;
+		case CGEN_IDENTITY:
+			constantColor[i][0] =
+			constantColor[i][1] =
+			constantColor[i][2] = 255;
+			aGen = AGEN_IDENTITY;
+			break;
+		case CGEN_ENTITY:
+			aGen = AGEN_ENTITY;
+			break;
+		case CGEN_ONE_MINUS_ENTITY:
+			aGen = AGEN_ONE_MINUS_ENTITY;
+			break;
+		case CGEN_EXACT_VERTEX:
+			aGen = AGEN_VERTEX;
+			break;
+		case CGEN_VERTEX:
+			aGen = AGEN_VERTEX;
+			break;
+		case CGEN_ONE_MINUS_VERTEX:
+			aGen = AGEN_ONE_MINUS_VERTEX;
+			break;
+		case CGEN_WAVEFORM:
+			switch( pStage->rgbWave.func ) {
+			case GF_NONE:
+				return qfalse;
+			case GF_SIN:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenSin;
+				break;
+			case GF_SQUARE:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenSquare;
+				break;
+			case GF_TRIANGLE:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenTri;
+				break;
+			case GF_SAWTOOTH:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenSaw;
+				break;
+			case GF_INVERSE_SAWTOOTH:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenInvSaw;
+				break;
+			case GF_NOISE:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenNoise;
+				break;
+			};
+			aGen = AGEN_IDENTITY;
+			break;
+		case CGEN_LIGHTING_DIFFUSE:
+			aGen = AGEN_IDENTITY;
+			vsFeatures |= vsfEntLight | vsfLightDir | vsfNormal;
+			fsFeatures |= fsfLightDir | fsfNormal | fsfDiffuse;
+			break;
+		case CGEN_FOG:
+			aGen = AGEN_IDENTITY;
+			return qfalse;
+		case CGEN_CONST:
+			constantColor[i][0] = pStage->constantColor[0];
+			constantColor[i][1] = pStage->constantColor[1];
+			constantColor[i][2] = pStage->constantColor[2];
+			aGen = AGEN_IDENTITY;
+			break;
+		default:
+			return qfalse;
+		}
+
+		if ( pStage->alphaGen == AGEN_SKIP )
+			pStage->alphaGen = aGen;
+
+		switch( pStage->alphaGen ) {
+		case AGEN_IDENTITY:
+			constantColor[i][3] = 255;
+			break;
+		case AGEN_ENTITY:
+			break;
+		case AGEN_ONE_MINUS_ENTITY:
+			break;
+		case AGEN_VERTEX:
+			break;
+		case AGEN_ONE_MINUS_VERTEX:
+			break;
+		case AGEN_LIGHTING_SPECULAR:
+			vsFeatures |= vsfNormal | vsfLightDir | vsfCameraPos;
+			fsFeatures |= fsfNormal | fsfReflView | fsfCameraPos | fsfSpecular | fsfLightDir;
+			break;
+		case AGEN_WAVEFORM:
+			switch( pStage->alphaWave.func ) {
+			case GF_NONE:
+				return qfalse;
+			case GF_SIN:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenSin;
+				break;
+			case GF_SQUARE:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenSquare;
+				break;
+			case GF_TRIANGLE:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenTri;
+				break;
+			case GF_SAWTOOTH:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenSaw;
+				break;
+			case GF_INVERSE_SAWTOOTH:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenInvSaw;
+				break;
+			case GF_NOISE:
+				vsFeatures |= vsfShaderTime;
+				fsFeatures |= fsfShaderTime | fsfGenNoise;
+				break;
+			};
+			break;
+		case AGEN_PORTAL:
+			vsFeatures |= vsfCameraPos;
+			fsFeatures |= fsfCameraPos;
+			break;
+		case AGEN_CONST:
+			constantColor[i][3] = pStage->constantColor[3];
+			break;
+		default:
+
+			return qfalse;
+		}
+	}
+
+	// *** assemble shader fragments ***
+	// version pragma
+	if ( GLSLversion < 0x010a ) {
+		return qfalse;
+	}
+	VSText("#version 110\n"
+	       "\n");
+	VSText("/*");VSText(shader.name);VSText("*/\n");
+	FSText("#version 110\n"
+	       "\n"
+	       "const vec3 constants = vec3( 0.0, 1.0, ");
+	FSConst("%f", tr.identityLight );
+	FSText(" );\n\n");
+	
+	// attributes
+	VSText("// attribute vec4 aVertex;\n"
+	       "#define aVertex gl_Vertex\n"
+	       "//attribute vec4 aTexCoord;\n"
+	       "#define aTexCoord gl_MultiTexCoord0\n"
+	       "// attribute vec4 aColor;\n"
+	       "#define aColor gl_Color\n");
+	if( shader.lightmapIndex == LIGHTMAP_MD3 ) {
+		// old frame data and backlerp factor
+		VSText("attribute vec3  aOldVertex;\n"
+		       "attribute vec3  aTimes;\n");
+		if( vsFeatures & vsfNormal ) {
+			VSText("attribute vec2  aOldNormal;\n");
+		}
+	} else {
+		if( vsFeatures & vsfShaderTime ) {
+			VSText("attribute vec3 aTimes;\n");
+		}
+	}
+		
+	if( vsFeatures & vsfNormal ) {
+		VSText("attribute vec2 aNormal;\n");
+	}
+	VSText("attribute vec4 aTransX, aTransY, aTransZ;\n");
+	if( vsFeatures & vsfEntLight ) {
+		VSText("attribute vec3 aAmbientLight;\n");
+		VSText("attribute vec3 aDirectedLight;\n");
+	}
+	if( vsFeatures & vsfLightDir ) {
+		VSText("attribute vec3 aLightDir;\n");
+	}
+	if( vsFeatures & vsfCameraPos ) {
+		VSText("\nattribute vec3 aCameraPos;\n");
+	}
+	
+	// varyings
+	VSText("\n"
+	       "varying vec3 vVertex;\n"
+	       "varying vec4 vTexCoord;\n"
+	       "varying vec4 vColor;\n");
+	FSText("varying vec3 vVertex;\n"
+	       "varying vec4 vTexCoord;\n"
+	       "varying vec4 vColor;\n");
+	if( fsFeatures & fsfNormal ) {
+		VSText("varying vec3 vNormal;\n");
+		FSText("varying vec3 vNormal;\n");
+	}
+	if( fsFeatures & fsfLightDir ) {
+		if( r_perPixelLighting->integer ) {
+			VSText("varying vec3 vLightDir;\n");
+			FSText("varying vec3 vLightDir;\n");
+			if( fsFeatures & fsfDiffuse ) {
+				// per pixel diffuse light
+				VSText("varying vec3 vAmbientLight, vDirectedLight;\n");
+				FSText("varying vec3 vAmbientLight, vDirectedLight;\n");
+			}
+		} else {
+			if( fsFeatures & fsfDiffuse ) {
+				// interpolated diffuse
+				VSText("varying vec3 vDiffuse;\n");
+				FSText("varying vec3 vDiffuse;\n");
+			}
+			if( fsFeatures & fsfSpecular ) {
+				// interpolated specular
+				VSText("varying float vSpecular;\n");
+				FSText("varying float vSpecular;\n");
+			}
+		}
+	}
+	if( fsFeatures & fsfReflView ) {
+		if( r_perPixelLighting->integer ) {
+			// calculated in fragment shader
+		} else {
+			// interpolated
+			VSText("varying vec3 vReflView;\n");
+			FSText("varying vec3 vReflView;\n");
+		}
+	}
+	if( fsFeatures & fsfShaderTime ) {
+		VSText("varying float vShadertime;\n");
+		FSText("varying float vShadertime;\n");
+	}
+	if( fsFeatures & fsfCameraPos ) {
+		VSText("\nvarying vec3 vCameraPos;\n");
+		FSText("\nvarying vec3 vCameraPos;\n");
+	}
+	
+	// uniforms
+	for( i = 0; i < MAX_SHADER_STAGES; i++ ) {
+		shaderStage_t *pStage = &stages[i];
+		
+		if( !pStage->active )
+			break;
+		
+		FSText("uniform sampler2D ");
+		FSText(GLSLTexNames[i]);
+		FSText(";\n");
+	}
+	
+	// functions
+	VSText("\n"
+	       "vec3 transform3(vec3 vector) {\n"
+	       "  return vec3( dot( aTransX.xyz, vector ),\n"
+	       "               dot( aTransY.xyz, vector ),\n"
+	       "               dot( aTransZ.xyz, vector ) );\n"
+	       "}\n"
+	       "vec3 transform4(vec4 point) {\n"
+	       "  return vec3( dot( aTransX, point ),\n"
+	       "               dot( aTransY, point ),\n"
+	       "               dot( aTransZ, point ) );\n"
+	       "}\n");
+	if( vsFeatures & vsfNormal ) {
+		VSText("\n"
+		       "vec4 decodeOctDir(in vec2 octCoords) {\n"
+		       "  octCoords *= (1.0 / 32767.0);\n"
+		       "  float z = 1.0 - dot(vec2(1.0), abs(octCoords));\n"
+		       "  if( z < 0.0 ) {\n"
+		       "    octCoords = sign(octCoords) - octCoords;\n"
+		       "  }\n"
+		       "  return normalize(vec4(octCoords, z, 0.0));\n"
+		       "}\n\n");
+	}
+
+	if( vsFeatures & vsfGenSin ) {
+		VSText("float genFuncSin(in float x) {\n"
+		       "  return sin(6.283185308 * x);\n"
+		       "}\n\n");
+	}
+	if( fsFeatures & fsfGenSin ) {
+		FSText("float genFuncSin(in float x) {\n"
+		       "  return sin(6.283185308 * x);\n"
+		       "}\n\n");
+	}
+	if( vsFeatures & vsfGenSquare ) {
+		VSText("float genFuncSquare(in float x) {\n"
+		       "  return sign(fract(x) - 0.5);\n"
+		       "}\n\n");
+	}
+	if( fsFeatures & fsfGenSquare ) {
+		FSText("float genFuncSquare(in float x) {\n"
+		       "  return sign(fract(x) - 0.5);\n"
+		       "}\n\n");
+	}
+	if( vsFeatures & vsfGenTri ) {
+		VSText("float genFuncTriangle(in float x) {\n"
+		       "  return 4.0 * abs(fract(x - 0.25) - 0.5) - 1.0;\n"
+		       "}\n\n");
+	}
+	if( fsFeatures & fsfGenTri ) {
+		FSText("float genFuncTriangle(in float x) {\n"
+		       "  return 4.0 * abs(fract(x - 0.25) - 0.5) - 1.0;\n"
+		       "}\n\n");
+	}
+	if( vsFeatures & vsfGenSaw ) {
+		VSText("float genFuncSawtooth(in float x) {\n"
+		       "  return fract(x);\n"
+		       "}\n\n");
+	}
+	if( fsFeatures & fsfGenSaw ) {
+		FSText("float genFuncSawtooth(in float x) {\n"
+		       "  return fract(x);\n"
+		       "}\n\n");
+	}
+	if( vsFeatures & vsfGenInvSaw ) {
+		VSText("float genFuncInverseSawtooth(in float x) {\n"
+		       "  return 1.0 - fract(x);\n"
+		       "}\n\n");
+	}
+	if( fsFeatures & fsfGenInvSaw ) {
+		FSText("float genFuncInverseSawtooth(in float x) {\n"
+		       "  return 1.0 - fract(x);\n"
+		       "}\n\n");
+	}
+	if( vsFeatures & vsfGenNoise ) {
+		VSText("float genFuncNoise(in float x) {\n"
+		       "  return noise1(x);\n"
+		       "}\n\n");
+	}
+	if( fsFeatures & fsfGenNoise ) {
+		FSText("float genFuncNoise(in float x) {\n"
+		       "  return noise1(x);\n"
+		       "}\n\n");
+	}
+	if( fsFeatures & fsfGenRotate ) {
+		FSText("mat2 genFuncRotate(in float x) {\n"
+		       "  vec2 sincos = sin(6.283185308 * vec2(x, x + 0.25));\n"
+		       "  return mat2(sincos.y, -sincos.x, sincos.x, sincos.y);\n"
+		       "}\n\n");
+	}
+	
+	// main
+	VSText("\n"
+	       "void main() {\n"
+	       "  vec4 vertex;\n");
+	if( vsFeatures & vsfNormal ) {
+		VSText("  vec4 normal;\n");
+	}
+	if( shader.lightmapIndex == LIGHTMAP_MD3 ) {
+		// interpolate position and normal from two frames
+		VSText("  vertex = vec4(mix(aVertex.xyz, aOldVertex, aTimes.y), 1.0);\n");
+		if( vsFeatures & vsfNormal ) {
+			VSText("  normal = mix(decodeOctDir(aNormal), decodeOctDir(aOldNormal), aTimes.y);\n");
+		}
+	} else {
+		VSText("  \n"
+		       "  vertex = vec4(aVertex.xyz, 1.0);\n");
+		if( vsFeatures & vsfNormal ) {
+			VSText("  normal = decodeOctDir(aNormal);\n");
+		}
+	}
+	VSText("  vTexCoord = aTexCoord;\n"
+	       "  vColor = aColor;\n");
+	if( fsFeatures & fsfLightDir ) {
+		if( r_perPixelLighting->integer ) {
+			VSText("  vLightDir = normalize(transform3(aLightDir));\n");
+		} else {
+			VSText("  vec3 lightDir = normalize(transform3(aLightDir));\n");
+		}
+	}
+	if( fsFeatures & fsfShaderTime ) {
+		VSText("  \n"
+		       "  vShadertime = aTimes.x;\n");
+	}
+	if( fsFeatures & fsfCameraPos ) {
+		VSText("  vCameraPos = aCameraPos;\n");
+	}
+	
+	// apply deforms
+	for( i = 0; i < shader.numDeforms; i++ ) {
+		switch ( shader.deforms[i].deformation ) {
+		case DEFORM_NONE:
+			break;
+		case DEFORM_WAVE:
+			VSText("  \n"
+			       "  vertex += (");
+			VSConst("%f", shader.deforms[i].deformationWave.base);
+			VSText(" + ");
+			VSConst("%f", shader.deforms[i].deformationWave.amplitude);
+			switch( shader.deforms[i].deformationWave.func ) {
+			case GF_NONE:
+				return qfalse;
+			case GF_SIN:
+				VSText(" * genFuncSin(");
+				break;
+			case GF_SQUARE:
+				VSText(" * genFuncSquare(");
+				break;
+			case GF_TRIANGLE:
+				VSText(" * genFuncTriangle(");
+				break;
+			case GF_SAWTOOTH:
+				VSText(" * genFuncSawtooth(");
+				break;
+			case GF_INVERSE_SAWTOOTH:
+				VSText(" * genFuncInverseSawtooth(");
+				break;
+			case GF_NOISE:
+				VSText(" * genFuncNoise(");
+				break;
+			}
+			VSConst("%f", shader.deforms[i].deformationWave.phase);
+			VSText(" + dot(vertex.xyz, vec3(");
+			VSConst("%f", shader.deforms[i].deformationSpread);
+			VSText(")) + ");
+			VSConst("%f", shader.deforms[i].deformationWave.frequency);
+			VSText(" * aTimes.x)) * normal;\n");
+			break;
+		case DEFORM_NORMALS:
+			VSText("  \n"
+			       "  normal.xyz = normalize(normal.xyz + 0.98*noise3(vec4(vertex.xyz, aTimes.x * ");
+			VSConst("%f", shader.deforms[i].deformationWave.frequency);
+			VSText("));\n");
+			break;
+		case DEFORM_BULGE:
+			VSText("  \n"
+			       "  vertex += (");
+			VSConst("%f", shader.deforms[i].bulgeHeight);
+			VSText(" * sin(aTexCoord.x * ");
+			VSConst("%f", shader.deforms[i].bulgeWidth);
+			VSText(" + aTimes.x * ");
+			VSConst("%f", shader.deforms[i].bulgeSpeed * 0.001f);
+			VSText(") * normal;\n");
+			break;
+		case DEFORM_MOVE:
+			VSText("  \n"
+			       "  vertex.xyz += (");
+			VSConst("%f", shader.deforms[i].deformationWave.base);
+			VSText(" + ");
+			VSConst("%f", shader.deforms[i].deformationWave.amplitude);
+			switch( shader.deforms[i].deformationWave.func ) {
+			case GF_NONE:
+				return qfalse;
+			case GF_SIN:
+				VSText(" * genFuncSin(");
+				break;
+			case GF_SQUARE:
+				VSText(" * genFuncSquare(");
+				break;
+			case GF_TRIANGLE:
+				VSText(" * genFuncTriangle(");
+				break;
+			case GF_SAWTOOTH:
+				VSText(" * genFuncSawtooth(");
+				break;
+			case GF_INVERSE_SAWTOOTH:
+				VSText(" * genFuncInverseSawtooth(");
+				break;
+			case GF_NOISE:
+				VSText(" * genFuncNoise(");
+				break;
+			}
+			VSConst("%f", shader.deforms[i].deformationWave.phase);
+			VSText(" + ");
+			VSConst("%f", shader.deforms[i].deformationWave.frequency);
+			VSText(" * aTimes.x)) * vec3(");
+			VSConst("%f", shader.deforms[i].moveVector[0]);
+			VSText(", ");
+			VSConst("%f", shader.deforms[i].moveVector[1]);
+			VSText(", ");
+			VSConst("%f", shader.deforms[i].moveVector[2]);
+			VSText(");\n");
+			break;
+		default:
+			return qfalse;
+		}
+	}
+	       VSText("  vVertex = transform4(vertex);\n");
+	if( fsFeatures & fsfNormal ) {
+		VSText("  normal = vec4( transform4( normal ),\n"
+		       "                 0.0 );\n"
+		       "  vNormal = normal.xyz;\n");
+	}
+	
+	if( fsFeatures & fsfDiffuse ) {
+		if( r_perPixelLighting->integer ) {
+			VSText("  \n"
+			       "  vAmbientLight  = aAmbientLight;\n"
+			       "  vDirectedLight = aDirectedLight;\n");
+		} else {
+			VSText("  \n"
+			       "  float diffuse = max(0.0, dot(normal.xyz, -normalize(lightDir)));\n"
+			       "  vDiffuse = aAmbientLight + diffuse * aDirectedLight;\n");
+		}
+	}
+	if( fsFeatures & fsfReflView ) {
+		if( r_perPixelLighting->integer ) {
+		} else {
+			VSText("  \n"
+			       "  vReflView = reflect(normalize(vVertex - vCameraPos), vNormal);\n");
+		}
+	}
+	if( fsFeatures & fsfSpecular ) {
+		if( r_perPixelLighting->integer ) {
+		} else {
+			VSText("  vSpecular = max(0.0, 4.0 * dot(-normalize(aLightDir), vReflView) - 3.0);\n"
+			       "  vSpecular *= vSpecular; vSpecular *= vSpecular; vSpecular *= vSpecular;\n");
+		}
+	}
+	VSText("  gl_Position = gl_ModelViewProjectionMatrix * vec4(vVertex.xyz, 1.0);\n"
+	       "}\n");
+	
+	FSText("void main() {\n"
+	       "  vec4  srcColor = constants.xxxx, dstColor;\n"
+	       "  vec2  tc;\n"
+	       "  vec4  genColor;\n");
+	if( fsFeatures & fsfNormal ) {
+		FSText("  vec3 normal = normalize(vNormal);\n");
+	}
+	if( fsFeatures & fsfDiffuse ) {
+		if( r_perPixelLighting->integer ) {
+			FSText("  float diffuse = max(0.0, dot(normal, vLightDir));\n");
+		}
+	}
+	if( fsFeatures & fsfReflView ) {
+		if( r_perPixelLighting->integer ) {
+			FSText("  vec3 reflView = reflect(normalize(vVertex - vCameraPos), normal);\n");
+		} else {
+			FSText("  vec3 reflView = vReflView;\n");
+		}
+	}
+	if( fsFeatures & fsfSpecular ) {
+		if( r_perPixelLighting->integer ) {
+			FSText("  float specular = max(0.0, 4.0 * dot(vLightDir, reflView) - 3.0);\n"
+			       "  specular *= specular; specular *= specular; specular *= specular;\n");
+		} else {
+			FSText("  float specular = vSpecular;\n");
+		}
+	}
+
+	if( blendMode == FILTER ) {
+		FSText("  dstColor = constants.yyyy;\n");
+	} else {
+		FSText("  dstColor = constants.xxxy;\n");
+	}
+
+	for( i = 0; i < MAX_SHADER_STAGES; i++ ) {
+		shaderStage_t *pStage = &stages[i];
+
+		if( !pStage->active )
+			break;
+
+		if( pStage->bundle[0].image[0] != tr.whiteImage &&
+		    pStage->bundle[0].image[0] != tr.identityLightImage ) {
+			switch( pStage->bundle[0].tcGen ) {
+			case TCGEN_IDENTITY:
+				FSText("  tc = constants.xx;\n");
+				break;
+			case TCGEN_LIGHTMAP:
+				FSText("  tc = vTexCoord.pq;\n");
+				break;
+			case TCGEN_TEXTURE:
+				FSText("  tc = vTexCoord.st;\n");
+				break;
+			case TCGEN_ENVIRONMENT_MAPPED:
+				FSText("  tc = vec2(0.5) + 0.5 * reflView.yz;\n");
+				break;
+			case TCGEN_FOG:
+				return qfalse;
+			case TCGEN_VECTOR:
+				FSText("  tc = vec2(dot(vVertex, vec3(");
+				FSConst("%f", pStage->bundle[0].tcGenVectors[0][0]);
+				FSText(", ");
+				FSConst("%f", pStage->bundle[0].tcGenVectors[0][1]);
+				FSText(", ");
+				FSConst("%f", pStage->bundle[0].tcGenVectors[0][2]);
+				FSText(")),\n");
+				FSText("            dot(vVertex, vec3(");
+				FSConst("%f", pStage->bundle[0].tcGenVectors[1][0]);
+				FSText(", ");
+				FSConst("%f", pStage->bundle[0].tcGenVectors[1][1]);
+				FSText(", ");
+				FSConst("%f", pStage->bundle[0].tcGenVectors[1][2]);
+				FSText("));\n");
+				break;
+			default:
+				return qfalse;
+			}
+			for( j = 0; j < pStage->bundle[0].numTexMods; j++ ) {
+				texModInfo_t *pTexMod = &(pStage->bundle[0].texMods[j]);
+				
+				switch( pTexMod->type ) {
+				case TMOD_NONE:
+					break;
+				case TMOD_TRANSFORM:
+					FSText("  tc = tc.s * vec2(");
+					FSConst("%f", pTexMod->matrix[0][0]);
+					FSText(", ");
+					FSConst("%f", pTexMod->matrix[0][1]);
+					FSText(") + tc.t * vec2(");
+					FSConst("%f", pTexMod->matrix[1][0]);
+					FSText(", ");
+					FSConst("%f", pTexMod->matrix[1][1]);
+					FSText(") + vec2(");
+					FSConst("%f", pTexMod->translate[0]);
+					FSText(", ");
+					FSConst("%f", pTexMod->translate[1]);
+					FSText(");\n");
+					break;
+				case TMOD_TURBULENT:
+					FSText("  tc += ");
+					FSConst("%f", pTexMod->wave.amplitude);
+					FSText(" * sin(6.283185308 * (0.000976563 * vVertex.xy + vec2(");
+					FSConst("%f", pTexMod->wave.phase);
+					FSText(" + ");
+					FSConst("%f", pTexMod->wave.frequency);
+					FSText("* vShadertime)));\n");
+					break;
+				case TMOD_SCROLL:
+					FSText("  tc += vShadertime * vec2(");
+					FSConst("%f", pTexMod->scroll[0]);
+					FSText(", ");
+					FSConst("%f", pTexMod->scroll[1]);
+					FSText(");\n");
+					break;
+				case TMOD_SCALE:
+					FSText("  tc *= vec2(");
+					FSConst("%f", pTexMod->scale[0]);
+					FSText(", ");
+					FSConst("%f", pTexMod->scale[1]);
+					FSText(");\n");
+					break;
+				case TMOD_STRETCH:
+					FSText(" tc = vec2(0.5) - 0.5 / ");
+					FSGenFunc(pTexMod->wave);
+					FSText(" * tc;\n");
+					break;
+				case TMOD_ROTATE:
+					FSText("  tc = vec2(0.5) + genFuncRotate(");
+					FSConst("%f", pTexMod->rotateSpeed);
+					FSText(" * vShadertime) * (tc - vec2(0.5));\n");
+					break;
+				case TMOD_ENTITY_TRANSLATE:
+					return qfalse;
+				default:
+					return qfalse;
+				}
+			}
+			// adjust for combined image
+			if ( pStage->bundle[0].combinedImage ) {
+				float xScale = (float)pStage->bundle[0].image[0]->uploadWidth /
+					(float)pStage->bundle[0].combinedImage->uploadWidth;
+				FSText("  float frame = mod(floor(vShadertime * ");
+				FSConst("%f", pStage->bundle[0].imageAnimationSpeed);
+				FSText("), ");
+				FSConst("%f", (float)pStage->bundle[0].numImageAnimations);
+				FSText(");\n"
+				       "  tc.x = (tc.x + frame) * ");
+				FSConst("%f", xScale);
+				FSText(";\n");
+			}
+		}
+
+		switch( pStage->rgbGen ) {
+		case CGEN_IDENTITY_LIGHTING:
+		case CGEN_IDENTITY:
+		case CGEN_CONST:
+			FSText("  genColor = vec4(");
+			FSConst( "%f", constantColor[i][0] / 255.0 );
+			FSText(", ");
+			FSConst( "%f", constantColor[i][1] / 255.0 );
+			FSText(", ");
+			FSConst( "%f", constantColor[i][2] / 255.0 );
+			FSText(", ");
+			switch( pStage->alphaGen ) {
+			case AGEN_IDENTITY:
+			case AGEN_CONST:
+				FSConst("%f", constantColor[i][3] / 255.0);
+				break;
+			case AGEN_ENTITY:
+				FSText("vColor.a");
+				break;
+			case AGEN_ONE_MINUS_ENTITY:
+				FSText("constants.y - vColor.a");
+				break;
+			default:
+				FSText("constants.x"); // will be overwritten later
+				break;
+			}
+			FSText(");\n");
+			break;
+		case CGEN_ENTITY:
+			FSText("  genColor = vColor;\n");
+			break;
+		case CGEN_ONE_MINUS_ENTITY:
+			FSText("  genColor = constants.yyyy - vColor;\n");
+			break;
+		case CGEN_EXACT_VERTEX:
+			FSText("  genColor = vColor;\n");
+			break;
+		case CGEN_VERTEX:
+			FSText("  genColor = vColor * constants.zzzz;\n");
+			break;
+		case CGEN_ONE_MINUS_VERTEX:
+			FSText("  genColor = constants.zzzz - vColor * constants.zzzz;\n");
+			break;
+		case CGEN_WAVEFORM:
+			FSText("  genColor = vec4(");
+			FSGenFunc(pStage->rgbWave);
+			FSText(");\n");
+			break;
+		case CGEN_LIGHTING_DIFFUSE:
+			if( r_perPixelLighting->integer ) {
+				FSText("  genColor.rgb = vAmbientLight + diffuse * vDirectedLight;\n");
+			} else {
+				FSText("  genColor.rgb = vDiffuse;\n");
+			}
+			break;
+		case CGEN_FOG:
+			return qfalse;
+		default:
+			return qfalse;
+		}
+
+		switch( pStage->alphaGen ) {
+		case AGEN_IDENTITY:
+		case AGEN_CONST:
+			if( pStage->rgbGen != CGEN_IDENTITY &&
+			    pStage->rgbGen != CGEN_IDENTITY_LIGHTING &&
+			    pStage->rgbGen != CGEN_CONST ) {
+				FSText("  genColor.a = ");
+				FSConst("%f", constantColor[i][3] / 255.0 );
+				FSText(";\n");
+			}
+			break;
+		case AGEN_ENTITY:
+			if( pStage->rgbGen != CGEN_ENTITY &&
+			    pStage->rgbGen != CGEN_CONST )
+				FSText("  genColor.a = vColor.a;\n");
+			break;
+		case AGEN_ONE_MINUS_ENTITY:
+			if( pStage->rgbGen != CGEN_ONE_MINUS_ENTITY &&
+			    pStage->rgbGen != CGEN_CONST )
+				FSText("  genColor.a = constants.y - vColor.a;\n");
+			break;
+		case AGEN_VERTEX:
+			if( pStage->rgbGen != CGEN_VERTEX &&
+			    pStage->rgbGen != CGEN_EXACT_VERTEX )
+				FSText("  genColor.a = vColor.a;\n");
+			break;
+		case AGEN_ONE_MINUS_VERTEX:
+			if( pStage->rgbGen != CGEN_ONE_MINUS_VERTEX )
+				FSText("  genColor.a = constants.y - vColor.a;\n");
+			break;
+		case AGEN_LIGHTING_SPECULAR:
+			FSText("  genColor.a = specular;\n");
+			break;
+		case AGEN_WAVEFORM:
+			FSText("  genColor.a = ");
+			FSGenFunc(pStage->alphaWave);
+			FSText(";\n");
+			break;
+		case AGEN_PORTAL:
+			FSText("  genColor.a = clamp(");
+			FSConst("%f", 1.0/shader.portalRange);
+			FSText(" * length(vVertex - vCameraPos), 0.0, 1.0);\n");
+			break;
+		default:
+			return qfalse;
+		}
+
+		if( pStage->bundle[0].image[0] == tr.whiteImage ) {
+			FSText("  srcColor = genColor;\n");
+		} else if( pStage->bundle[0].image[0] == tr.identityLightImage ) {
+			FSText("  srcColor = constants.zzzy * genColor;\n");
+		} else {
+			FSText("  srcColor = texture2D(");
+			FSText(GLSLTexNames[i]);
+			FSText(", tc) * genColor;\n");
+		}
+		
+		// alpha test
+		switch( pStage->stateBits & GLS_ATEST_BITS ) {
+		case 0:
+			break;
+		case GLS_ATEST_GT_0:
+			FSText("  if( srcColor.a > 0.0 ) {\n");
+			break;
+		case GLS_ATEST_LT_80:
+			FSText("  if( srcColor.a < 0.5 ) {\n");
+			break;
+		case GLS_ATEST_GE_80:
+			FSText("  if( srcColor.a >= 0.5 ) {\n");
+			break;
+		}
+
+		if( blendMode == FILTER ) {
+			FSText("  dstColor *= srcColor;\n");
+		} else {
+			// blend colors
+			switch( pStage->stateBits & GLS_DSTBLEND_BITS ) {
+			case 0:
+			case GLS_DSTBLEND_ZERO:
+				FSText("  dstColor.rgb = ");
+				break;
+			case GLS_DSTBLEND_ONE:
+				FSText("  dstColor.rgb += ");
+				break;
+			case GLS_DSTBLEND_SRC_COLOR:
+				FSText("  dstColor.rgb = dstColor.rgb * srcColor.rgb + ");
+				break;
+			case GLS_DSTBLEND_ONE_MINUS_SRC_COLOR:
+				FSText("  dstColor.rgb = dstColor.rgb * (constants.yyy - srcColor.rgb) + ");
+				break;
+			case GLS_DSTBLEND_SRC_ALPHA:
+				FSText("  dstColor.rgb = dstColor.rgb * srcColor.aaa + ");
+				break;
+			case GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA:
+				FSText("  dstColor.rgb = dstColor.rgb * (constants.yyy - srcColor.aaa) + ");
+				break;
+			}
+			switch( pStage->stateBits & GLS_SRCBLEND_BITS ) {
+			case GLS_SRCBLEND_ZERO:
+				FSText("constants.xxx;\n");
+				break;
+			case 0:
+			case GLS_SRCBLEND_ONE:
+				FSText("srcColor.rgb;\n");
+				break;
+			case GLS_SRCBLEND_DST_COLOR:
+				FSText("srcColor.rgb * dstColor.rgb;\n");
+				break;
+			case GLS_SRCBLEND_ONE_MINUS_DST_COLOR:
+				FSText("srcColor.rgb * (constants.yyy - dstColor.rgb);\n");
+				break;
+			case GLS_SRCBLEND_SRC_ALPHA:
+				FSText("srcColor.rgb * srcColor.aaa;\n");
+				break;
+			case GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA:
+				FSText("srcColor.rgb * (constants.yyy - srcColor.aaa);\n");
+				break;
+			}
+			
+			// blend alpha
+			switch( pStage->stateBits & GLS_DSTBLEND_BITS ) {
+			case 0:
+			case GLS_DSTBLEND_ZERO:
+				if( (pStage->stateBits & GLS_SRCBLEND_BITS) == GLS_SRCBLEND_DST_COLOR )
+					;
+				else if( (pStage->stateBits & GLS_SRCBLEND_BITS) == GLS_SRCBLEND_ONE_MINUS_DST_COLOR )
+					FSText("  dstColor.1 = 1 - dstColor.a;\n");
+				else
+					FSText("  dstColor.a = constants.x;\n");
+				break;
+			case GLS_DSTBLEND_ONE:
+				break;
+			case GLS_DSTBLEND_SRC_COLOR:
+				FSText("  dstColor.a *= srcColor.a;\n");
+				break;
+			case GLS_DSTBLEND_ONE_MINUS_SRC_COLOR:
+				FSText("  dstColor.a *= one.a - srcColor.a;\n");
+			case GLS_DSTBLEND_SRC_ALPHA:
+				FSText("  dstColor.a *= srcColor.a;\n");
+				break;
+			case GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA:
+				FSText("  dstColor.a *= constants.y - srcColor.a;\n");
+				break;
+			}
+		}
+		if ( pStage->stateBits & GLS_ATEST_BITS ) {
+			FSText("  }\n");
+			if ( i == 0 )
+				FSText("  else\n    discard;\n");
+		}
+
+	}
+	shader.numUnfoggedPasses = i;
+	
+	FSText("  gl_FragColor = dstColor;\n"
+	       "}\n");
+	
+	// *** compile and link ***
+	shader.GLSLprogram = RB_CompileProgram( shader.name, VS, VSidx, FS, FSidx, &shader.programHash );
+	if ( !shader.GLSLprogram )
+		return qfalse;
+	
+	// sampler uniforms are set to the TMU once at the start
+	GL_Program( shader.GLSLprogram );
+	// try to move lightmap to TMU 1 to avoid rebinds
+	// always leave TMU 0 as it may be used for alpha test
+	if( lightmapStage > 1 ) {
+		textureBundle_t temp;
+		
+		j = qglGetUniformLocation( shader.GLSLprogram, GLSLTexNames[0] );
+		if( j != -1 ) {
+			qglUniform1i( j, 0 );
+		}
+
+		Com_Memcpy( &temp, &stages[1].bundle[0], sizeof(textureBundle_t) );
+		Com_Memcpy( &stages[1].bundle[0], &stages[lightmapStage].bundle[0], sizeof(textureBundle_t) );
+		Com_Memcpy( &stages[lightmapStage].bundle[0], &temp, sizeof(textureBundle_t) );
+		j = qglGetUniformLocation( shader.GLSLprogram, GLSLTexNames[lightmapStage] );
+		if( j != -1 ) {
+			qglUniform1i( j, 1 );
+		}
+		
+		for( i = 2; i < lightmapStage; i++ ) {
+			j = qglGetUniformLocation( shader.GLSLprogram, GLSLTexNames[i] );
+			if( j != -1 ) {
+				qglUniform1i( j, i );
+			}
+		}
+		j = qglGetUniformLocation( shader.GLSLprogram, GLSLTexNames[1] );
+		if( j != -1 ) {
+			qglUniform1i( j, lightmapStage );
+		}
+		for( i = lightmapStage + 1; i < shader.numUnfoggedPasses; i++ ) {
+			j = qglGetUniformLocation( shader.GLSLprogram, GLSLTexNames[i] );
+			if( j != -1 ) {
+				qglUniform1i( j, i );
+			}
+		}
+	} else {
+		for( i = 0; i < shader.numUnfoggedPasses; i++ ) {
+			j = qglGetUniformLocation( shader.GLSLprogram, GLSLTexNames[i] );
+			if( j != -1 ) {
+				qglUniform1i( j, i );
+			}
+		}
+	}
+
+	stages[0].stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
+	switch( blendMode ) {
+	case REPLACE:
+		break;
+	case BLEND:
+		stages[0].stateBits |= GLS_SRCBLEND_ONE | GLS_DSTBLEND_SRC_ALPHA;
+		break;
+	case FILTER:
+		stages[0].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
+		break;
+	}
+	shader.optimalStageIteratorFunc = RB_StageIteratorGLSL;
+	if ( qglGenBuffersARB && shader.lightmapIndex != LIGHTMAP_2D ) {
+		shader.useVBO = qtrue;
+	}
+	
+	return qtrue;
 }
 
 /*
@@ -2128,6 +3561,7 @@ static shader_t *FinishShader( void ) {
 	int stage;
 	qboolean		hasLightmapStage;
 	qboolean		vertexLightmap;
+	shader_t		*sh;
 
 	hasLightmapStage = qfalse;
 	vertexLightmap = qfalse;
@@ -2142,7 +3576,7 @@ static shader_t *FinishShader( void ) {
 	//
 	// set polygon offset
 	//
-	if ( shader.polygonOffset && !shader.sort ) {
+	if ( (stages[0].stateBits & GLS_POLYGON_OFFSET) && !shader.sort ) {
 		shader.sort = SS_DECAL;
 	}
 
@@ -2156,7 +3590,7 @@ static shader_t *FinishShader( void ) {
 			break;
 		}
 
-    // check for a missing texture
+		// check for a missing texture
 		if ( !pStage->bundle[0].image[0] ) {
 			ri.Printf( PRINT_WARNING, "Shader %s has a stage with no image\n", shader.name );
 			pStage->active = qfalse;
@@ -2266,44 +3700,105 @@ static shader_t *FinishShader( void ) {
 	}
 
 	//
-	// if we are in r_vertexLight mode, never use a lightmap texture
+	// try to generate a GLSL shader if possible
 	//
-	if ( stage > 1 && ( (r_vertexLight->integer && !r_uiFullScreen->integer) || glConfig.hardwareType == GLHW_PERMEDIA2 ) ) {
-		VertexLightingCollapse();
-		stage = 1;
-		hasLightmapStage = qfalse;
-	}
-
-	//
-	// look for multitexture potential
-	//
-	if ( stage > 1 && CollapseMultitexture() ) {
-		stage--;
-	}
-
-	if ( shader.lightmapIndex >= 0 && !hasLightmapStage ) {
-		if (vertexLightmap) {
-			ri.Printf( PRINT_DEVELOPER, "WARNING: shader '%s' has VERTEX forced lightmap!\n", shader.name );
-		} else {
-			ri.Printf( PRINT_DEVELOPER, "WARNING: shader '%s' has lightmap but no lightmap stage!\n", shader.name );
-  			shader.lightmapIndex = LIGHTMAP_NONE;
+	if ( !CollapseGLSL() ) {
+		//
+		// if we are in r_vertexLight mode, never use a lightmap texture
+		//
+		if ( stage > 1 && ( (r_vertexLight->integer && !r_uiFullScreen->integer) || glConfig.hardwareType == GLHW_PERMEDIA2 ) ) {
+			VertexLightingCollapse();
+			stage = 1;
+			hasLightmapStage = qfalse;
 		}
+		
+		//
+		// look for multitexture potential
+		//
+		if ( stage > 1 ) {
+			stage = CollapseMultitexture();
+		}
+		
+		if ( shader.lightmapIndex >= 0 && !hasLightmapStage ) {
+			if (vertexLightmap) {
+				ri.Printf( PRINT_DEVELOPER, "WARNING: shader '%s' has VERTEX forced lightmap!\n", shader.name );
+			} else {
+				ri.Printf( PRINT_DEVELOPER, "WARNING: shader '%s' has lightmap but no lightmap stage!\n", shader.name );
+				shader.lightmapIndex = LIGHTMAP_NONE;
+			}
+		}
+		
+		
+		//
+		// compute number of passes
+		//
+		shader.numUnfoggedPasses = stage;
+		
+		// fogonly shaders don't have any normal passes
+		if (stage == 0 && !shader.isSky)
+			shader.sort = SS_FOG;
+		
+		// determine which stage iterator function is appropriate
+		ComputeStageIteratorFunc();
 	}
 
+	shader.isDepth = qfalse;
+	sh = GeneratePermanentShader();
 
-	//
-	// compute number of passes
-	//
-	shader.numUnfoggedPasses = stage;
+	// generate depth-only shader if necessary
+	if( r_depthPass->integer && !shader.isSky ) {
+		if( (stages[0].stateBits & GLS_DEPTHMASK_TRUE) &&
+		    !(stages[0].stateBits & GLS_DEPTHFUNC_EQUAL) &&
+		    !(shader.lightmapIndex == LIGHTMAP_2D) ) {
+			// this shader may update depth
+			stages[1].active = qfalse;
+			strcat(shader.name, "*");
+			
+			if( stages[0].stateBits & GLS_ATEST_BITS ) {
+				shader.sort = SS_DEPTH;
+				stages[0].stateBits &= ~GLS_SRCBLEND_BITS & ~GLS_DSTBLEND_BITS;
+				stages[0].stateBits |= GLS_COLORMASK_FALSE;
+				stages[0].rgbGen = CGEN_VERTEX;
+				
+				if( !CollapseGLSL() ) {
+					shader.numUnfoggedPasses = 1;
+					ComputeStageIteratorFunc();
+				}
+				sh->depthShader = GeneratePermanentShader();
+			} else if ( shader.lightmapIndex == LIGHTMAP_MD3 &&
+				    shader.cullType == 0 &&
+				    tr.defaultMD3Shader ) {
+				sh->depthShader = tr.defaultMD3Shader->depthShader;
+			} else if ( shader.lightmapIndex != LIGHTMAP_MD3 &&
+				    shader.cullType == 0 &&
+				    tr.defaultShader ) {
+				sh->depthShader = tr.defaultShader->depthShader;
+			} else {
+				shader.sort = SS_DEPTH;
+				stages[0].stateBits &= ~GLS_SRCBLEND_BITS & ~GLS_DSTBLEND_BITS;
+				stages[0].stateBits |= GLS_COLORMASK_FALSE;
+				stages[0].bundle[0].image[0] = tr.whiteImage;
+				stages[0].bundle[0].tcGen = TCGEN_TEXTURE;
+				stages[0].bundle[0].numTexMods = 0;
+				stages[0].rgbGen = CGEN_VERTEX;
+				stages[0].alphaGen = AGEN_VERTEX;
 
-	// fogonly shaders don't have any normal passes
-	if (stage == 0 && !shader.isSky)
-		shader.sort = SS_FOG;
-
-	// determine which stage iterator function is appropriate
-	ComputeStageIteratorFunc();
-
-	return GeneratePermanentShader();
+				if( !CollapseGLSL() ) {
+					shader.numUnfoggedPasses = 1;
+					ComputeStageIteratorFunc();
+				}
+				shader.isDepth = qtrue;
+				sh->depthShader = GeneratePermanentShader();
+			}
+			// disable depth writes in the main pass
+			sh->stages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE;
+		} else {
+			sh->depthShader = NULL;
+		}
+	} else {
+		sh->depthShader = NULL;
+	}
+	return sh;
 }
 
 //========================================================================================
@@ -2335,7 +3830,7 @@ static char *FindShaderInShaderText( const char *shadername ) {
 			return p;
 		}
 	}
-
+#if 0
 	p = s_shaderText;
 
 	if ( !p ) {
@@ -2357,7 +3852,7 @@ static char *FindShaderInShaderText( const char *shadername ) {
 			SkipBracedSection( &p );
 		}
 	}
-
+#endif
 	return NULL;
 }
 
@@ -2437,7 +3932,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	shader_t	*sh;
 
 	if ( name[0] == 0 ) {
-		return tr.defaultShader;
+		return lightmapIndex == LIGHTMAP_MD3 ? tr.defaultMD3Shader : tr.defaultShader;
 	}
 
 	// use (fullbright) vertex lighting if the bsp file doesn't have
@@ -2484,11 +3979,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		stages[i].bundle[0].texMods = texMods[i];
 	}
 
-	// FIXME: set these "need" values apropriately
-	shader.needsNormal = qtrue;
-	shader.needsST1 = qtrue;
-	shader.needsST2 = qtrue;
-	shader.needsColor = qtrue;
+	shader.useVBO = qfalse;
 
 	//
 	// attempt to define shader from an explicit parameter file
@@ -2504,8 +3995,10 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		if ( !ParseShader( &shaderText ) ) {
 			// had errors, so use default shader
 			shader.defaultShader = qtrue;
+			sh = FinishShader();
+		} else {
+			sh = FinishShader();
 		}
-		sh = FinishShader();
 		return sh;
 	}
 
@@ -2518,13 +4011,15 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	if ( !image ) {
 		ri.Printf( PRINT_DEVELOPER, "Couldn't find image file for shader %s\n", name );
 		shader.defaultShader = qtrue;
-		return FinishShader();
+		sh = FinishShader();
+		return sh;
 	}
 
 	//
 	// create the default shading commands
 	//
-	if ( shader.lightmapIndex == LIGHTMAP_NONE ) {
+	if ( shader.lightmapIndex == LIGHTMAP_NONE ||
+	     shader.lightmapIndex == LIGHTMAP_MD3 ) {
 		// dynamic colors at vertexes
 		stages[0].bundle[0].image[0] = image;
 		stages[0].active = qtrue;
@@ -2572,7 +4067,8 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
 	}
 
-	return FinishShader();
+	sh = FinishShader();
+	return sh;
 }
 
 
@@ -2620,11 +4116,7 @@ qhandle_t RE_RegisterShaderFromImage(const char *name, int lightmapIndex, image_
 		stages[i].bundle[0].texMods = texMods[i];
 	}
 
-	// FIXME: set these "need" values apropriately
-	shader.needsNormal = qtrue;
-	shader.needsST1 = qtrue;
-	shader.needsST2 = qtrue;
-	shader.needsColor = qtrue;
+	shader.useVBO = qfalse;
 
 	//
 	// create the default shading commands
@@ -2678,7 +4170,7 @@ qhandle_t RE_RegisterShaderFromImage(const char *name, int lightmapIndex, image_
 	}
 
 	sh = FinishShader();
-  return sh->index; 
+	return sh->index; 
 }
 
 
@@ -2808,7 +4300,7 @@ A second parameter will cause it to print in sorted order
 ===============
 */
 void	R_ShaderList_f (void) {
-	int			i;
+	int			i, j, k;
 	int			count;
 	shader_t	*shader;
 
@@ -2829,15 +4321,6 @@ void	R_ShaderList_f (void) {
 		} else {
 			ri.Printf (PRINT_ALL, "  ");
 		}
-		if ( shader->multitextureEnv == GL_ADD ) {
-			ri.Printf( PRINT_ALL, "MT(a) " );
-		} else if ( shader->multitextureEnv == GL_MODULATE ) {
-			ri.Printf( PRINT_ALL, "MT(m) " );
-		} else if ( shader->multitextureEnv == GL_DECAL ) {
-			ri.Printf( PRINT_ALL, "MT(d) " );
-		} else {
-			ri.Printf( PRINT_ALL, "      " );
-		}
 		if ( shader->explicitlyDefined ) {
 			ri.Printf( PRINT_ALL, "E " );
 		} else {
@@ -2852,6 +4335,8 @@ void	R_ShaderList_f (void) {
 			ri.Printf( PRINT_ALL, "lmmt" );
 		} else if ( shader->optimalStageIteratorFunc == RB_StageIteratorVertexLitTexture ) {
 			ri.Printf( PRINT_ALL, "vlt " );
+		} else if ( shader->optimalStageIteratorFunc == RB_StageIteratorGLSL ) {
+			ri.Printf( PRINT_ALL, "glsl" );
 		} else {
 			ri.Printf( PRINT_ALL, "    " );
 		}
@@ -2860,6 +4345,21 @@ void	R_ShaderList_f (void) {
 			ri.Printf (PRINT_ALL,  ": %s (DEFAULTED)\n", shader->name);
 		} else {
 			ri.Printf (PRINT_ALL,  ": %s\n", shader->name);
+		}
+		for ( j = 0; j < shader->numUnfoggedPasses; j++ ) {
+			shaderStage_t *stage = shader->stages[j];
+			
+			if ( !stage->active )
+				break;
+
+			ri.Printf (PRINT_DEVELOPER, " %d\n" );
+			
+			for ( k = 0; i < NUM_TEXTURE_BUNDLES; k++ ) {
+				if ( !stage->bundle[k].image[0] )
+					break;
+
+				ri.Printf (PRINT_DEVELOPER, "  %s\n", stage->bundle[k].image[0]->imgName );
+			}
 		}
 		count++;
 	}
@@ -3028,12 +4528,41 @@ static void CreateInternalShaders( void ) {
 	stages[0].bundle[0].image[0] = tr.defaultImage;
 	stages[0].active = qtrue;
 	stages[0].stateBits = GLS_DEFAULT;
+	stages[0].rgbGen = CGEN_VERTEX;
+	stages[0].alphaGen = AGEN_VERTEX;
 	tr.defaultShader = FinishShader();
+	
+	Q_strncpyz( shader.name, "<default md3>", sizeof( shader.name ) );
+	shader.lightmapIndex = LIGHTMAP_MD3;
+	stages[0].bundle[0].image[0] = tr.defaultImage;
+	tr.defaultMD3Shader = FinishShader();
+
+	// fogShader exists only to generate a GLSL program for fog blending
+	Q_strncpyz( shader.name, "<fog>", sizeof( shader.name ) );
+	shader.lightmapIndex = LIGHTMAP_NONE;
+	stages[0].bundle[0].image[0] = tr.defaultImage;
+	stages[0].rgbGen = CGEN_VERTEX;
+	stages[0].stateBits = GLS_DEFAULT | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+	tr.fogShader = FinishShader();
 
 	// shadow shader is just a marker
 	Q_strncpyz( shader.name, "<stencil shadow>", sizeof( shader.name ) );
 	shader.sort = SS_STENCIL_SHADOW;
 	tr.shadowShader = FinishShader();
+
+	// occlusion test shader performs only a depth test
+	if( qglBeginQueryARB && r_entityOcclusion->integer ) {
+		Q_strncpyz( shader.name, "<occlusion test>", sizeof( shader.name ) );
+		shader.sort = SS_BANNER;
+		shader.cullType = CT_TWO_SIDED;
+		stages[0].stateBits = GLS_COLORMASK_FALSE;
+		//stages[0].stateBits = GLS_DEFAULT|GLS_SRCBLEND_ONE|GLS_DSTBLEND_ZERO;
+		stages[0].rgbGen    = CGEN_IDENTITY;
+		stages[0].alphaGen = AGEN_IDENTITY;
+		tr.occlusionTestShader = FinishShader();
+	} else {
+		tr.occlusionTestShader = NULL;
+	}
 }
 
 static void CreateExternalShaders( void ) {

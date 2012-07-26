@@ -354,8 +354,12 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 	// draw all surfaces
 	//
 	surface = (md3Surface_t *)( (byte *)header + header->ofsSurfaces );
+	if ( tr.occlusionTestShader && ent->GLQueryID ) {
+		// add impostor for the occlusion query
+		R_AddDrawSurf( (void *)(&ent->impostor), tr.occlusionTestShader, 0, qfalse );
+	}
+	
 	for ( i = 0 ; i < header->numSurfaces ; i++ ) {
-
 		if ( ent->e.customShader ) {
 			shader = R_GetShaderByHandle( ent->e.customShader );
 		} else if ( ent->e.customSkin > 0 && ent->e.customSkin < tr.numSkins ) {
@@ -408,12 +412,19 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 		}
 
 		// don't add third_person objects if not viewing through a portal
-		if ( !personalModel ) {
+		// add object only if the impostor was visible in the last frame
+		if ( !personalModel && ( !qglBeginQueryARB ||
+					 !ent->GLQueryID ||
+					 ent->GLQueryResult ) ) {
+			if( shader->depthShader ) {
+				R_AddDrawSurf( (void *)surface, shader->depthShader, 0, qfalse );
+			}
 			R_AddDrawSurf( (void *)surface, shader, fogNum, qfalse );
 		}
 
 		surface = (md3Surface_t *)( (byte *)surface + surface->ofsEnd );
 	}
 
+	ent->GLQueryResult = 0;
 }
 

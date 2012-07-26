@@ -829,6 +829,7 @@ extern	cvar_t	*sv_packetdelay;
 extern	int		time_game;
 extern	int		time_frontend;
 extern	int		time_backend;		// renderer backend time
+extern	int		time_GL;
 
 extern	int		com_frameTime;
 extern	int		com_frameMsec;

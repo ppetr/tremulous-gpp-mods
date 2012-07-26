@@ -28,7 +28,7 @@ int			r_firstSceneDrawSurf;
 int			r_numdlights;
 int			r_firstSceneDlight;
 
-int			r_numentities;
+int			r_numentities, r_rememberedEntities, r_nextRemembered;
 int			r_firstSceneEntity;
 
 int			r_numpolys;
@@ -44,6 +44,8 @@ R_ToggleSmpFrame
 ====================
 */
 void R_ToggleSmpFrame( void ) {
+	int	i, j;
+
 	if ( r_smp->integer ) {
 		// use the other buffers next frame, because another CPU
 		// may still be rendering into the current ones
@@ -58,6 +60,27 @@ void R_ToggleSmpFrame( void ) {
 
 	r_numdlights = 0;
 	r_firstSceneDlight = 0;
+
+	while ( r_nextRemembered < r_rememberedEntities ) {
+		trRememberedEntity_t	*trRememberedEnt = &backEndData[tr.smpFrame]->rememberedEntities[r_nextRemembered];
+		if ( trRememberedEnt->GLQueryID &&
+		     qglIsQueryARB( trRememberedEnt->GLQueryID ) ) {
+			qglDeleteQueriesARB( 1, &trRememberedEnt->GLQueryID );
+			trRememberedEnt->GLQueryID = 0;
+		}
+		r_nextRemembered++;
+	}
+
+	for ( i = j = 0; i < r_numentities; i++ ) {
+		if ( backEndData[tr.smpFrame]->entities[i].e.reType == RT_MODEL ) {
+			backEndData[tr.smpFrame]->rememberedEntities[j].hModel = backEndData[tr.smpFrame]->entities[i].e.hModel;
+			VectorCopy( backEndData[tr.smpFrame]->entities[j].e.origin, backEndData[tr.smpFrame]->rememberedEntities[i].origin );
+			backEndData[tr.smpFrame]->rememberedEntities[j].GLQueryID = backEndData[tr.smpFrame]->entities[i].GLQueryID;
+			j++;
+		}
+	}
+	r_rememberedEntities = j;
+	r_nextRemembered = 0;
 
 	r_numentities = 0;
 	r_firstSceneEntity = 0;
@@ -206,6 +229,10 @@ RE_AddRefEntityToScene
 =====================
 */
 void RE_AddRefEntityToScene( const refEntity_t *ent ) {
+	int			i;
+	trRefEntity_t		*trEnt;
+	trRememberedEntity_t	*trRememberedEnt;
+
 	if ( !tr.registered ) {
 		return;
 	}
@@ -224,8 +251,91 @@ void RE_AddRefEntityToScene( const refEntity_t *ent ) {
 		ri.Error( ERR_DROP, "RE_AddRefEntityToScene: bad reType %i", ent->reType );
 	}
 
-	backEndData[tr.smpFrame]->entities[r_numentities].e = *ent;
-	backEndData[tr.smpFrame]->entities[r_numentities].lightingCalculated = qfalse;
+	trEnt = &backEndData[tr.smpFrame]->entities[r_numentities];
+	trEnt->e = *ent;
+	trEnt->lightingCalculated = qfalse;
+	backEndData[tr.smpFrame]->entities[r_numentities].GLQueryID = 0;
+
+	if ( ent->reType == RT_MODEL ) {
+		model_t *model = R_GetModelByHandle( ent->hModel );
+
+		// try to find the same entity in the last frame
+		trRememberedEnt = &backEndData[tr.smpFrame]->rememberedEntities[r_nextRemembered];
+		for ( i = 0; i < 16; i++ ) {
+			if ( r_nextRemembered + i >= r_rememberedEntities )
+				break;
+
+			if ( trRememberedEnt[i].hModel == ent->hModel &&
+			     DistanceSquared( trRememberedEnt[i].origin, ent->origin ) <= 10*10) {
+				// found it
+				r_nextRemembered += i + 1;
+				trEnt->GLQueryID = trRememberedEnt[i].GLQueryID;
+
+				// delete skipped queries that are no longer needed
+				if ( tr.occlusionTestShader ) {
+					GLuint	available;
+
+					while ( i > 0 ) {
+						trRememberedEnt--;
+						if ( qglIsQueryARB( trRememberedEnt->GLQueryID ) ) {
+							qglDeleteQueriesARB( 1, &trRememberedEnt->GLQueryID );
+							trRememberedEnt->GLQueryID = 0;
+						}
+						i--;
+					}
+
+					// get result of previous query
+					if ( trEnt->GLQueryID &&
+					     qglIsQueryARB( trEnt->GLQueryID) ) {
+						qglGetQueryObjectuivARB( trEnt->GLQueryID,
+									 GL_QUERY_RESULT_AVAILABLE_ARB,
+									 &available);
+						if ( !available ) {
+							trEnt->GLQueryResult = (GLuint)(-1);
+						} else {
+							qglGetQueryObjectivARB( trEnt->GLQueryID,
+										GL_QUERY_RESULT_ARB,
+										&trEnt->GLQueryResult);
+						}
+					}
+				}
+
+				break;
+			}
+		}
+		if ( tr.occlusionTestShader && trEnt->GLQueryID == 0 ) {
+			qglGenQueriesARB( 1, &trEnt->GLQueryID );
+			trEnt->GLQueryResult = (GLuint)(-1);
+		}
+
+		if( tr.occlusionTestShader ) {
+			trEnt->impostor.surfaceType = SF_IMPOSTOR;
+			switch( model->type ) {
+			case MOD_BRUSH:
+				VectorCopy( model->bmodel->bounds[0], trEnt->impostor.bounds[0] );
+				VectorCopy( model->bmodel->bounds[1], trEnt->impostor.bounds[1] );
+				break;
+			case MOD_MESH:
+				ClearBounds( trEnt->impostor.bounds[0], trEnt->impostor.bounds[1] );
+				for ( i = 0; i < model->md3[0]->numFrames; i++ ) {
+					md3Frame_t *frame = (md3Frame_t *)((byte *)model->md3[0] + model->md3[0]->ofsFrames);
+					
+					AddPointToBounds( frame[i].bounds[0], trEnt->impostor.bounds[0], trEnt->impostor.bounds[1] );
+					AddPointToBounds( frame[i].bounds[1], trEnt->impostor.bounds[0], trEnt->impostor.bounds[1] );
+				}
+				break;
+			case MOD_MD4:
+#ifdef RAVENMD4
+			case MOD_MDR:
+#endif
+				break;
+			case MOD_BAD:
+				VectorClear( trEnt->impostor.bounds[0] );
+				VectorClear( trEnt->impostor.bounds[1] );
+				break;
+			}
+		}
+	}
 
 	r_numentities++;
 }
@@ -313,6 +423,9 @@ void RE_RenderScene( const refdef_t *fd ) {
 	}
 
 	Com_Memcpy( tr.refdef.text, fd->text, sizeof( tr.refdef.text ) );
+
+	// copy array of sorted shaders for this frame
+	Com_Memcpy( tr.lastSortedShaders, tr.sortedShaders, tr.numShaders * sizeof(shader_t *) );
 
 	tr.refdef.x = fd->x;
 	tr.refdef.y = fd->y;
