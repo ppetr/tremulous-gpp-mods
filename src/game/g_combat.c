@@ -1428,8 +1428,9 @@ void G_LogDestruction( gentity_t *self, gentity_t *actor, int mod )
       actor->client->pers.teamSelection == TEAM_HUMANS )
     return;
 
-  if( actor->client && actor->client->pers.teamSelection ==
-    BG_Buildable( self->s.modelindex )->team )
+  if( actor->client &&
+      actor->client->pers.teamSelection == BG_Buildable( self->s.modelindex )->team &&
+      !self->wmdDamageTime /* don't print destroying infested buildings */ )
   {
     G_TeamCommand( actor->client->ps.stats[ STAT_TEAM ],
       va( "print \"%s ^3%s^7 by %s\n\"",
