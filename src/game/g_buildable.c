@@ -2498,8 +2498,15 @@ void HTeslaGen_Think( gentity_t *self )
       if( self->enemy->flags & FL_NOTARGET )
         continue;
 
-      if( self->enemy->client && self->enemy->health > 0 &&
-          self->enemy->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS &&
+      if( self->enemy->health > 0 &&
+          ( ( !self->wmdDamageTime &&
+              self->enemy->client &&
+              self->enemy->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS ) ||
+            ( self->wmdDamageTime && // infested
+              ( ( self->enemy->client &&
+                  self->enemy->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS ) ||
+                ( self->enemy->s.eType == ET_BUILDABLE &&
+                  self->enemy->buildableTeam == TEAM_HUMANS ) ) ) ) &&
           Distance( origin, self->enemy->s.pos.trBase ) <= TESLAGEN_RANGE )
         FireWeapon( self );
     }
