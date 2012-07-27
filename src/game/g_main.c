@@ -101,6 +101,8 @@ vmCvar_t  g_humanRefineryRadius;
 vmCvar_t  g_humanStage;
 vmCvar_t  g_humanCredits;
 vmCvar_t  g_humanMaxStage;
+vmCvar_t  g_humanMedkitRange;
+vmCvar_t  g_humanMedkitWidth;
 vmCvar_t  g_humanStage2Threshold;
 vmCvar_t  g_humanStage3Threshold;
 vmCvar_t  g_alienStage;
@@ -273,6 +275,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_humanStage, "g_humanStage", "0", 0, 0, qfalse  },
   { &g_humanCredits, "g_humanCredits", "0", 0, 0, qfalse  },
   { &g_humanMaxStage, "g_humanMaxStage", DEFAULT_HUMAN_MAX_STAGE, 0, 0, qfalse, cv_humanMaxStage },
+  { &g_humanMedkitRange, "g_humanMedkitRange", "200", CVAR_ARCHIVE, 0, qfalse },
+  { &g_humanMedkitWidth, "g_humanMedkitWidth", "20", CVAR_ARCHIVE, 0, qfalse },
   { &g_humanStage2Threshold, "g_humanStage2Threshold", DEFAULT_HUMAN_STAGE2_THRESH, 0, 0, qfalse  },
   { &g_humanStage3Threshold, "g_humanStage3Threshold", DEFAULT_HUMAN_STAGE3_THRESH, 0, 0, qfalse  },
   { &g_alienStage, "g_alienStage", "0", 0, 0, qfalse  },

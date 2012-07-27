@@ -1146,6 +1146,8 @@ extern  vmCvar_t  g_humanRefineryRadius;
 extern  vmCvar_t  g_humanStage;
 extern  vmCvar_t  g_humanCredits;
 extern  vmCvar_t  g_humanMaxStage;
+extern  vmCvar_t  g_humanMedkitRange;
+extern  vmCvar_t  g_humanMedkitWidth;
 extern  vmCvar_t  g_humanStage2Threshold;
 extern  vmCvar_t  g_humanStage3Threshold;
 extern  vmCvar_t  g_alienStage;

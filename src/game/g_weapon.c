@@ -1473,18 +1473,21 @@ G_MedkitTarget
 Look for a possible healing target (a client) in the front.
 ===============
 */
-#define MEDKIT_RANGE           128.0f
-#define MEDKIT_WIDTH           12.0f
 gentity_t *G_MedkitTarget( gentity_t *ent )
 {
   trace_t   tr;
   gentity_t *targetEnt = NULL;
 
+  if( g_humanMedkitRange.value <= 0 ||
+      g_humanMedkitWidth.value <= 0 )
+    return NULL;
+
   // Calculate muzzle point
   AngleVectors( ent->client->ps.viewangles, forward, right, up );
   CalcMuzzlePoint( ent, forward, right, up, muzzle );
 
-  G_WideTrace( &tr, ent, MEDKIT_RANGE, MEDKIT_WIDTH, MEDKIT_WIDTH, &targetEnt );
+  G_WideTrace( &tr, ent, g_humanMedkitRange.value,
+      g_humanMedkitWidth.value, g_humanMedkitWidth.value, &targetEnt );
 
   if( ( targetEnt != NULL ) &&
       ( targetEnt->client != NULL ) )
