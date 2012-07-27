@@ -2172,9 +2172,19 @@ qboolean HMGTurret_CheckTarget( gentity_t *self, gentity_t *target,
   trace_t   tr;
   vec3_t    dir, end;
 
-  if( !target || target->health <= 0 || !target->client ||
-      target->client->pers.teamSelection != TEAM_ALIENS )
+  if( !target || target->health <= 0 )
     return qfalse;
+  if( self->wmdDamageTime ) // if the turret became infested, target anything human
+  {
+    if( !( ( target->client && target->client->pers.teamSelection == TEAM_HUMANS ) ||
+           ( target->s.eType == ET_BUILDABLE && target->buildableTeam == TEAM_HUMANS ) ) )
+      return qfalse;
+  }
+  else // normal operation
+  {
+    if( !target->client || target->client->pers.teamSelection != TEAM_ALIENS )
+      return qfalse;
+  }
 
   if( target->flags & FL_NOTARGET )
     return qfalse;

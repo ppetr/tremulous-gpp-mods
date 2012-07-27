@@ -242,6 +242,8 @@ struct gentity_s
 
   qboolean          pointAgainstWorld;              // don't use the bbox for map collisions
 
+  int               wmdDamageTime;                  // time when the buildable was hit by a weapon of mass desctruction
+
   int               buildPointZone;                 // index for zone
   int               usesBuildPointZone;             // does it use a zone?
 };
