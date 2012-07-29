@@ -332,7 +332,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define CREEPCOLONY_BT              20000
 #define CREEPCOLONY_HEALTH          ABHM(300)
 #define CREEPCOLONY_REGEN           6
-#define CREEPCOLONY_SPLASHDAMAGE    50
+#define CREEPCOLONY_SPLASHDAMAGE    200
 #define CREEPCOLONY_SPLASHRADIUS    300
 #define CREEPCOLONY_CREEPSIZE       120
 #define CREEPCOLONY_VALUE           ABVM(20)
@@ -627,8 +627,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define REFINERY_BP                 4
 #define REFINERY_BT                 22000
 #define REFINERY_HEALTH             HBHM(210)
-#define REFINERY_SPLASHDAMAGE       50
-#define REFINERY_SPLASHRADIUS       200
+#define REFINERY_SPLASHDAMAGE       200
+#define REFINERY_SPLASHRADIUS       300
 #define REFINERY_VALUE              HBVM(20)
 #define REFINERY_RADIUS             "600"
 
