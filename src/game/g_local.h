@@ -1138,6 +1138,7 @@ extern  vmCvar_t  g_freeFundPeriod;
 
 extern  vmCvar_t  g_lcannonDischargeBuildings;
 extern  vmCvar_t  g_lcannonDischargeAttacker;
+extern  vmCvar_t  g_lcannonDischargeBolt;
 extern  vmCvar_t  g_lcannonDischargeRadius;
 
 extern  vmCvar_t  g_unlagged;

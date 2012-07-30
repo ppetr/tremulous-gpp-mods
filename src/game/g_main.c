@@ -101,6 +101,7 @@ vmCvar_t  g_freeFundPeriod;
 
 vmCvar_t  g_lcannonDischargeBuildings;
 vmCvar_t  g_lcannonDischargeAttacker;
+vmCvar_t  g_lcannonDischargeBolt;
 vmCvar_t  g_lcannonDischargeRadius;
 
 vmCvar_t  g_unlagged;
@@ -234,8 +235,9 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_teamImbalanceWarnings, "g_teamImbalanceWarnings", "30", CVAR_ARCHIVE, 0, qfalse  },
   { &g_freeFundPeriod, "g_freeFundPeriod", DEFAULT_FREEKILL_PERIOD, CVAR_ARCHIVE, 0, qtrue },
 
-  { &g_lcannonDischargeBuildings, "g_lcannonDischargeBuildings", "0.30", CVAR_ARCHIVE, 0, qfalse },
-  { &g_lcannonDischargeAttacker, "g_lcannonDischargeAttacker", "0.40", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeBuildings, "g_lcannonDischargeBuildings", "0.10", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeAttacker, "g_lcannonDischargeAttacker", "0.25", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeBolt, "g_lcannonDischargeBolt", "0.30", CVAR_ARCHIVE, 0, qfalse },
   { &g_lcannonDischargeRadius, "g_lcannonDischargeRadius", "400", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
