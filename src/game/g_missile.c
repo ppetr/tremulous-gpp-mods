@@ -529,7 +529,7 @@ gentity_t *fire_luciferCannon( gentity_t *self, vec3_t start, vec3_t dir,
     {
       buildingDamage = (int)( damage * g_lcannonDischargeBuildings.value );
       selfDamage = (int)( damage * g_lcannonDischargeAttacker.value );
-      damage -= buildingDamage + selfDamage;
+      damage = (int)( damage * g_lcannonDischargeBolt.value );
       if( damage <= 0 )
           damage = 1; // at least a symbolic damage
     }

@@ -127,6 +127,7 @@ vmCvar_t  g_basiUpgPoisonTime;
 
 vmCvar_t  g_lcannonDischargeBuildings;
 vmCvar_t  g_lcannonDischargeAttacker;
+vmCvar_t  g_lcannonDischargeBolt;
 vmCvar_t  g_lcannonDischargeRadius;
 
 vmCvar_t  g_humanScareNadeRange;
@@ -299,8 +300,9 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_basiPoisonTime, "g_basiPoisonTime", "5", CVAR_ARCHIVE, 0, qfalse },
   { &g_basiUpgPoisonTime, "g_basiUpgPoisonTime", "8", CVAR_ARCHIVE, 0, qfalse },
 
-  { &g_lcannonDischargeBuildings, "g_lcannonDischargeBuildings", "0.30", CVAR_ARCHIVE, 0, qfalse },
-  { &g_lcannonDischargeAttacker, "g_lcannonDischargeAttacker", "0.40", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeBuildings, "g_lcannonDischargeBuildings", "0.10", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeAttacker, "g_lcannonDischargeAttacker", "0.25", CVAR_ARCHIVE, 0, qfalse },
+  { &g_lcannonDischargeBolt, "g_lcannonDischargeBolt", "0.30", CVAR_ARCHIVE, 0, qfalse },
   { &g_lcannonDischargeRadius, "g_lcannonDischargeRadius", "400", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_humanScareNadeRange, "g_humanScareNadeRange", "500", CVAR_ARCHIVE, 0, qtrue },
