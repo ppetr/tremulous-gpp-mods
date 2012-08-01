@@ -3989,6 +3989,10 @@ static gentity_t *G_FinishSpawningBuildable( gentity_t *ent, qboolean force )
 
   G_SetOrigin( built, tr.endpos );
 
+  // EXPERIMENTAL: always let buildings be sent over the network
+  if( g_buildableSvfBroadcast.integer )
+    built->r.svFlags |= SVF_BROADCAST;
+
   trap_LinkEntity( built );
   return built;
 }

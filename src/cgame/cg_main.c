@@ -224,6 +224,9 @@ vmCvar_t  cg_emoticons;
 
 vmCvar_t  cg_chatTeamPrefix;
 
+//ROTAXfun
+vmCvar_t  cg_rotaxFPS_BOOST;
+
 typedef struct
 {
   vmCvar_t  *vmCvar;
@@ -360,7 +363,10 @@ static cvarTable_t cvarTable[ ] =
 
   { &cg_emoticons, "cg_emoticons", "1", CVAR_LATCH|CVAR_ARCHIVE},
 
-  { &cg_chatTeamPrefix, "cg_chatTeamPrefix", "1", CVAR_ARCHIVE}
+  { &cg_chatTeamPrefix, "cg_chatTeamPrefix", "1", CVAR_ARCHIVE},
+
+  //ROTAXfun
+  { &cg_rotaxFPS_BOOST, "cg_rotaxFPS_BOOST", "1", CVAR_ARCHIVE|CVAR_USERINFO }
 };
 
 static int   cvarTableSize = sizeof( cvarTable ) / sizeof( cvarTable[0] );
