@@ -36,6 +36,9 @@ static  centity_t *cg_solidEntities[MAX_ENTITIES_IN_SNAPSHOT];
 static  int     cg_numTriggerEntities;
 static  centity_t *cg_triggerEntities[MAX_ENTITIES_IN_SNAPSHOT];
 
+//ROTAXfun
+extern vmCvar_t cg_rotaxFPS_BOOST;
+
 /*
 ====================
 CG_BuildSolidList
@@ -95,6 +98,7 @@ static void CG_ClipMoveToEntities ( const vec3_t start, const vec3_t mins,
   trace_t       trace;
   entityState_t *ent;
   clipHandle_t  cmodel;
+  vec3_t        tmins, tmaxs;//ROTAXfun
   vec3_t        bmins, bmaxs;
   vec3_t        origin, angles;
   centity_t     *cent;
@@ -105,6 +109,19 @@ static void CG_ClipMoveToEntities ( const vec3_t start, const vec3_t mins,
     j = cg_numSolidEntities + 1;
   else
     j = cg_numSolidEntities;
+
+  //ROTAXfun
+  if (cg_rotaxFPS_BOOST.integer)
+  {
+    // calculate bounding box of the trace
+    ClearBounds( tmins, tmaxs );
+    AddPointToBounds( start, tmins, tmaxs );
+    AddPointToBounds( end, tmins, tmaxs );
+    if( mins )
+      VectorAdd( mins, tmins, tmins );
+    if( maxs )
+      VectorAdd( maxs, tmaxs, tmaxs );
+  }
 
   for( i = 0; i < j; i++ )
   {
@@ -140,9 +157,22 @@ static void CG_ClipMoveToEntities ( const vec3_t start, const vec3_t mins,
       if( i == cg_numSolidEntities )
         BG_ClassBoundingBox( ( ent->misc >> 8 ) & 0xFF, bmins, bmaxs, NULL, NULL, NULL );
 
+      //ROTAXfun
+      if (cg_rotaxFPS_BOOST.integer)
+      {
+        VectorAdd( cent->lerpOrigin, bmins, bmins );
+        VectorAdd( cent->lerpOrigin, bmaxs, bmaxs );
+        if( !BoundsIntersect( bmins, bmaxs, tmins, tmaxs ) )
+          continue;
+      }
+
       cmodel = trap_CM_TempBoxModel( bmins, bmaxs );
       VectorCopy( vec3_origin, angles );
-      VectorCopy( cent->lerpOrigin, origin );
+      //ROTAXfun
+      if (cg_rotaxFPS_BOOST.integer)
+        VectorCopy( vec3_origin, origin );
+      else
+        VectorCopy( cent->lerpOrigin, origin );
     }
 
 
