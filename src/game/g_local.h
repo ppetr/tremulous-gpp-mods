@@ -1178,6 +1178,8 @@ extern  vmCvar_t  g_allowTeamOverlay;
 
 extern  vmCvar_t  g_censorship;
 
+extern  vmCvar_t  g_buildableSvfBroadcast;
+
 void      trap_Print( const char *fmt );
 void      trap_Error( const char *fmt );
 int       trap_Milliseconds( void );

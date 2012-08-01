@@ -141,6 +141,8 @@ vmCvar_t  g_allowTeamOverlay;
 
 vmCvar_t  g_censorship;
 
+vmCvar_t  g_buildableSvfBroadcast;
+
 vmCvar_t  g_tag;
 
 
@@ -270,6 +272,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_allowTeamOverlay, "g_allowTeamOverlay", "1", CVAR_ARCHIVE, 0, qtrue  },
 
   { &g_censorship, "g_censorship", "", CVAR_ARCHIVE, 0, qfalse  },
+
+  { &g_buildableSvfBroadcast, "g_buildableSvfBroadcast", "1", CVAR_ARCHIVE, 0, qfalse  },
 
   { &g_tag, "g_tag", "gpp", CVAR_INIT, 0, qfalse }
 };
