@@ -1621,12 +1621,13 @@ qboolean G_admin_warn( gentity_t *ent )
 {
   int pid;
   char name[ MAX_NAME_LENGTH ], *message, err[ MAX_STRING_CHARS ];
+  char *adminName;
   int color;
   gentity_t *vic;
 
   if( trap_Argc() < 3 )
   {
-    ADMP( "^3kick: ^7usage: warn [name] [message]\n" );
+    ADMP( "^3warn: ^7usage: warn [name] [message]\n" );
     return qfalse;
   }
   trap_Argv( 1, name, sizeof( name ) );
@@ -1637,7 +1638,7 @@ qboolean G_admin_warn( gentity_t *ent )
     return qfalse;
   }
   vic = &g_entities[ pid ];
-  if( !admin_higher( ent, vic ) )
+  if( !admin_higher( ent, vic ) && ( vic != ent ) ) // allow to warn self - for testing
   {
     ADMP( "^3warn: ^7sorry, but your intended victim has a higher admin"
         " level than you\n" );
@@ -1646,15 +1647,23 @@ qboolean G_admin_warn( gentity_t *ent )
 
   color = COLOR_YELLOW;
 
-  trap_SendServerCommand( pid,
-    va( "print \"" 
-        S_COLOR_MAGENTA "Administrator warning: " 
-        "^%c%s\n\"",
+  // Don't disclose an incognito admin.
+  adminName = ( ent && !G_admin_permission( ent, ADMF_INCOGNITO ) )
+    ? ent->client->pers.netname : "console";
+
+  CPx( pid,
+    va( "cp \""
+        "%s" S_COLOR_MAGENTA " warns you:\n^%c%s\n\"",
+        adminName,
+        color, message ) );
+  AP( va( "print \"^3warn: ^7%s^7 has been warned by %s^7: ^%c%s\n\"",
+        vic->client->pers.netname,
+        adminName,
         color, message ) );
 
   G_LogPrintf( "Warning: %d \"%s" S_COLOR_WHITE "\" \"%s\": ^%c%s\n",
     ( ent ) ? ent - g_entities : -1,
-    ( ent ) ? ent->client->pers.netname : "console",
+    ( ent ) ? ent->client->pers.netname : "console", // log the admin's name even if incognito
     name, color, message );
 
   return qtrue;
