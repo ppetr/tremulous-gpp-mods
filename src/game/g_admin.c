@@ -1632,7 +1632,7 @@ qboolean G_admin_warn( gentity_t *ent )
 {
   int pid;
   char name[ MAX_NAME_LENGTH ], *message, err[ MAX_STRING_CHARS ];
-  char *adminName;
+  const char *adminName;
   int color;
   gentity_t *vic;
 
@@ -1659,8 +1659,7 @@ qboolean G_admin_warn( gentity_t *ent )
   color = COLOR_YELLOW;
 
   // Don't disclose an incognito admin.
-  adminName = ( ent && !G_admin_permission( ent, ADMF_INCOGNITO ) )
-    ? ent->client->pers.netname : "console";
+  adminName = admin_name( ent );
 
   CPx( pid,
     va( "cp \""
@@ -1674,7 +1673,7 @@ qboolean G_admin_warn( gentity_t *ent )
 
   G_LogPrintf( "Warning: %d \"%s" S_COLOR_WHITE "\" \"%s\": ^%c%s\n",
     ( ent ) ? ent - g_entities : -1,
-    ( ent ) ? ent->client->pers.netname : "console", // log the admin's name even if incognito
+    admin_name( ent ), // log the admin's name even if incognito
     name, color, message );
 
   return qtrue;
