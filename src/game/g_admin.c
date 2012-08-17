@@ -1468,6 +1468,12 @@ qboolean G_admin_register( gentity_t *ent ){
     return qfalse;
 
   level = ent->client->pers.admin ? ent->client->pers.admin->level : 0;
+  if( level > 1 )
+  {
+    ADMP( "^3register: ^7administrators cannot change their registration\n" );
+    return qfalse;
+  }
+
   if( level == 0 )
    level = 1;
 
