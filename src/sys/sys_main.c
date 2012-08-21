@@ -592,7 +592,7 @@ int main( int argc, char **argv )
 	signal( SIGFPE, Sys_SigHandler );
 	signal( SIGSEGV, Sys_SigHandler );
 	signal( SIGTERM, Sys_SigHandler );
-	signal( SIGINT, Sys_SigHandler );
+	signal( SIGINT, SIG_IGN ); // ignore ^C from the console, just to be safe
 
 	while( 1 )
 	{
