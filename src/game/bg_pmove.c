@@ -469,6 +469,11 @@ static float PM_CmdScale( usercmd_t *cmd )
   if( pm->ps->pm_type == PM_GRABBED )
     modifier = 0.0f;
 
+  // wallsitters cannot move on walls, only sit
+  if( BG_ClassHasAbility( pm->ps->stats[ STAT_CLASS ], SCA_WALLSITTER ) &&
+          ( pm->ps->stats[ STAT_STATE ] & SS_WALLCLIMBING ) )
+    modifier = 0.0f;
+
   if( pm->ps->pm_type != PM_SPECTATOR && pm->ps->pm_type != PM_NOCLIP )
   {
     if( BG_Class( pm->ps->stats[ STAT_CLASS ] )->jumpMagnitude == 0.0f )

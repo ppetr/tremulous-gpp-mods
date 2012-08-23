@@ -8,8 +8,7 @@
     "\n"
     "Visit our FaceBook page at http://www.tinyurl.com/n7clan\n"
     "\n"
-    "^5If you want to contact an administrator or just talk with other players, " 
-    "connect via TeamSpeak 3 to 50.7.246.46:10011."
+    "^5New experimengal granger change: Grangers can wallwalk during Stage 1, but they cannot move on walls. They can jump, activate wallwalk in the air, and then sit and build on the wall around them."
   }
   "^1Rules of the server^7"
   {
