@@ -24,7 +24,7 @@
     "You may not call a draw when one of the teams if making progress.\n"
     "Don't ask for admin privileges, you won't get any. Really."
   }
-  "^6Help us - donate^7"
+  "^1Help us - DONATE^7"
   {
     "Renting a good server with a fast network connection costs money. "
     "Developing the mods costs time. Without support from the community "
@@ -62,13 +62,6 @@
   "^7Register^7"
   {
     "You can register your nickname by issuing ^3/register^7 command on the console."
-  }
-  "^7Armageddon^7"
-  {
-    "If the server is dying due to too many buildings, you can call an armageddon vote. "
-    "If the vote passes, a given percent of turrets / teslas / acid tubes / hives is destroyed.\n"
-    "Example: ^3/callvote armageddon 50^7\n"
-    "If this vote passes, 50% of all defensive buildings both human and alien is immediately destroyed."
   }
   "^8Bugfixes^7"
   {
