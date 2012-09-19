@@ -307,9 +307,9 @@ static const buildableAttributes_t bg_buildableList[ ] =
     0,                     //int       turretRange;
     0,                     //int       turretFireSpeed;
     WP_NONE,               //weapon_t  turretProjType;
-    0.80f,                 //float     minNormal;
+    0,                     //float     minNormal;
     qtrue,                 //qboolean  invertNormal;
-    qtrue,                 //qboolean  creepTest;
+    qfalse,                //qboolean  creepTest;
     CREEPCOLONY_CREEPSIZE, //int       creepSize;
     qfalse,                //qboolean  dccTest;
     qfalse,                //qboolean  transparentTest;

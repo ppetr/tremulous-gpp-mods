@@ -1569,7 +1569,9 @@ think function for Alien Creep Colony
 */
 void ACreepColony_Think( gentity_t *self )
 {
-  AGeneric_Think( self );
+  // AGeneric_Think( self );
+  self->nextthink = level.time + BG_Buildable( self->s.modelindex )->nextthink;
+  G_CreepSlow( self );
 
   CheckGatherer( self );
 }
