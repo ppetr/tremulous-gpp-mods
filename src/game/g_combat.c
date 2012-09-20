@@ -899,8 +899,8 @@ static float G_CalcDamageModifier( vec3_t point, gentity_t *targ, gentity_t *att
                                      g_numDamageRegions[ class ],
                                      hitRotation, hitRatio );
 
-  // For headshots, make a client event
-  if( modifier >= 1.2f )
+  // For headshots done by an enemy, make a client event
+  if( ( modifier >= 1.2f ) && !OnSameTeam( targ, attacker ) )
     targ->client->damage_headshot ++;
 
   for( i = UP_NONE + 1; i < UP_NUM_UPGRADES; i++ )
