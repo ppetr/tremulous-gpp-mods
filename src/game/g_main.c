@@ -133,6 +133,8 @@ vmCvar_t  g_lcannonDischargeRadius;
 vmCvar_t  g_humanScareNadeRange;
 vmCvar_t  g_humanScareNadeChance;
 
+vmCvar_t  g_dretchBuildingDamage;
+
 vmCvar_t  g_unlagged;
 
 vmCvar_t  g_basiFlameMod;
@@ -309,6 +311,8 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_humanScareNadeRange, "g_humanScareNadeRange", "500", CVAR_ARCHIVE, 0, qtrue },
   { &g_humanScareNadeChance, "g_humanScareNadeChance", "0.5", CVAR_ARCHIVE, 0, qtrue },
+
+  { &g_dretchBuildingDamage, "g_dretchBuildingDamage", "100", CVAR_ARCHIVE, 0, qfalse },
 
   { &g_unlagged, "g_unlagged", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
 
