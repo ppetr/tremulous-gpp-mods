@@ -1696,6 +1696,14 @@ void Cmd_Class_f( gentity_t *ent )
         return;
       }
 
+      if( ( newClass == PCL_ALIEN_BUILDER0 ||
+            newClass == PCL_ALIEN_BUILDER0_UPG ) &&
+          ent->client->pers.namelog->denyBuild )
+      {
+        G_TriggerMenuArgs( ent->client->ps.clientNum, MN_B_REVOKED, newClass );
+        return;
+      }
+
       if( !BG_ClassIsAllowed( newClass ) )
       {
         G_TriggerMenuArgs( ent->client->ps.clientNum, MN_A_CLASSNOTALLOWED, newClass );
