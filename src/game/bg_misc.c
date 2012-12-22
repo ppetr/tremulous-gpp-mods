@@ -309,7 +309,7 @@ static const buildableAttributes_t bg_buildableList[ ] =
     WP_NONE,               //weapon_t  turretProjType;
     0,                     //float     minNormal;
     qtrue,                 //qboolean  invertNormal;
-    qfalse,                //qboolean  creepTest;
+    qtrue,                 //qboolean  creepTest;
     CREEPCOLONY_CREEPSIZE, //int       creepSize;
     qfalse,                //qboolean  dccTest;
     qfalse,                //qboolean  transparentTest;
