@@ -1146,7 +1146,17 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
     // add to the attackers "account" on the target
     if( attacker->client && attacker != targ )
-      targ->credits[ attacker->client->ps.clientNum ] += take;
+    {
+      gentity_t *basiClouded =
+          ( targ->client != NULL ) ? targ->client->lastPoisonCloudedClient : NULL;
+      if( basiClouded && basiClouded->client && ( g_basiCloudEvosPct.integer > 0 ))
+      {
+        int basiCredits = take * g_basiCloudEvosPct.integer / 100;
+        targ->credits[ basiClouded->client->ps.clientNum ] += basiCredits;
+        targ->credits[ attacker->client->ps.clientNum ] += take - basiCredits;
+      } else
+        targ->credits[ attacker->client->ps.clientNum ] += take;
+    }
 
     if( targ->health <= 0 )
     {

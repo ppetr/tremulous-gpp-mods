@@ -1009,6 +1009,7 @@ void poisonCloud( gentity_t *ent )
 
       humanPlayer->client->ps.eFlags |= EF_POISONCLOUDED;
       humanPlayer->client->lastPoisonCloudedTime = level.time;
+      humanPlayer->client->lastPoisonCloudedClient = ent;
 
       trap_SendServerCommand( humanPlayer->client->ps.clientNum,
                               "poisoncloud" );
