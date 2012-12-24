@@ -425,6 +425,7 @@ struct gclient_s
   int                 poisonImmunityTime;
   gentity_t           *lastPoisonClient;
   int                 lastPoisonCloudedTime;
+  gentity_t           *lastPoisonCloudedClient;
   int                 grabExpiryTime;
   int                 lastLockTime;
   int                 lastSlowTime;
@@ -1179,6 +1180,8 @@ extern  vmCvar_t  g_humanScareNadeRange;
 extern  vmCvar_t  g_humanScareNadeChance;
 
 extern  vmCvar_t  g_dretchBuildingDamage;
+
+extern  vmCvar_t  g_basiCloudEvosPct;
 
 extern  vmCvar_t  g_unlagged;
 

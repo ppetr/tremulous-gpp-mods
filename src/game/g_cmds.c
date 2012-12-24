@@ -454,6 +454,7 @@ void Cmd_Give_f( gentity_t *ent )
   {
     ent->client->ps.eFlags |= EF_POISONCLOUDED;
     ent->client->lastPoisonCloudedTime = level.time;
+    ent->client->lastPoisonCloudedClient = NULL;
     trap_SendServerCommand( ent->client->ps.clientNum,
                               "poisoncloud" );
   }
