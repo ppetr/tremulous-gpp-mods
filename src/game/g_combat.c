@@ -1148,8 +1148,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
     if( attacker->client && attacker != targ )
     {
       gentity_t *basiClouded =
-          ( targ->client != NULL ) ? targ->client->lastPoisonCloudedClient : NULL;
-      if( basiClouded && basiClouded->client && ( g_basiCloudEvosPct.integer > 0 ))
+          ( ( targ->client != NULL ) &&
+            ( targ->client->ps.eFlags & EF_POISONCLOUDED ) )
+          ? targ->client->lastPoisonCloudedClient : NULL;
+      if( basiClouded && basiClouded->client && ( g_basiCloudEvosPct.integer > 0 ) )
       {
         int basiCredits = take * g_basiCloudEvosPct.integer / 100;
         targ->credits[ basiClouded->client->ps.clientNum ] += basiCredits;
