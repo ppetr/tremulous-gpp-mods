@@ -1199,7 +1199,9 @@ void AAcidTube_Think( gentity_t *self )
       if( !G_Visible( self, enemy, CONTENTS_SOLID ) )
         continue;
 
-      if( enemy->client && enemy->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+      if( ( enemy->client && enemy->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS ) ||
+          ( enemy->s.eType == ET_BUILDABLE &&
+            BG_Buildable( enemy->s.modelindex )->team == TEAM_HUMANS ) )
       {
         // start the attack animation
         if( level.time >= self->timestamp + ACIDTUBE_REPEAT_ANIM )
